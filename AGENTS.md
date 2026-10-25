@@ -8,6 +8,8 @@
 
 ## 關鍵時程
 
+- 2026-10-25：從 `media-comfyui-studio` 搬入古裝庭院惡搞短片《臭豆腐》（`films/原創短劇/臭豆腐/`）與 H3 灰模動作參考測試（`films/測試/測試_H3灰模動作參考/`，瘦身後只留筆記、參考片產生腳本與對照圖）
+
 ## 目標與路線圖
 - [x] 階段一：複製上游 repo、移除原作者個人資訊、加上來源標示、專案初始化
 - [ ] 階段二：照 `AGENT_SETUP.md` 檢查硬體（`python setup/detect_hardware.py`）、安裝環境與下載模型
@@ -99,6 +101,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 
 ### 做片
 - 自己的片一律放 `films/<類型>/<片名>/`（類型例：數學家故事、換角重製、原創短劇、測試），用 `tools/new_film.py <類型> <片名>`（`short-film` 技能）從 `pipeline/template_local/` 建立，不要手動複製；`repo_dir` 是 `../../..`（`new_film.py` 會填）；`films/` 已列入 `.gitignore`，只走雲端硬碟、沒有 GitHub 備份。
+- 《臭豆腐》與〈測試_H3灰模動作參考〉是搬來的舊作，不是用 `make_film.py`／`h3_shot.py` 做的，結構不照範本（成品在 `media/`）；重現《臭豆腐》用它自己的 `build_seg.py`，舊產生器 `ref2va.py` 封存在該片的 `legacy/`，不要搬進 `tools/`，新片一律用 `tools/h3_shot.py`。
 - 頻道與角色的做片規則在 `films/AGENTS.md`（`films/CLAUDE.md` 橋接），只屬於某類影片的規則在 `films/<類型>/AGENTS.md`，角色資產在 `films/角色/`（各類型共用）；不要把這些寫進本檔或 `pipeline/`。
 - 照參考影片換主角（保留動作、背景、聲音）照 `docs/08_換角重製.md`：片子資料夾寫 `recast.json`，用 `tools/recast.py`（首幀、配音、各鏡 spec、H3、剪接）；不要走 `make_film.py` 的 h3 階段（它不會把 `control` 傳給 H3）。
 - 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `output/cut/film_1080p.mp4` 移到該片 `output/` 最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `skills/short-film/references/review.md`）。
