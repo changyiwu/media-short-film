@@ -99,3 +99,4 @@
 - 2026-10-25 發布對象改為社群與 YouTube 都發，上架資訊回到正式步驟（片尾仍預設不加）：`docs/01_總覽與架構.md` 目標改寫；`docs/02_端到端流程.md` 總表新增第 15 步〈上架資訊〉、發布改為第 16 步，總表下方說明與 §12（改名〈片尾、上架資訊與發布〉）改為 YouTube 說明欄與社群貼文都要有 AI 生成標示；`README.md` 流程一覽、`skills/short-film/references/interview.md` 交付平台與片尾選問同步。
 - 2026-10-25 `templates/發布資訊範本.md` 改寫為五個媒體專案共用的整合版（本檔為正本）：併入 media-3d-studio 的版本一覽與作品限制、media-music-video 的工具對照表與發布後紀錄、media-youtube-publish 的 Hook／重點／CTA、SEO 標籤與 Threads、media-video-specs 的素材署名；新增〈各專案對照〉、Threads 與置頂留言段落，平台數字附查閱日期。`AGENTS.md` 的 `templates/` 說明同步。
 - 2026-10-25 `templates/發布資訊範本.md` 的正本移到 media-youtube-publish（`skills/youtube-video-workflow/references/發布資訊範本.md`），本檔改為逐位元組相同的副本，由該專案的 `check_sync.py` 比對；`AGENTS.md` 的 `templates/` 說明同步。
+- 2026-10-25 media-youtube-publish 的技能重整（`youtube-video-workflow` 改名 `youtube-long`），`templates/發布資訊範本.md` 正本路徑改為 `skills/youtube-long/references/發布資訊範本.md`；本檔副本與 `AGENTS.md` 的路徑同步。
