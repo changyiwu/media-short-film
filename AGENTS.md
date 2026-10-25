@@ -39,6 +39,7 @@
   - [x] `.gitattributes` 讓 `*.cmd`／`*.bat` 簽出成 CRLF
   - [x] 角色「歐幾里得」＋〈歐幾里得的完美數〉（課本 88 頁〈完美數〉，依史料改主角為歐幾里得）成片 100 秒＋發布資訊
   - [x] 挑音加響度與嘶聲篩選、配音混音前濾波與真峰值把關；`breezyvoice_pick.py` 改名 `voice_pick.py`
+  - [x] 角色「劉徽」＋〈劉徽的紅黑算籌〉（康軒 7 上 1-2〈整數的加減〉〈數學史：算籌〉）成片 101 秒＋發布資訊
   - [x] 每鏡配樂倍數（`music_gain`）併進範本
   - [x] 移除選用配音引擎 BreezyVoice／Breeze TTS 2；讀音替換表從 media-video-specs 移植成兩專案共用的 `tts-lexicon.md`
 

@@ -30,6 +30,7 @@ for s in (sys.stdout, sys.stderr):
 
 LABEL_VOICE = "zh-TW-YunJheNeural"
 GAP_S = 0.6
+LISTEN_LUFS = -20.0      # 試聽時每支候選先調到這個響度（同範本 mix.voice_lufs）：原始候選常只有 -40 LUFS，跟代號比起來聽不清楚
 
 
 def voice_dir(p):
@@ -73,7 +74,13 @@ def audition(vd, name, picks):
                 sys.exit(f"{f} 的取樣率 {rate} 和其他候選 {sr} 不同")
             tag = f.rsplit("_", 1)[-1].replace(".wav", "")          # line3_s5.wav → s5
             say = f"目前，{tag}" if i == 0 else tag
-            parts += [label(say, sr, tmp), np.zeros(int(0.2 * sr), np.float32), mono(x), np.zeros(int(GAP_S * sr), np.float32)]
+            x = mono(x)
+            if r.get("lufs") is not None:                           # 只調試聽音量，響度欄照舊印原始值（音量離群照樣看得出來）
+                x = x * 10 ** ((LISTEN_LUFS - r["lufs"]) / 20)
+                peak = float(np.abs(x).max()) if len(x) else 0.0
+                if peak > 0.98:
+                    x = x * (0.98 / peak)
+            parts += [label(say, sr, tmp), np.zeros(int(0.2 * sr), np.float32), x.astype(np.float32), np.zeros(int(GAP_S * sr), np.float32)]
             flag = "" if r.get("sound_ok", True) else "　⚠ 音量或嘶聲異常"
             lufs = "—" if r.get("lufs") is None else f"{r['lufs']:.1f}"
             print(f"  {tag + ('＊' if i == 0 else ''):<6}{'✓' if r.get('asr_ok') else '✗':<6}{r.get('tw_score', 0):>6.2f}{lufs:>8}"

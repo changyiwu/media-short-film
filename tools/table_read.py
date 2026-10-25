@@ -221,7 +221,8 @@ def main():
     concat.append(f"file '{(vid / (rows[-1]['shot'] + '.png')).as_posix()}'")
     (vid / "list.txt").write_text("\n".join(concat), encoding="utf-8")
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(vid / "list.txt"),
-                    "-vf", f"fps={FPS},format=yuv420p", "-c:v", "libx264", "-crf", "23", "-an", str(pv / "讀本試映.mp4")], check=True)
+                    "-vf", f"fps={FPS},format=yuv420p", "-t", f"{story:.3f}",   # concat 結尾重複的那張會多停一段，裁回估計長度
+                    "-c:v", "libx264", "-crf", "23", "-an", str(pv / "讀本試映.mp4")], check=True)
     (pv / "讀本_timeline.json").write_text(json.dumps(dict(story=story, ending=end, total=total, target=target, voice_cps=VOICE_CPS, shots=rows),
                                                      ensure_ascii=False, indent=1), encoding="utf-8")
     n_lines = len(lines_of(cfg)); n_voiced = sum(r["voiced"] for r in rows)
