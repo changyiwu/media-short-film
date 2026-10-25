@@ -34,7 +34,7 @@ films/
 ## 必讀（開工前）
 
 - 生角色圖前：讀 `角色/<角色>/README.md`，照抄鎖定的外觀描述，不要自己重寫。
-- 做片流程（訪談、劇本、預演、`film.json`、製作、自審）：照 `short-film` 技能（`skills/short-film/`）。
+- 做片流程（訪談、劇本、預演、`film.json`、製作、自審）：照 `short-film` 技能（`.agents/skills/short-film/`）。
 - H3：一律寫分鏡 JSON，用 `<repo>\tools\h3_shot.py`（官方格式＋格式檢查），不手寫提示詞；用 `make_film.py` 時由它產生。
 - 做片前讀：`../docs/03_規則與踩坑.md`、`../docs/04_自審清單.md`。
 

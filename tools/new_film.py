@@ -5,7 +5,7 @@
 - 類型是影片類型的資料夾（例：數學家故事、換角重製、原創短劇、測試），各類型專屬的規則寫在 films/<類型>/AGENTS.md。
 - 只複製 film.json、make_film.py、review.py（跳過 output/、__pycache__、README.md；說明請看範本的 README.md）。
 - film.json 的 title 換成片名，repo_dir 改成 "../../.."（片子在 repo 下三層）。
-- 另外建空的 需求確認.md、劇本.md、製作紀錄.md（需求確認表的欄位見 skills/short-film/references/interview.md）。
+- 另外建空的 需求確認.md、劇本.md、製作紀錄.md（需求確認表的欄位見 .agents/skills/short-film/references/interview.md）。
 - films/AGENTS.md 不存在時（新電腦、新頻道），從 templates/AGENTS_TEMPLATE.md 建一份，並加 CLAUDE.md 橋接。
 - films/<類型>/ 是新的時，建 films/<類型>/AGENTS.md（類型規則的空白範本）＋CLAUDE.md 橋接，並列出既有類型方便核對有沒有打錯字。
 - films/<類型>/<片名>/ 已存在就停下來，不覆蓋。

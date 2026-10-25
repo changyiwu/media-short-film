@@ -50,7 +50,7 @@
 | Google Colab 服務 | Google 服務條款＋Colab 使用限制 | 運算單元依各人方案計費；不得挖礦、當代理伺服器等；本工具不開網頁介面、不用外連通道 | https://research.google.com/colaboratory/faq.html |
 | Noto Sans/Serif CJK、AR PL UKai（Linux 字型，`cloud/vm/install_full.sh` 用 apt 安裝） | SIL OFL 1.1／Arphic Public License | 不在 repo 內；`tools/fonts.py` 只指向系統字型路徑 | https://github.com/notofonts/noto-cjk |
 | `sfx/` 音效 58 個（Freesound） | CC0 1.0（每個檔的編號、網址、授權確認見 `sfx/manifest.json`） | 公有領域，可商用、免標示；本 repo 直接附檔 | https://freesound.org |
-| POUND0423/AI-drama-pound | MIT（Copyright (c) 2026 POUND0423） | `skills/short-film/` 的編劇部分（原 `ai-drama`）改寫自此，已附原授權全文 | https://github.com/POUND0423/AI-drama-pound |
+| POUND0423/AI-drama-pound | MIT（Copyright (c) 2026 POUND0423） | `.agents/skills/short-film/` 的編劇部分（原 `ai-drama`）改寫自此，已附原授權全文 | https://github.com/POUND0423/AI-drama-pound |
 
 ## 本 repo 的定位：非商業使用
 

@@ -20,7 +20,7 @@ python setup\detect_hardware.py
 | 16GB | 32GB | `shanshiba-workflow-16gvram-32gram` |
 | 12GB 以下、記憶體不到 32GB、沒有 NVIDIA 顯卡、Mac | — | **`shanshiba-workflow-colab`**：H3 送 Google Colab 跑（要 Google AI 方案或 Colab 運算單元），見 `cloud/README.md` |
 
-如果推薦的不是 16GB VRAM＋64GB RAM 版，**停下來告訴使用者**，請他改用上游對應的 repo。上游四份之間只差在 `docs/hardware.md` 和 `configs/profile.cmd`，但本分支的流程已經跟上游不同（生圖預設 OpenAI、配音預設 VoxCPM2、做片用 `ai-film` 技能，見 [NOTICE.md](NOTICE.md)），改用上游 repo 就照該 repo 的說明做。每一份都有 `cloud/`，所以本機版的人也可以把 H3 送到 Colab 加速。
+如果推薦的不是 16GB VRAM＋64GB RAM 版，**停下來告訴使用者**，請他改用上游對應的 repo。上游四份之間只差在 `docs/hardware.md` 和 `configs/profile.cmd`，但本分支的流程已經跟上游不同（生圖預設 OpenAI、配音預設 VoxCPM2、做片用 `short-film` 技能，見 [NOTICE.md](NOTICE.md)），改用上游 repo 就照該 repo 的說明做。每一份都有 `cloud/`，所以本機版的人也可以把 H3 送到 Colab 加速。
 
 > **用 Colab 時（cloud/）**：本手冊第 1–3 節只需要做你本機要跑的部分（例如只裝語音環境），Colab 上的環境由 `python cloud/colab_h3.py start` 自動裝好（**預設完整安裝，同第一份完整版**；只要 H3 時加 `--h3-only` 比較快）；本機什麼都跑不動就只要裝 Colab CLI，然後 `start`。**登入 `colab usage` 一定要讓使用者自己在終端機操作**（瀏覽器授權、貼授權碼），agent 不要經手授權碼。先告訴使用者 Colab 的 G4 機房在美國／歐盟、H3 授權排除這些地區，由使用者決定是否使用（`cloud/README.md` 開頭）。
 
@@ -177,7 +177,7 @@ call <repo>\configs\profile.cmd
 
 ## 6. 開始做片
 
-讀 `docs/03_規則與踩坑.md`（規則）和 `pipeline/template_local/README.md`（做法），做片規則入口是 `films/AGENTS.md`：第一次跑 `new_film.py` 時會從 `templates/AGENTS_TEMPLATE.md` 自動建好（含 Claude Code 的 `CLAUDE.md` 橋接），請使用者改成自己的頻道規則。做新片照 `short-film` 技能（`skills/short-film/SKILL.md`）：`python tools/new_film.py <類型> <片名>`（把 `pipeline/template_local/` 複製成 `films/<類型>/<片名>/`）→ 需求訪談 → 寫劇本與鏡表 →（選用）Blender 預演 → 把角色、場景、鏡表填進 `film.json` → `make_film.py` 分段跑，三個人工關卡（首幀總覽、每鏡抽格、成片）都要給使用者看。
+讀 `docs/03_規則與踩坑.md`（規則）和 `pipeline/template_local/README.md`（做法），做片規則入口是 `films/AGENTS.md`：第一次跑 `new_film.py` 時會從 `templates/AGENTS_TEMPLATE.md` 自動建好（含 Claude Code 的 `CLAUDE.md` 橋接），請使用者改成自己的頻道規則。做新片照 `short-film` 技能（`.agents/skills/short-film/SKILL.md`）：`python tools/new_film.py <類型> <片名>`（把 `pipeline/template_local/` 複製成 `films/<類型>/<片名>/`）→ 需求訪談 → 寫劇本與鏡表 →（選用）Blender 預演 → 把角色、場景、鏡表填進 `film.json` → `make_film.py` 分段跑，三個人工關卡（首幀總覽、每鏡抽格、成片）都要給使用者看。
 
 ## 常見問題
 

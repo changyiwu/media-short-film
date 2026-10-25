@@ -7,7 +7,7 @@
 ## 用法
 
 1. 在 repo 根目錄跑 `python tools/new_film.py <類型> <片名>`（或 `tools\new_film.cmd <類型> <片名>`），會把本範本的 `film.json`、`make_film.py`、`review.py` 複製成 `films/<類型>/<片名>/`，並建好 `劇本.md`、`製作紀錄.md`（`films/` 不進 repo）。如果手動複製到別的地方，請把 `film.json` 的 `repo_dir` 改成指向本 repo 根目錄（片尾範本在 `<repo>/templates/ending/`）。
-2. 改 `film.json`（欄位說明見下一節）。劇本先照 `short-film` 技能寫好（需求訪談 → 劇本與鏡表），再把鏡表填進 `shots`（填寫規則見 `skills/short-film/references/film-json.md`）。
+2. 改 `film.json`（欄位說明見下一節）。劇本先照 `short-film` 技能寫好（需求訪談 → 劇本與鏡表），再把鏡表填進 `shots`（填寫規則見 `.agents/skills/short-film/references/film-json.md`）。
 3. 在同一個 cmd 視窗執行：
    ```
    set PYTHONUTF8=1

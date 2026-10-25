@@ -1,6 +1,6 @@
 ---
 name: short-film
-description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 分鐘 AI 短片的全流程：開新片、需求訪談、寫劇本與鏡表、（選用）Blender 預演、填 film.json、跑 make_film.py 與三個人工關卡、自審交付。當使用者說「開新片」「做一支新片」「寫短劇劇本」「想個劇情」「改台詞」「加個反轉」「審劇本」「拆鏡頭／鏡表」「做預演」「布置圖」「排鏡位」「填 film.json」「跑 make_film」「自審成片」時使用。編劇類請求不在 media-short-film 裡時，先問使用者是否要用這套流程。
+description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 分鐘 AI 短片的全流程：開新片、需求訪談、寫劇本與鏡表、（選用）Blender 預演、填 film.json、跑 make_film.py 與三個人工關卡、自審交付。當使用者說「開新片」「做一支新片」「寫短劇劇本」「想個劇情」「改台詞」「加個反轉」「審劇本」「拆鏡頭／鏡表」「做預演」「布置圖」「排鏡位」「填 film.json」「跑 make_film」「自審成片」時使用。本技能是 media-short-film 的專案層級技能（`.agents/skills/`），只在這個 repo 裡用。
 ---
 
 # AI 短片（media-short-film）
@@ -9,7 +9,7 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 
 ## 先找到 repo
 
-本技能的腳本與文件都在 media-short-film repo（以下寫 `<repo>`）。從目前資料夾往上找，同時有 `tools/new_film.py` 和 `pipeline/template_local/` 的那一層就是。找不到就問使用者 repo 在哪；只做純編劇（不製作）時可以不用 repo，照 `references/script/` 寫即可。
+本技能放在 media-short-film repo 的 `.agents/skills/short-film/`（專案層級技能，不裝全域），腳本與文件也都在這個 repo（以下寫 `<repo>`）。從目前資料夾往上找，同時有 `.agents/skills/short-film/SKILL.md` 和 `tools/new_film.py` 的那一層就是；找不到代表不在 repo 裡，請使用者到 repo 資料夾再做。
 
 ## 固定規格
 

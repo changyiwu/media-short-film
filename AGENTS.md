@@ -57,7 +57,7 @@ setup/                         模型下載清單、套件清單、smoke_test、
 cloud/                         H3 送 Google Colab 跑
 sfx/                           Freesound CC0 音效
 templates/                     片尾範本、法陣素材、AGENTS_TEMPLATE.md（做片入口範本）、發布資訊範本.md（YouTube／FB／IG／Threads；五個媒體專案各一份、內容逐位元組相同，正本在 media-youtube-publish 的 `skills/youtube-long/references/`，改正本再整份覆蓋，不在本專案就地改）
-skills/                        技能原始檔：short-film（做片全流程：開新片、訪談、編劇、預演、製作、自審；說「同步技能」裝成全域）
+.agents/skills/                專案層級技能：short-film（做片全流程：開新片、訪談、編劇、預演、製作、自審；不裝全域，見〈技能路由〉）
 configs/profile.cmd            桌機（16GB VRAM＋64GB RAM）環境變數
 configs/profile_rtxspark.cmd   RTX Spark 筆電（Windows on Arm＋64GB 統一記憶體）環境變數
 setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套件清單
@@ -67,7 +67,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 
 ### 授權與來源
 - **僅限非商業用途**：文件素材為 CC BY-NC 4.0；Qwen-Image 2.1 只能非商用。要營利前先照 `THIRD_PARTY_NOTICES.md` 替換模型。
-- **必須保留來源標示**：`LICENSE`、`LICENSE-docs.md`、`THIRD_PARTY_NOTICES.md`、`NOTICE.md`、`skills/short-film/NOTICE.md`、`skills/short-film/LICENSE-AI-drama-pound.txt` 不可刪除或移除原作者署名；修改上游文件時在 `NOTICE.md` 的修改清單補一筆。
+- **必須保留來源標示**：`LICENSE`、`LICENSE-docs.md`、`THIRD_PARTY_NOTICES.md`、`NOTICE.md`、`.agents/skills/short-film/NOTICE.md`、`.agents/skills/short-film/LICENSE-AI-drama-pound.txt` 不可刪除或移除原作者署名；修改上游文件時在 `NOTICE.md` 的修改清單補一筆。
 
 ### 生圖
 - 預設 OpenAI 生圖（`gen_image.py` 的 `IMAGE_BACKEND=auto`）：第一優先 Image 2.5 API（金鑰，確定是 Image 2.5），找不到金鑰才走 Codex CLI（`tools/codex_image.py`，扣 ChatGPT 訂閱，模型版本無法確認），兩者都不行、或選定後生成失敗就停下，不改試另一個、不自動改用千問；本機 Qwen-Image 為備選，要用就整支片設 `IMAGE_BACKEND=local`。金鑰由使用者自己設定（`OPENAI_API_KEY`／`OPENAI_KEY_FILE`／`~/.openai.env`），agent 不經手、不讀出內容、不寫進 repo。
@@ -104,10 +104,18 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 《臭豆腐》與〈測試_H3灰模動作參考〉是搬來的舊作，不是用 `make_film.py`／`h3_shot.py` 做的，結構不照範本（成品在 `media/`）；重現《臭豆腐》用它自己的 `build_seg.py`，舊產生器 `ref2va.py` 封存在該片的 `legacy/`，不要搬進 `tools/`，新片一律用 `tools/h3_shot.py`。
 - 頻道與角色的做片規則在 `films/AGENTS.md`（`films/CLAUDE.md` 橋接），只屬於某類影片的規則在 `films/<類型>/AGENTS.md`，角色資產在 `films/角色/`（各類型共用）；不要把這些寫進本檔或 `pipeline/`。
 - 照參考影片換主角（保留動作、背景、聲音）照 `docs/08_換角重製.md`：片子資料夾寫 `recast.json`，用 `tools/recast.py`（首幀、配音、各鏡 spec、H3、剪接）；不要走 `make_film.py` 的 h3 階段（它不會把 `control` 傳給 H3）。
-- 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `output/cut/film_1080p.mp4` 移到該片 `output/` 最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `skills/short-film/references/review.md`）。
+- 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `output/cut/film_1080p.mp4` 移到該片 `output/` 最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `.agents/skills/short-film/references/review.md`）。
 - 片尾是選用、預設不加：`film.json` 的 `ending.enabled` 為 true（或設 `ENDING=1`）才做片尾、接進成片。
 - `films/AGENTS.md` 是從 `templates/AGENTS_TEMPLATE.md` 改寫的獨立檔：改了範本裡的通用規則，要手動同步過去。
-- `skills/` 是技能原始檔，agent 不會直接從這裡載入；改完要說「同步技能」重裝全域副本。技能腳本要找 repo 的東西時放在 `tools/`，不要放進技能資料夾（全域副本不在 repo 裡）。
+- 技能只放專案的 `.agents/skills/`，不用 skill-sync 裝到任何 agent 的全域目錄，也不另建 `.claude/skills/` 副本或符號連結（雲端硬碟不同步符號連結）；改完直接生效，不用「同步技能」。技能要用的腳本照舊放 `tools/`，SKILL.md 從當前目錄往上找 repo 根。
+
+## 技能路由（四個 Agent 共用）
+
+本專案技能**只放在專案內的 `.agents/skills/`**。Codex、OpenCode、Antigravity 會自動載入；Claude Code 不讀 `.agents/skills/`，遇到下列情境時**先讀對應的 SKILL.md 再照做**（其他 Agent 沒自動觸發時也照此表）：
+
+| 情境 | 讀取 |
+|------|------|
+| 開新片、需求訪談、寫劇本與鏡表、改台詞、審劇本、拆鏡頭、預演與布置圖、填 `film.json`、跑 `make_film.py`、自審成片、成片定案 | `.agents/skills/short-film/SKILL.md` |
 
 ### 安全與隱私
 - **不放個資與金鑰**：不 commit 真人照片、克隆聲音／參考音、API 金鑰（`.env`）、模型權重、成片影片。本 repo 為**公開** repo。
