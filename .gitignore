@@ -17,9 +17,6 @@ __pycache__/
 *.pyc
 
 # 執行產物
-setup/output/
-pipeline/demo_local/output/
-pipeline/*/output/
 *.png.bak
 
 # GDrive
@@ -33,7 +30,6 @@ films/
 
 # 交接檔含真實電腦名與本機路徑，只走雲端硬碟同步，不進公開 repo
 handoff.md
-
 
 # 產出一律放 output/，不進 git
 output/
