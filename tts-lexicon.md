@@ -26,7 +26,7 @@
 - 內容有 `|` 時寫成 `\|`；要讓前後空白看得出來，可以用反引號包起來（`` `GPT four` ``）。
 - 只對某支片生效的條目，在那支片的資料夾放一份同名的 `tts-lexicon.md`（同樣的表格格式），同一個原文以近的為準。
 - 找表順序（近的覆蓋遠的）：同層其他三個 repo 的表 → 自己這份（設了環境變數 `TTS_LEXICON` 就改讀它指的表）→ 工作資料夾往上每一層的同名檔。
-- 新增條目後要重生那幾句並實際聽過：改字會改變旁白長度與逐詞時間。media-video-specs 照 GOTCHAS H-4／H-5 處理；media-short-film 已挑好的句子不會自動重挑，要刪掉該片 `output/voice/bv` 裡那句的候選再跑 `voices`。
+- 新增條目後要重生那幾句並實際聽過：改字會改變旁白長度與逐詞時間。media-video-specs 照 GOTCHAS H-4／H-5 處理；media-short-film 已挑好的句子不會自動重挑，要刪掉該片 `work/voice/bv` 裡那句的候選再跑 `voices`。
 
 ## 替換表
 
