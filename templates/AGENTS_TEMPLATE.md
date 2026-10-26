@@ -14,7 +14,7 @@
 films/
   AGENTS.md、CLAUDE.md   本檔＋橋接
   角色/<角色>/            轉面圖、表情表、臉部近照、README.md（鎖定的外觀描述）、參考音；各類型共用
-  <類型>/                 影片類型（例：數學家故事、換角重製、原創短劇、測試）
+  <類型>/                 影片類型（例：數學故事、換角重製、原創短劇、測試）
     AGENTS.md、CLAUDE.md  這個類型專屬的規則＋橋接（new_film.py 第一次建這個類型時自動建立）
     <片名>/               用 tools/new_film.py 從 ../pipeline/template_local/ 建立；film.json 的 repo_dir 是 "../../.."
       劇本.md  製作紀錄.md  film.json  output/

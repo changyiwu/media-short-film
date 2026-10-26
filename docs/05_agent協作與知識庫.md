@@ -13,7 +13,7 @@
 | `handoff.md` | repo 根目錄 | 交接：做到哪、下一步、這次的暫時 workaround；每次收工整份重寫 | ❌（含電腦名與本機路徑，只走雲端硬碟） |
 | `films/AGENTS.md` | `films/` | 做片與頻道規則、已否決的做法（範本：[templates/AGENTS_TEMPLATE.md](../templates/AGENTS_TEMPLATE.md)） | ❌（`films/` 只走雲端硬碟） |
 | `films/CLAUDE.md` | `films/` | 一行 `@AGENTS.md` 橋接 | ❌ |
-| `films/<類型>/AGENTS.md`（＋`CLAUDE.md`） | `films/<類型>/` | 只屬於某類影片的規則（例：數學家故事要照史料）；`new_film.py` 第一次建該類型時產生 | ❌ |
+| `films/<類型>/AGENTS.md`（＋`CLAUDE.md`） | `films/<類型>/` | 只屬於某類影片的規則（例：數學故事要照史料）；`new_film.py` 第一次建該類型時產生 | ❌ |
 
 - `AGENTS.md` 是開放標準，Codex、OpenCode 直接讀；Claude Code 透過 `CLAUDE.md` 的 import 讀；**規則只寫一份**，不要在 `CLAUDE.md` 另寫。
 - 三個檔案依「時效」分家：`handoff.md` 只對下一個 session 有效、`AGENTS.md` 長期有效、歷史（決策、逐次進度）放 Obsidian 或 `git log`。驗收標準：`handoff.md` 整份刪掉不應損失長期資訊。

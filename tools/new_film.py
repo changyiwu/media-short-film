@@ -1,8 +1,8 @@
 """開新片：把 pipeline/template_local/ 複製成 films/<類型>/<片名>/。
 
-用法：python tools/new_film.py <類型> <片名>     例：python tools/new_film.py 數學家故事 埃拉托賽尼的篩子
+用法：python tools/new_film.py <類型> <片名>     例：python tools/new_film.py 數學故事 埃拉托賽尼的篩子
 
-- 類型是影片類型的資料夾（例：數學家故事、換角重製、原創短劇、測試），各類型專屬的規則寫在 films/<類型>/AGENTS.md。
+- 類型是影片類型的資料夾（例：數學故事、換角重製、原創短劇、測試），各類型專屬的規則寫在 films/<類型>/AGENTS.md。
 - 只複製 film.json、make_film.py、review.py（跳過 output/、__pycache__、README.md；說明請看範本的 README.md）。
 - film.json 的 title 換成片名，repo_dir 改成 "../../.."（片子在 repo 下三層）。
 - 另外建空的 需求確認.md、劇本.md、製作紀錄.md（需求確認表的欄位見 .agents/skills/short-film/references/interview.md）。
@@ -69,7 +69,7 @@ def check_name(label, v):
 
 def main():
     if len(sys.argv) != 3:
-        sys.exit("用法：python tools/new_film.py <類型> <片名>（例：python tools/new_film.py 數學家故事 埃拉托賽尼的篩子）")
+        sys.exit("用法：python tools/new_film.py <類型> <片名>（例：python tools/new_film.py 數學故事 埃拉托賽尼的篩子）")
     kind, name = sys.argv[1].strip(), sys.argv[2].strip()
     check_name("類型", kind)
     check_name("片名", name)
