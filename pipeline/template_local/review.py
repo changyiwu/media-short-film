@@ -1,7 +1,7 @@
-"""自審五遍（讀 make_film.py 寫的 output/post/edl.json）。make_film.py 的 review 階段會自動呼叫，也可以單獨跑：
-  "%PY_H3%" review.py out\\cut\\film_1080p.mp4             第 1／3／4／5 遍
-  "%PY_VOICE%" review.py out\\cut\\film_1080p.mp4 --asr    第 2 遍（成片聽寫）
-結果在 output/review/：<片名>_pass1.jpg（逐鏡 4 格）、_pass5_cuts.jpg（切點前後）、_review.json、_asr.json。
+"""自審五遍（讀 make_film.py 寫的 work/post/edl.json）。make_film.py 的 review 階段會自動呼叫，也可以單獨跑：
+  "%PY_H3%" review.py work\\cut\\film_1080p.mp4             第 1／3／4／5 遍
+  "%PY_VOICE%" review.py work\\cut\\film_1080p.mp4 --asr    第 2 遍（成片聽寫）
+結果在 work/review/：<片名>_pass1.jpg（逐鏡 4 格）、_pass5_cuts.jpg（切點前後）、_review.json、_asr.json。
 判讀標準見 docs/04_自審清單.md；數字只是輔助，最後一定要人看成片。"""
 import difflib
 import json
@@ -23,7 +23,7 @@ cut = Path(sys.argv[1]).resolve(); stem = cut.stem
 OUT = cut.parent.parent; RV = OUT / "review"; RV.mkdir(exist_ok=True)
 E = json.loads((OUT / "post" / "edl.json").read_text(encoding="utf-8")); SH = E["shots"]
 HERE = Path(__file__).resolve().parent
-_cfg = HERE / "film.json"   # repo 位置跟 make_film.py 一樣看 film.json 的 repo_dir（films/<類型>/<片名>/ 是 ../../..）
+_cfg = HERE / "film.json"   # repo 位置跟 make_film.py 一樣看 film.json 的 repo_dir（output/<類型>/<片名>/ 是 ../../..）
 REPO = (HERE / (json.loads(_cfg.read_text(encoding="utf-8")).get("repo_dir", "../..") if _cfg.exists() else "../..")).resolve()
 TOOLS = __import__("os").environ.get("AI_TOOLS", str(REPO / "tools"))     # 預設直接用 repo 的 tools/
 sys.path.insert(0, str(REPO / "tools"))

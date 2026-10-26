@@ -11,8 +11,8 @@ once with the Google account that has the Google AI plan (or Colab pay-as-you-go
   python cloud/colab_h3.py stop                        # always stop when done - an idle G4 still costs 8.9 units/hour
   python cloud/colab_h3.py full-setup                  # same as the default start (kept as an alias)
   python cloud/colab_h3.py smoke                       # after the full install: run setup/smoke_test.py on the VM, download setup/output/
-  python cloud/colab_h3.py film pipeline/template_local [stage ...]   # after the full install: run make_film.py on the VM, sync output/ back
-  python cloud/hybrid_h3.py output/h3/S01 output/h3/S02 ...  # local GPU + Colab together (measured 2026-10-11: 34 shots 17.9 min vs 32.6 min local)
+  python cloud/colab_h3.py film pipeline/template_local [stage ...]   # after the full install: run make_film.py on the VM, sync work/ back
+  python cloud/hybrid_h3.py work/h3/S01 work/h3/S02 ...  # local GPU + Colab together (measured 2026-10-11: 34 shots 17.9 min vs 32.6 min local)
 
 Measured 2026-10-10 (Colab, Google AI Pro): G4 = RTX PRO 6000 Blackwell 96 GB, 8.90 compute units/hour; one 90-frame DMAD shot 42 s
 with models kept loaded; 2 staggered instances = 123 shots/hour (0.073 units/shot). L4 / A100 are slower AND cost more units per shot.
@@ -99,7 +99,7 @@ def repo_bundle(full=False):
     with tarfile.open(tmp, "w:gz") as t:
         for p in parts:
             if (REPO / p).exists():
-                t.add(REPO / p, arcname=p, filter=lambda ti: None if any(x in ti.name for x in ("/output/", "__pycache__")) else ti)
+                t.add(REPO / p, arcname=p, filter=lambda ti: None if any(x in ti.name for x in ("/output/", "/work/", "__pycache__")) else ti)
     return tmp
 
 
@@ -301,7 +301,7 @@ def cmd_smoke(a):
 
 
 def cmd_film(a):
-    """Full-cloud make_film.py: upload the film folder (film.json + output/), run the given stages on the VM, bring output/ back."""
+    """Full-cloud make_film.py: upload the film folder (film.json + work/), run the given stages on the VM, bring work/ back."""
     fd = Path(a.film_dir).resolve()
     rel = fd.relative_to(REPO).as_posix()
     # 本機設的 ONLY／ALLOW_REVIEW／UPSCALE 也帶到 VM（make_film.py 用它們重做指定鏡頭、放行審查）；--env KEY=VALUE 可再加
@@ -323,11 +323,11 @@ def cmd_film(a):
                   f" && nohup sh -c 'env {env.replace("'", "'" + chr(92) + "''")} python make_film.py {' '.join(a.stages)} > /content/film.log 2>&1; echo FILM_EXIT $? >> /content/film.log'"
                   f" > /dev/null 2>&1 &")
     poll(a.name, "/content/film.log", "FILM_EXIT", fail=("FAILED:", "Traceback"), every=60, show=r"^\[stage\]|^→|成片|FILM_EXIT")
-    vm_sh(a.name, f"cd /content/repo/{rel} && rm -f /content/film_out.zip && python -c \"import shutil; shutil.make_archive('/content/film_out', 'zip', 'output')\"")
+    vm_sh(a.name, f"cd /content/repo/{rel} && rm -f /content/film_out.zip && python -c \"import shutil; shutil.make_archive('/content/film_out', 'zip', 'work')\"")
     lz = Path(tempfile.mkdtemp()) / "film_out.zip"
     download(a.name, "/content/film_out.zip", lz)
-    zipfile.ZipFile(lz).extractall(fd / "output")
-    print(f"[film] output/ 已同步回 {fd / 'output'}；人工檢查後再跑下一段 stage。", flush=True)
+    zipfile.ZipFile(lz).extractall(fd / "work")
+    print(f"[film] work/ 已同步回 {fd / 'work'}；人工檢查後再跑下一段 stage。", flush=True)
 
 
 def main():

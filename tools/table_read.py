@@ -5,14 +5,14 @@
 用法（H3 venv，要 numpy、Pillow、ffmpeg）：
   "%PY_H3%" tools\\table_read.py <片子資料夾> [--storyboard] [--target 秒] [--film 別的.json]
   --storyboard  另生 16 宮格鉛筆草圖（每 16 鏡一張 4×4，gen_image.py 的 IMAGE_BACKEND，預設 Image 2.5 API → Codex，失敗就停）；
-                不給就只有字幕。草圖已存在就沿用，要重畫刪掉 output/preview/storyboard_*.png。草圖只看故事順序與構圖、不附定妝圖、
-                不進成片，所以不記到 output/image_backends.json（片尾名單不列它）。
+                不給就只有字幕。草圖已存在就沿用，要重畫刪掉 work/preview/storyboard_*.png。草圖只看故事順序與構圖、不附定妝圖、
+                不進成片，所以不記到 work/image_backends.json（片尾名單不列它）。
   --target      目標片長（秒，需求確認的長度），報告會比對。
-輸出 <片子資料夾>/output/preview/：讀本_timeline.json、讀本試映.mp4（1280×720、靜音）、_frames/、storyboard_<k>[_label].png。
+輸出 <片子資料夾>/work/preview/：讀本_timeline.json、讀本試映.mp4（1280×720、靜音）、_frames/、storyboard_<k>[_label].png。
 
 估法（每句字數＝中文字＋英數字，不含標點）：
   - 配音長度＝字數 ÷ VOICE_CPS（3.5 字／秒；2026-10-24 量本機 4 支片 56 句 VoxCPM2：整體 3.4–3.95，最慢一句 2.3）。
-    output/voice_picks.json 已有的句子改用實際音長。
+    work/voice_picks.json 已有的句子改用實際音長。
   - H3 生成長度＝max(dur, 開口 at＋配音長度＋0.8 秒)，湊成 H3 格數（17n+5）；> 12 秒的鏡要拆。
     voice_mode h3_ref（H3 自己念，預設）的句子改用 max(dur, 3, 字數 ÷ 3＋2 秒)：上游實測 H3 每秒 2.3–4.7 字、有時晚 1.5–2.1 秒開口。
   - 成片裡的鏡長＝cut_out（"full"＝整段；不寫＝最後一句結束＋tail）− cut_in，同 make_film.py 的 edl。
@@ -72,7 +72,7 @@ def lines_of(cfg):
 
 
 def estimate(cfg, here):
-    picks_f = here / "output" / "voice_picks.json"
+    picks_f = here / "work" / "voice_picks.json"
     picks = json.loads(picks_f.read_text(encoding="utf-8")) if picks_f.exists() else {}
     voices = dict(cfg["chars"], **({"vo": cfg["narrator"]} if cfg.get("narrator") else {}))
     lines, mix = lines_of(cfg), cfg.get("mix", {})
@@ -209,7 +209,7 @@ def main():
     here = Path(args[0]).resolve()
     cfg = json.loads((here / (args[args.index("--film") + 1] if "--film" in args else "film.json")).read_text(encoding="utf-8"))
     target = float(args[args.index("--target") + 1]) if "--target" in args else None
-    pv = here / "output" / "preview"; pv.mkdir(parents=True, exist_ok=True)
+    pv = here / "work" / "preview"; pv.mkdir(parents=True, exist_ok=True)
     if "--storyboard" in args:
         storyboard(cfg, pv)
     rows, story = estimate(cfg, here)

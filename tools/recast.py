@@ -4,8 +4,8 @@
 在片子資料夾執行（或加 --film <片子資料夾>）：
   python ../../../tools/recast.py first A B1         首幀：原片格補成 16:9 → Image 2.5 換角（會花 API 費用）
   python ../../../tools/recast.py close-mouth B2 --box 555 335 670 425
-                                                     有發聲的鏡：首幀改成閉嘴（遮罩只開放嘴部）→ output/first/B2_closed.png
-  python ../../../tools/recast.py check              首幀對照圖：原片｜首幀｜首幀＋骨架 → output/first/_check.jpg
+                                                     有發聲的鏡：首幀改成閉嘴（遮罩只開放嘴部）→ work/first/B2_closed.png
+  python ../../../tools/recast.py check              首幀對照圖：原片｜首幀｜首幀＋骨架 → work/first/_check.jpg
   python ../../../tools/recast.py voice --seeds 6    新台詞候選：VoxCPM2「只給參考音」與「接續」兩種模式 × N 個 seed，逐條聽寫（自動改用 PY_VOICE）
   python ../../../tools/recast.py track cont_s1 [--word-end 0.48]
                                                      新音軌：整句換（a）；給 --word-end（候選裡新詞結束的秒數）再多做只換詞（b）
@@ -99,7 +99,7 @@ class Film:
         self.cfg = json.loads((self.dir / "recast.json").read_text(encoding="utf-8"))
         fj = self.dir / "film.json"
         self.film = json.loads(fj.read_text(encoding="utf-8")) if fj.exists() else {}
-        self.h3 = self.dir / "output" / "h3"
+        self.h3 = self.dir / "work" / "h3"
         self.size = self.cfg.get("size", [1344, 768])
         self.shots = self.cfg["shots"]
 
@@ -139,7 +139,7 @@ def in_profile(film, cmd, log=None):
 # ----------------------------------------------------------------------------------------------- first
 def padded_source(film, fid, t):
     W, H = film.size
-    src = film.p("output/first/_src")
+    src = film.p("work/first/_src")
     src.mkdir(parents=True, exist_ok=True)
     orig, pad = src / f"{fid}_orig.png", src / f"{fid}_pad.png"
     ff("-ss", f"{t:.3f}", "-i", film.p(film.cfg["source"]), "-frames:v", "1", orig)
@@ -154,7 +154,7 @@ def cmd_first(film, a):
     key = film.cfg["char"]
     look = film.film.get("chars", {}).get(key, {}).get("look", "")
     who, it = e.get("person", "the person"), e.get("char", "the character")
-    refs = [film.p(r) for r in e.get("refs", [f"output/chars/{key}_turn.png", f"output/chars/{key}_expr.png"])]
+    refs = [film.p(r) for r in e.get("refs", [f"work/chars/{key}_turn.png", f"work/chars/{key}_expr.png"])]
     pics = " and ".join(f"Image {i + 2}" for i in range(len(refs)))
     W, H = film.size
     for fid in a.ids or list(film.cfg["firsts"]):
@@ -173,14 +173,14 @@ def cmd_first(film, a):
             "same image quality - the character must be exactly as soft and as saturated as the rest of the frame, "
             f"not sharper, not cinematic. Exactly one {e.get('noun', 'character')}, no people. No text, no captions, no watermark. "
             f"Use {pics} only for {it}'s appearance, not their layout, pose or background.")
-        stem = film.p("output/first/_test") / f"{fid}_{int(time.time())}"
+        stem = film.p("work/first/_test") / f"{fid}_{int(time.time())}"
         stem.parent.mkdir(parents=True, exist_ok=True)
         files = img25.edit(prompt, [pad, *refs], stem, size=f"{W}x{H}")
-        log_f = film.p("output/image_backends.json")
+        log_f = film.p("work/image_backends.json")
         log = json.loads(log_f.read_text(encoding="utf-8")) if log_f.exists() else {}
         log["img25"] = log.get("img25", 0) + 1
         log_f.write_text(json.dumps(log), encoding="utf-8")
-        dst = film.p(f"output/first/{fid}.png")
+        dst = film.p(f"work/first/{fid}.png")
         dst.write_bytes(files[0].read_bytes())
         print("[ok]", fid, files[0].name, "->", dst)
     print("下一步：python ../../../tools/recast.py check，看首幀跟骨架有沒有對齊")
@@ -261,10 +261,10 @@ def paste_mouth(src_png, gen_png, box, dst_png):
 def cmd_close_mouth(film, a):
     """首幀改成閉嘴（發聲鏡的首幀張著嘴，H3 就整鏡維持張嘴，嘴型不跟聲音動）。
     Image 2.5 遮罩編輯只取嘴部，對齊後貼回原首幀（paste_mouth），嘴巴以外不變。
-    --reuse：不重生，直接用上次的 output/first/<id>_closed_raw.png 重新貼。"""
-    raw = film.p(f"output/first/{a.id}_closed_raw.png")
-    src = film.p(f"output/first/{a.id}.png")
-    dst = film.p(f"output/first/{a.id}_closed.png")
+    --reuse：不重生，直接用上次的 work/first/<id>_closed_raw.png 重新貼。"""
+    raw = film.p(f"work/first/{a.id}_closed_raw.png")
+    src = film.p(f"work/first/{a.id}.png")
+    dst = film.p(f"work/first/{a.id}_closed.png")
     if a.reuse:
         if not raw.exists():
             sys.exit(f"沒有 {raw}")
@@ -277,7 +277,7 @@ def cmd_close_mouth(film, a):
     e = film.cfg["edit"]
     key = film.cfg["char"]
     it = e.get("char", "the character")
-    mask = film.p(f"output/first/_src/{a.id}_mouth_mask.png")
+    mask = film.p(f"work/first/_src/{a.id}_mouth_mask.png")
     mask.parent.mkdir(parents=True, exist_ok=True)
     m = Image.new("RGBA", (W, H), (0, 0, 0, 255))
     ImageDraw.Draw(m).ellipse(tuple(a.box), fill=(0, 0, 0, 0))  # 透明 = 可以重畫
@@ -286,10 +286,10 @@ def cmd_close_mouth(film, a):
               "closed-mouth expression like the closed-mouth faces in Image 2. THE OUTPUT MUST BE PIXEL-ALIGNED WITH IMAGE 1: same framing, "
               f"same zoom, no reframing, no zooming out, {it} stays exactly the same size and in exactly the same place, head at the same "
               "height. Change nothing outside the mouth: same pose, limbs, motion blur, fur, background, lighting and image quality.")
-    stem = film.p("output/first/_test") / f"{a.id}_closed_{int(time.time())}"
+    stem = film.p("work/first/_test") / f"{a.id}_closed_{int(time.time())}"
     stem.parent.mkdir(parents=True, exist_ok=True)
-    files = img25.edit(prompt, [src, film.p(e.get("expr", f"output/chars/{key}_expr.png"))], stem, size=f"{W}x{H}", mask=mask)
-    log_f = film.p("output/image_backends.json")
+    files = img25.edit(prompt, [src, film.p(e.get("expr", f"work/chars/{key}_expr.png"))], stem, size=f"{W}x{H}", mask=mask)
+    log_f = film.p("work/image_backends.json")
     log = json.loads(log_f.read_text(encoding="utf-8")) if log_f.exists() else {}
     log["img25"] = log.get("img25", 0) + 1
     log_f.write_text(json.dumps(log), encoding="utf-8")
@@ -307,13 +307,13 @@ def cmd_check(film, a):
     p0 = film.cfg["pose"]["start"]
     rows = []
     with tempfile.TemporaryDirectory() as td:
-        items = [(fid, f, film.p(f"output/first/{v}.png")) for fid, f in film.cfg["firsts"].items() for v in (fid, f"{fid}_closed")]
+        items = [(fid, f, film.p(f"work/first/{v}.png")) for fid, f in film.cfg["firsts"].items() for v in (fid, f"{fid}_closed")]
         for fid, f, gen in items:
             if not gen.exists():
                 if not gen.stem.endswith("_closed"):
                     print("[skip] 沒有首幀", fid)
                 continue
-            pad = film.p(f"output/first/_src/{fid}_pad.png")
+            pad = film.p(f"work/first/_src/{fid}_pad.png")
             if not pad.exists():
                 pad = padded_source(film, fid, f["time"])
             o = Image.open(pad).convert("RGB")
@@ -334,7 +334,7 @@ def cmd_check(film, a):
     for r in rows:
         sheet.paste(r, (0, y))
         y += r.height + 6
-    out = film.p("output/first/_check.jpg")
+    out = film.p("work/first/_check.jpg")
     sheet.save(out, quality=90)
     print("[ok]", out)
 
@@ -504,7 +504,7 @@ def cmd_prep(film, a):
             else:
                 print(f"  {s['id']} 的首幀要等 {prev['id']} 生完（run 會自動補）")
         else:
-            (d / "first.png").write_bytes(film.p(f"output/first/{first}.png").read_bytes())
+            (d / "first.png").write_bytes(film.p(f"work/first/{first}.png").read_bytes())
         spec["first_frame"] = "first.png"
         (d / "shot.json").write_text(json.dumps(spec, ensure_ascii=False, indent=1), encoding="utf-8")
         (d / "cut.json").write_text(json.dumps({"frames": n, "global": [g0, g1]}), encoding="utf-8")
@@ -566,7 +566,7 @@ def ending_on(film):  # 同 make_film.ending_on：片尾是選用、預設不加
 
 def cmd_finish(film, a):
     fin = film.cfg.get("finish", {})
-    cut = film.p("output/cut")
+    cut = film.p("work/cut")
     cut.mkdir(parents=True, exist_ok=True)
     total = 0
     lines = []
@@ -596,8 +596,8 @@ def cmd_finish(film, a):
     vsr = cut / "body_1080.mp4"
     if vsr.exists():
         vsr.unlink()  # upscale_vsr.py 不肯覆寫
-    if in_env(film, "PY_H3", [f"{film.rel_repo()}\\tools\\upscale_vsr.py", "--source", "out\\cut\\body_768.mp4",
-                              "--output", "out\\cut\\body_1080.mp4"]):
+    if in_env(film, "PY_H3", [f"{film.rel_repo()}\\tools\\upscale_vsr.py", "--source", "work\\cut\\body_768.mp4",
+                              "--output", "work\\cut\\body_1080.mp4"]):
         sys.exit("RTX VSR 失敗")
 
     main = cut / "film_1080p.mp4"
@@ -616,9 +616,9 @@ def cmd_finish(film, a):
     print("[ok]", main, f"{secs:.2f}s")
 
     if ending_on(film):
-        ending = film.p("output/ending/ending.mp4")
+        ending = film.p("work/ending/ending.mp4")
         if not ending.exists():
-            sys.exit("ending.enabled 開著但沒有 output/ending/ending.mp4：先跑 python make_film.py ending")
+            sys.exit("ending.enabled 開著但沒有 work/ending/ending.mp4：先跑 python make_film.py ending")
         has_a = "audio" in subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(ending)],
                                           capture_output=True, text=True).stdout
         dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(ending)],
@@ -645,7 +645,7 @@ def main():
     p = sp.add_parser("voice"); p.add_argument("--seeds", type=int, default=6); p.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
     p = sp.add_parser("track"); p.add_argument("cand"); p.add_argument("--word-end", type=float)
     for name in ("prep", "run"):
-        p = sp.add_parser(name); p.add_argument("ids", nargs="*"); p.add_argument("--take", help="例如 t2：寫到 output/h3/<鏡>_t2/")
+        p = sp.add_parser(name); p.add_argument("ids", nargs="*"); p.add_argument("--take", help="例如 t2：寫到 work/h3/<鏡>_t2/")
         if name == "run":
             p.add_argument("--force", action="store_true", help="已經生過也重生")
     sp.add_parser("finish")

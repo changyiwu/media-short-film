@@ -1,5 +1,5 @@
 """全本地示範片（安裝驗證用）：從零做出一支約 20 秒、4 鏡的小短片，證明安裝好的工作流可以完整跑通。不需要任何外部素材。
-生圖固定用本機 Qwen（驗證本機安裝）；做片請用 tools/new_film.py 建的 films/<類型>/<片名>/make_film.py。
+生圖固定用本機 Qwen（驗證本機安裝）；做片請用 tools/new_film.py 建的 output/<類型>/<片名>/make_film.py。
 H3 venv 執行（同一個 cmd 視窗先 call <repo>\\configs\\profile.cmd → <repo>\\tools\\start_comfy.cmd）：
   "%PY_H3%" pipeline\\demo_local\\run_demo.py [stage ...]
 stage：chars → frames → voices → h3 → music → cut（不給就全部依序跑；已完成的檔案會跳過，可續跑）

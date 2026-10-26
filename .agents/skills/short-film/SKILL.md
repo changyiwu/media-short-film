@@ -25,22 +25,22 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 
 ## 全片流程
 
-| # | 階段 | 讀 | 產出（都在 `films/<類型>/<片名>/`） | 人工 |
+| # | 階段 | 讀 | 產出（都在 `output/<類型>/<片名>/`） | 人工 |
 |---|---|---|---|---|
-| 0 | 角色（只做一次，各片共用） | `<repo>/docs/07_角色與首幀.md`、`films/角色/README.md` | `films/角色/<角色>/` 轉面圖、表情表、臉部近照、`README.md`、參考音 | ✅ 定裝 |
+| 0 | 角色（只做一次，各片共用） | `<repo>/docs/07_角色與首幀.md`、`output/角色/README.md` | `output/角色/<角色>/` 轉面圖、表情表、臉部近照、`README.md`、參考音 | ✅ 定裝 |
 | 1 | 開新片 | 本檔〈開新片〉 | 資料夾、`film.json`、`劇本.md`、`製作紀錄.md` | |
 | 2 | 需求訪談 | `references/interview.md` | `需求確認.md` | ✅ 確認 |
 | 3 | 劇本＋鏡表 | `references/script/workflow.md`（格式 `format.md`、拆鏡 `segmentation.md`） | `劇本.md`（含鏡表） | ✅ 確認劇本 |
 | 4 | 預演（選用） | `references/previs/README.md` | 布置圖、`camera_plan_v<N>.json` | 看布置圖 |
 | 5 | 填 `film.json` | `references/film-json.md` | `film.json` | |
-| 5.5 | 生成前試映（文字讀本，選用草圖） | `references/table-read.md` | `output/preview/讀本試映.mp4`、`讀本_timeline.json` | ✅ 看完說「通過」才生成 |
-| 6 | 生成 | `references/production.md` | `output/` | ✅ 關卡 1、2 |
-| 7 | 自審與交付 | `references/review.md` | `output/cut/film_1080p.mp4`、自審報告 | ✅ 關卡 3：完整看成片 |
-| 8 | 定案 | `references/review.md`〈交付與歸檔〉 | `output/<片名>.mp4`、`發布資訊.md` | ✅ 問「可以成片嗎？」，說可以才做 |
+| 5.5 | 生成前試映（文字讀本，選用草圖） | `references/table-read.md` | `work/preview/讀本試映.mp4`、`讀本_timeline.json` | ✅ 看完說「通過」才生成 |
+| 6 | 生成 | `references/production.md` | `work/` | ✅ 關卡 1、2 |
+| 7 | 自審與交付 | `references/review.md` | `work/cut/film_1080p.mp4`、自審報告 | ✅ 關卡 3：完整看成片 |
+| 8 | 定案 | `references/review.md`〈交付與歸檔〉 | 片子資料夾最上層的 `<片名>.mp4`、`發布資訊.md` | ✅ 問「可以成片嗎？」，說可以才做 |
 
 **什麼時候要做預演（第 4 步）**：多人同框、座位或左右位置容易跑掉、要運鏡、同一場景很多機位。單人、固定鏡頭的短片可以跳過。
 
-**做第 5 步之後的任何事之前**，先讀 `films/AGENTS.md`（頻道規則）、`films/<類型>/AGENTS.md`（類型規則）、`<repo>/docs/03_規則與踩坑.md`。
+**做第 5 步之後的任何事之前**，先讀 `output/AGENTS.md`（頻道規則）、`output/<類型>/AGENTS.md`（類型規則）、`<repo>/docs/03_規則與踩坑.md`。
 
 ## 判斷任務 → 只讀需要的檔
 
@@ -62,16 +62,16 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 
 ## 開新片
 
-1. 確認類型和片名（使用者沒給就問；類型先看 `films/` 底下已有哪些，例如數學故事、換角重製、原創短劇、測試）。兩者都是資料夾名稱，可用中文，不能含 `< > : " / \ | ? *`，也不能叫「角色」。
+1. 確認類型和片名（使用者沒給就問；類型先看 `output/` 底下已有哪些，例如數學故事、換角重製、原創短劇、測試）。兩者都是資料夾名稱，可用中文，不能含 `< > : " / \ | ? *`，也不能叫「角色」。
 2. 在 `<repo>` 執行（Windows 先 `set PYTHONUTF8=1`，或用 `<repo>\tools\new_film.cmd <類型> <片名>`）：
    ```
    python <repo>/tools/new_film.py <類型> <片名>
    ```
    - 同名的片已存在會直接停下來，不覆蓋：換片名，或問使用者要不要接著做那支。
-   - `films/AGENTS.md` 不存在時腳本會從 `templates/AGENTS_TEMPLATE.md` 建一份；提醒使用者把頻道名稱、主角等佔位改掉。
-   - 類型資料夾是新的時，腳本會建好 `films/<類型>/AGENTS.md`＋`CLAUDE.md`；提醒使用者寫上這類片的規則（類型打錯字也會被建成新類型，看腳本列出的既有類型核對）。
+   - `output/AGENTS.md` 不存在時腳本會從 `templates/AGENTS_TEMPLATE.md` 建一份；提醒使用者把頻道名稱、主角等佔位改掉。
+   - 類型資料夾是新的時，腳本會建好 `output/<類型>/AGENTS.md`＋`CLAUDE.md`；提醒使用者寫上這類片的規則（類型打錯字也會被建成新類型，看腳本列出的既有類型核對）。
 3. 回報建立了哪些檔，提醒 `film.json` 裡還是範例片〈被狗吃掉的作業〉的角色、場景、鏡表。然後進第 2 步需求訪談。
-- 不要手動複製 `pipeline/template_local/`（會帶到 `output/`、`__pycache__`）；自己的片一律放 `films/`（不進公開 repo）。
+- 不要手動複製 `pipeline/template_local/`（會帶到 `work/`、`__pycache__`）；自己的片一律放 `output/`（不進公開 repo）。
 
 ## 共同規則
 
@@ -81,7 +81,7 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 - 優先寫現在正在發生的**可見行動**，不用說明性對白代替戲劇事件；每場至少改變資訊、關係、目標、風險或情緒之一。
 - 反轉要能由前文線索回看成立，**原因要在畫面上交代**；結尾留餘味或一個問題，不是單純中斷。
 - **技術約束就是寫作約束**：避開快動作、打鬥、追逐；一鏡一個說話者；天馬行空放在設定與情境；畫面裡不靠可讀的文字傳達資訊（要的話後製疊字）。
-- 角色外觀一律引用 `films/角色/<角色>/README.md`，不要在劇本裡每次重寫不同版本。
+- 角色外觀一律引用 `output/角色/<角色>/README.md`，不要在劇本裡每次重寫不同版本。
 - 使用者只要劇本時，不輸出景別、運鏡或 H3 提示詞——那是第 5 步以後的事。
 
 **製作**
@@ -99,4 +99,4 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 - **創作任務**：必要假設 → 指定的創作成果 →（完整一支才附）鏡表。
 - **審閱任務**：依影響程度排序的診斷、對應段落的證據、可執行的修改方向；只有能說明修正或使用者要求時才給改寫。
 - **製作任務**：每個階段做完回報產出與下一步；到人工關卡就停，等使用者說再往下。
-- 收工前在該片 `製作紀錄.md` 補一段；退件理由整理成一條規則寫進 `films/AGENTS.md`（只屬於某類影片的寫進 `films/<類型>/AGENTS.md`；agent 記憶每台電腦各一份、不會同步，不能只寫那裡）。
+- 收工前在該片 `製作紀錄.md` 補一段；退件理由整理成一條規則寫進 `output/AGENTS.md`（只屬於某類影片的寫進 `output/<類型>/AGENTS.md`；agent 記憶每台電腦各一份、不會同步，不能只寫那裡）。

@@ -16,7 +16,7 @@
 接力鏡頭（spec 有 first_clip，要用上一鏡的結尾）等兩邊都做完、上一鏡一定已經在了，才由本機照順序跑。
 鏡頭太少（< HYBRID_MIN，預設 8）不值得等雲端開機 → 全部本機跑。
 
-用法：python cloud/hybrid_h3.py output/h3/S01 output/h3/S02 …   （每個資料夾要有 spec.json；成品 clip.mp4 寫回同一個資料夾）
+用法：python cloud/hybrid_h3.py work/h3/S01 work/h3/S02 …   （每個資料夾要有 spec.json；成品 clip.mp4 寫回同一個資料夾）
       make_film.py 設 H3_BACKEND=both 會自動呼叫 run_hybrid()。
 環境變數：HYBRID_CHUNK（雲端每批最多幾支，預設 8）、HYBRID_MIN（少於幾支就不開雲端，預設 8）、HYBRID_KEEP=1（做完不關 Colab）、
           HYBRID_TOOLS（本機 h3_shot.py 所在資料夾，預設 repo 的 tools/）、COLAB_NAME（Colab session 名稱，預設 h3）。

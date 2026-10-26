@@ -25,11 +25,10 @@ desktop.ini
 ~$*
 credentials.*
 
-# 自己的片（角色、劇本、參考音、成品）：只走雲端硬碟，不進公開 repo
-films/
-
 # 交接檔含真實電腦名與本機路徑，只走雲端硬碟同步，不進公開 repo
 handoff.md
 
-# 產出一律放 output/，不進 git
+# 產出一律放 output/，不進 git（含自己的片 output/<類型>/<片名>/：角色、劇本、參考音、成品只走雲端硬碟，不進公開 repo）
 output/
+# 片子的工作檔（make_film.py 在片子資料夾裡建的 work/）
+work/

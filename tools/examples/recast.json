@@ -146,7 +146,7 @@
      "after": "Then it closes its mouth and keeps dancing in silence."
     }
    ],
-   "_note": "t3：發聲寫成台詞（Whisper：不動｜賭礦｜而且不動 → 嘟咚、咚匡、隆咚嘟咚），t1 沒有 dialogue；t4：再加閉嘴首幀 output/first/B2_closed.png（Image 2.5 遮罩編輯 B2.png 的嘴）、seed 改 2026101704（t1–t3 是 2026101702）；閉嘴首幀改成「只貼嘴部回原首幀」（close-mouth 的 paste_mouth），原本整張重畫的版本顏色變飽和、角色大小跑掉 → t5",
+   "_note": "t3：發聲寫成台詞（Whisper：不動｜賭礦｜而且不動 → 嘟咚、咚匡、隆咚嘟咚），t1 沒有 dialogue；t4：再加閉嘴首幀 work/first/B2_closed.png（Image 2.5 遮罩編輯 B2.png 的嘴）、seed 改 2026101704（t1–t3 是 2026101702）；閉嘴首幀改成「只貼嘴部回原首幀」（close-mouth 的 paste_mouth），原本整張重畫的版本顏色變飽和、角色大小跑掉 → t5",
    "take": "t5"
   },
   {

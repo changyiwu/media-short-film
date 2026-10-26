@@ -7,9 +7,9 @@ voice_pick.py 自動挑不到（needs_review）或使用者聽了不滿意時用
      needs_review 清掉——之後重跑 voices，voice_pick 也不會改掉人挑的這支（已挑過的句子不改）。
 
 用法（同一個 cmd 視窗先 call <repo>\\configs\\profile.cmd）：
-  "%PY_VOICE%" <repo>\\tools\\audition.py <片子資料夾 或 out\\voice\\bv> line3
-  "%PY_VOICE%" <repo>\\tools\\audition.py <片子資料夾 或 out\\voice\\bv> line3 --pick s5
-試聽檔：out\\voice\\bv\\audition_<name>.wav。改挑後若新候選比原本長，H3 已照原長度拍好的鏡頭要確認鏡長還夠（重跑 edl 會告訴你）。
+  "%PY_VOICE%" <repo>\\tools\\audition.py <片子資料夾 或 work\\voice\\bv> line3
+  "%PY_VOICE%" <repo>\\tools\\audition.py <片子資料夾 或 work\\voice\\bv> line3 --pick s5
+試聽檔：work\\voice\\bv\\audition_<name>.wav。改挑後若新候選比原本長，H3 已照原長度拍好的鏡頭要確認鏡長還夠（重跑 edl 會告訴你）。
 """
 import argparse
 import asyncio
@@ -35,10 +35,10 @@ LISTEN_LUFS = -20.0      # 試聽時每支候選先調到這個響度（同範�
 
 def voice_dir(p):
     p = Path(p).resolve()
-    for d in (p, p / "output" / "voice" / "bv", p / "voice" / "bv", p / "bv"):
+    for d in (p, p / "work" / "voice" / "bv", p / "voice" / "bv", p / "bv"):
         if (d / "picks.json").is_file():
             return d
-    sys.exit(f"找不到 picks.json：給片子資料夾或 out\\voice\\bv（試過 {p}）")
+    sys.exit(f"找不到 picks.json：給片子資料夾或 work\\voice\\bv（試過 {p}）")
 
 
 def mono(x):
@@ -115,7 +115,7 @@ def pick(vd, name, tag, picks, picks_path):
 
 def main():
     ap = argparse.ArgumentParser(description="配音候選試聽與人工改挑")
-    ap.add_argument("where", help="片子資料夾，或 out\\voice\\bv")
+    ap.add_argument("where", help="片子資料夾，或 work\\voice\\bv")
     ap.add_argument("name", help="句子代號，例如 line3（picks.json 的 key）")
     ap.add_argument("--pick", help="改用這支候選（s5 或完整檔名）")
     a = ap.parse_args()

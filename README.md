@@ -68,7 +68,7 @@ tools/                      全域工具（各腳本直接用，不用複製）
   img25.py                  OpenAI Image 2.5 生圖／編輯（gen_image.py 預設呼叫它）
   pron_check.py／pron_compare.py  中文配音聲調審核
   ...（完整清單見 docs/06_安裝.md）
-pipeline/template_local/    ⭐ 做新片的範本：tools/new_film.py <類型> <片名> 複製成 films/<類型>/<片名>/ → 改 film.json → make_film.py 從角色做到成片＋自審
+pipeline/template_local/    ⭐ 做新片的範本：tools/new_film.py <類型> <片名> 複製成 output/<類型>/<片名>/ → 改 film.json → make_film.py 從角色做到成片＋自審
 pipeline/demo_local/        全本地示範片（4 鏡，安裝驗證用，不需要任何素材）
 setup/                      安裝：模型下載清單（鎖定版本＋逐檔雜湊）、套件清單、smoke_test、硬體偵測
 cloud/                      ⭐ 本機跑不動時：H3（或整套流程）送到 Google Colab G4 跑（colab_h3.py；見 cloud/README.md）
@@ -92,16 +92,16 @@ configs/profile.cmd         這個硬體版本的環境變數
 | 2 | 角色定妝：轉面圖＋表情表＋臉部近照（備選千問：單張、灰底、半身） | `gen_image.py`（預設 Image 2.5；備選 Qwen-Image 2.1） | `docs/07` §0（備選 §1） | `chars/<角色>_turn.png`、`_expr.png`、`_face.png`（備選 `chars/<角色>.png`） | ✅ 定案 |
 | 3 | 場景母版（空景，之後裁成各鏡景別） | `gen_image.py` | `docs/07` §4 | `masters/*.png` | |
 | 4 | 首幀（附定妝＋母版裁切，**每鏡照抄角色完整外觀描述**） | `gen_image.py --model qwen-edit --ref`（預設 OpenAI 生圖（Image 2.5 或 Codex）依每鏡 `sheets` 附 1–3 張定妝，`--model` 這時不作用；`IMAGE_BACKEND=local` 時才用 Qwen-Image-Edit 附單張半身，不加會用到不適合附參考圖的 Qwen-Image 2.1） | `docs/07` §2–3 | `first/<鏡>.png` | ✅ 逐張看：臉、服裝、多手多腳、背景有沒有字 |
-| 5 | 角色參考音（定裝時跟定妝圖一起做一次，存進 `films/角色/` 各片沿用，防聲音漂移）；旁白與 `fixed` 台詞的配音 | `voxcpm_batch.py`（設計參考音）→ `make_voxcpm.cmd`；念錯的詞加進 `tts-lexicon.md` | `docs/03` §5 | `voice/ref_<角色>.wav`、`bv/<句>.wav`（已去頭尾靜音） | `needs_review` 的句子聽一次 |
+| 5 | 角色參考音（定裝時跟定妝圖一起做一次，存進 `output/角色/` 各片沿用，防聲音漂移）；旁白與 `fixed` 台詞的配音 | `voxcpm_batch.py`（設計參考音）→ `make_voxcpm.cmd`；念錯的詞加進 `tts-lexicon.md` | `docs/03` §5 | `voice/ref_<角色>.wav`、`bv/<句>.wav`（已去頭尾靜音） | `needs_review` 的句子聽一次 |
 | 6 | H3 每鏡（DMAD 4 步、只給首幀；台詞預設由 H3 拿角色參考音自己念（`voice_mode: "h3_ref"`），`fixed` 的句子當固定音軌；看得到臉又沒台詞的鏡給靜音） | `h3_shot.py`（spec 加 `"draft": true`） | `docs/03` §4、`tools/examples/` | `h3/<鏡>/clip.mp4` | ✅ 抽格看：換臉、多人、鏡頭漂移 |
 | 7 | 配樂（純器樂、多抽幾個 seed，挑人聲殘留最少的） | `gen_music3.py` → `audio-separator` | `docs/02` §8 | `music/*.flac` | |
 | 8 | 放大、剪接（台詞提前 0.2 秒）、配樂壓低（台詞期間 15–30%）、響度、字幕 | `upscale_vsr.py`、ffmpeg | `docs/02` §9、§10（**`alimiter` 要 `level=false`**） | `cut/<片名>_1080p.mp4` | |
 | 9 | （選用，預設不加）片尾（工具名單＋AI 生成標示；要加就把 `film.json` 的 `ending.enabled` 改成 true 或設 `ENDING=1`；沒片尾時在貼文標示） | `templates/ending/render_ending.py` | `templates/ending/README.md`、`docs/02` §12 | `ending.mp4` | |
 | 10 | 自審五遍（抽格、ASR、雜訊、黑畫面與響度、切點） | `pipeline/template_local/review.py`（呼叫 `noise_scan.py`、`stt.py`） | `docs/04_自審清單.md` | `review/` | ✅ 最後一定給人看成片 |
 
-**最快的做法：`python tools/new_film.py <類型> <片名>` 從 [`pipeline/template_local/`](pipeline/template_local/README.md) 建好 `films/<類型>/<片名>/`，只改 `film.json`**，`make_film.py` 會把上面 2–10 步全部做完（已附一支 7 鏡範例片的設定，從零重跑驗證過）。`pipeline/demo_local/` 是 4 鏡的最小安裝驗證。
+**最快的做法：`python tools/new_film.py <類型> <片名>` 從 [`pipeline/template_local/`](pipeline/template_local/README.md) 建好 `output/<類型>/<片名>/`，只改 `film.json`**，`make_film.py` 會把上面 2–10 步全部做完（已附一支 7 鏡範例片的設定，從零重跑驗證過）。`pipeline/demo_local/` 是 4 鏡的最小安裝驗證。
 
-建議讓 AI agent 來跑：第一次跑 `python tools/new_film.py <類型> <片名>` 時，會把 [templates/AGENTS_TEMPLATE.md](templates/AGENTS_TEMPLATE.md) 複製成 `films/AGENTS.md`（做片規則入口），改成自己的頻道規則後，agent 會照規則做、自審、寫紀錄。
+建議讓 AI agent 來跑：第一次跑 `python tools/new_film.py <類型> <片名>` 時，會把 [templates/AGENTS_TEMPLATE.md](templates/AGENTS_TEMPLATE.md) 複製成 `output/AGENTS.md`（做片規則入口），改成自己的頻道規則後，agent 會照規則做、自審、寫紀錄。
 
 ## 5. 最重要的十條經驗
 

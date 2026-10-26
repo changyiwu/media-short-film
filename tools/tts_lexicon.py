@@ -5,7 +5,7 @@ media-voice-clone、agent-speak/speak/；四個 repo 都公開，各自單獨下
 找表的順序（近的覆蓋遠的，同一個原文以近的為準）：
   同層其他三個 repo 的 tts-lexicon.md（有就合併）
   → 本 repo 的表：TTS_LEXICON（有設就用它）或 repo 根目錄的 tts-lexicon.md
-  → 從起點資料夾（例如 films/<類型>/<片名>/output/）往上每一層的 tts-lexicon.md（片子資料夾放一份只對該片生效）。
+  → 從起點資料夾（例如 output/<類型>/<片名>/work/）往上每一層的 tts-lexicon.md（片子資料夾放一份只對該片生效）。
 本專案套用的地方：voxcpm_batch.py（念台詞前）、gen_voice.py（edge-tts 答案卷、單句生成）、voice_pick.py（聽寫比對的標準）、
 recast.py voice。每段文字只套一次；film.json 的 "tts" 照樣可用，表會再套在它上面。
 

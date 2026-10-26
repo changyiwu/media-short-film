@@ -173,11 +173,11 @@ call <repo>\configs\profile.cmd
 ```
 "%PY_H3%" <repo>\pipeline\demo_local\run_demo.py
 ```
-從零做兩個角色、4 鏡首幀、配音、H3、配樂，輸出 `pipeline\demo_local\out\cut\demo_1080p.mp4`（約 17 秒）。2026-10-07 全新安裝實測 12.8 分鐘（RTX 5090）；「16GB 顯卡＋32GB 記憶體」模擬條件下約 15 分鐘（5090 運算速度）；2026-10-17 真實 RTX 5060 Ti 16GB＋64GB RAM 實測約 27 分鐘（各階段見 `docs/hardware.md`）。看成片確認：兩個角色每鏡長得一樣、嘴型跟著台詞、字幕念的跟聲音一致。示範片固定走本機千問＋單張正面參考圖，雙人鏡的側臉可能不像（2026-10-17 實測 S4 老師就不像，見 `docs/07` §0〈實測〉）；這是本機路線的已知限制，不算安裝失敗，做片預設的 Image 2.5＋轉面圖沒有這個問題。
+從零做兩個角色、4 鏡首幀、配音、H3、配樂，輸出 `pipeline\demo_local\output\cut\demo_1080p.mp4`（約 17 秒）。2026-10-07 全新安裝實測 12.8 分鐘（RTX 5090）；「16GB 顯卡＋32GB 記憶體」模擬條件下約 15 分鐘（5090 運算速度）；2026-10-17 真實 RTX 5060 Ti 16GB＋64GB RAM 實測約 27 分鐘（各階段見 `docs/hardware.md`）。看成片確認：兩個角色每鏡長得一樣、嘴型跟著台詞、字幕念的跟聲音一致。示範片固定走本機千問＋單張正面參考圖，雙人鏡的側臉可能不像（2026-10-17 實測 S4 老師就不像，見 `docs/07` §0〈實測〉）；這是本機路線的已知限制，不算安裝失敗，做片預設的 Image 2.5＋轉面圖沒有這個問題。
 
 ## 6. 開始做片
 
-讀 `docs/03_規則與踩坑.md`（規則）和 `pipeline/template_local/README.md`（做法），做片規則入口是 `films/AGENTS.md`：第一次跑 `new_film.py` 時會從 `templates/AGENTS_TEMPLATE.md` 自動建好（含 Claude Code 的 `CLAUDE.md` 橋接），請使用者改成自己的頻道規則。做新片照 `short-film` 技能（`.agents/skills/short-film/SKILL.md`）：`python tools/new_film.py <類型> <片名>`（把 `pipeline/template_local/` 複製成 `films/<類型>/<片名>/`）→ 需求訪談 → 寫劇本與鏡表 →（選用）Blender 預演 → 把角色、場景、鏡表填進 `film.json` → `make_film.py` 分段跑，三個人工關卡（首幀總覽、每鏡抽格、成片）都要給使用者看。
+讀 `docs/03_規則與踩坑.md`（規則）和 `pipeline/template_local/README.md`（做法），做片規則入口是 `output/AGENTS.md`：第一次跑 `new_film.py` 時會從 `templates/AGENTS_TEMPLATE.md` 自動建好（含 Claude Code 的 `CLAUDE.md` 橋接），請使用者改成自己的頻道規則。做新片照 `short-film` 技能（`.agents/skills/short-film/SKILL.md`）：`python tools/new_film.py <類型> <片名>`（把 `pipeline/template_local/` 複製成 `output/<類型>/<片名>/`）→ 需求訪談 → 寫劇本與鏡表 →（選用）Blender 預演 → 把角色、場景、鏡表填進 `film.json` → `make_film.py` 分段跑，三個人工關卡（首幀總覽、每鏡抽格、成片）都要給使用者看。
 
 ## 常見問題
 

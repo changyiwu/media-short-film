@@ -13,6 +13,6 @@
 | `tier_summary.md` | 元件結果總表 |
 | `results_*.json` | 原始數據：秒數（ComfyUI /history 或牆鐘）、顯存峰值、記憶體最低值、輸出雜湊 |
 
-注意：`run_test.py`／`run_32g.py`／`run_tier.py` 裡的鏡頭路徑指向原專案的片子（`短片/阿禾出場介紹_20261006/h3/...`、`角色資產/老師這次換你`），repo 沒有附這些素材；要自己驗證時換成你自己的 shot spec（例如 `films/<類型>/<片名>/output/` 底下的）。這些腳本也還寫死上游的安裝位置（`C:\AI\H3\venv`、`C:\AI\H3\ComfyUI-0.36.0`、`C:\AI\Voice`），不讀 `PY_H3`／`COMFY_DIR`／`AI_ROOT`；用 Comfy Desktop 或裝在別處時，要先改 `run_test.py` 的 `PY`、`COMFY` 與 `run_tier.py` 的 `PYV`、`SEP`。安裝後的一般驗證請用 `setup/smoke_test.py`（不需要任何素材）。
+注意：`run_test.py`／`run_32g.py`／`run_tier.py` 裡的鏡頭路徑指向原專案的片子（`短片/阿禾出場介紹_20261006/h3/...`、`角色資產/老師這次換你`），repo 沒有附這些素材；要自己驗證時換成你自己的 shot spec（例如 `output/<類型>/<片名>/work/` 底下的）。這些腳本也還寫死上游的安裝位置（`C:\AI\H3\venv`、`C:\AI\H3\ComfyUI-0.36.0`、`C:\AI\Voice`），不讀 `PY_H3`／`COMFY_DIR`／`AI_ROOT`；用 Comfy Desktop 或裝在別處時，要先改 `run_test.py` 的 `PY`、`COMFY` 與 `run_tier.py` 的 `PYV`、`SEP`。安裝後的一般驗證請用 `setup/smoke_test.py`（不需要任何素材）。
 
 模擬的限制：運算單元仍是 5090（所以秒數不等於真實 16GB 卡）、PCIe 5.0、這台的 NVMe 很快、分頁檔起始大小不同。

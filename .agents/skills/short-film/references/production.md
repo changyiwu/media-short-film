@@ -12,11 +12,11 @@
 
 ## 三段、三個人工關卡
 
-| 段 | 指令（在 `films/<類型>/<片名>/`） | 關卡 |
+| 段 | 指令（在 `output/<類型>/<片名>/`） | 關卡 |
 |---|---|---|
-| 1 | `"%PY_H3%" make_film.py chars masters frames` | **關卡 1**：看 `output/first/_sheet.jpg`——臉、服裝一致，沒有多手多腳，背景沒有字，窗戶方向對 |
-| 2 | `make_film.py voices inserts h3`（`inserts` 只在有後製插入鏡時才有事做） | **關卡 2**：看 `output/review/clips_<鏡>.jpg`（後製插入鏡也有）——沒有換臉、多出人、鏡頭漂移、左右換位 |
-| 3 | `make_film.py amb edl music ending cut review`（片尾預設不做：`ending.enabled` 為 true 或設 `ENDING=1` 才做） | **關卡 3**：自審（`review.md`）後，人一定要看完整的 `output/cut/film_1080p.mp4` |
+| 1 | `"%PY_H3%" make_film.py chars masters frames` | **關卡 1**：看 `work/first/_sheet.jpg`——臉、服裝一致，沒有多手多腳，背景沒有字，窗戶方向對 |
+| 2 | `make_film.py voices inserts h3`（`inserts` 只在有後製插入鏡時才有事做） | **關卡 2**：看 `work/review/clips_<鏡>.jpg`（後製插入鏡也有）——沒有換臉、多出人、鏡頭漂移、左右換位 |
+| 3 | `make_film.py amb edl music ending cut review`（片尾預設不做：`ending.enabled` 為 true 或設 `ENDING=1` 才做） | **關卡 3**：自審（`review.md`）後，人一定要看完整的 `work/cut/film_1080p.mp4` |
 
 - **每個關卡都停下來給使用者看**，等使用者說再往下。使用者說「我去睡了」＝授權自動做完並自審，早上交成片＋自審報告。
 - 最難的一鏡先單獨跑（`set ONLY=<鏡號>`），過了再整批。

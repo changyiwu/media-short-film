@@ -1,17 +1,17 @@
 """多鏡短片範本：讀 film.json，從角色定妝一路做到成片＋自審。做新片只改 film.json，這支程式不用改。
-用 tools/new_film.py <類型> <片名> 建成 films/<類型>/<片名>/ 再跑；生圖預設 OpenAI（IMAGE_BACKEND=local 改本機 Qwen），其餘都是本機模型。
+用 tools/new_film.py <類型> <片名> 建成 output/<類型>/<片名>/ 再跑；生圖預設 OpenAI（IMAGE_BACKEND=local 改本機 Qwen），其餘都是本機模型。
 H3 venv 執行（同一個 cmd 視窗先 call <repo>\\configs\\profile.cmd → <repo>\\tools\\start_comfy.cmd）：
   "%PY_H3%" make_film.py [stage ...] [--film 別的設定.json]
 stage（不給＝全部依序）：chars masters frames voices inserts h3 amb edl music ending cut review
 旁白、後製插入鏡、疊字（narrator、shot 的 vo／insert／overlay）見本資料夾的 README.md。
-每一步的輸出都在 output/，已存在的檔案會跳過，所以可以中斷後續跑、或刪掉某個檔重做：
-  - 重生某一鏡首幀：刪 output/first/<鏡>.png，在 film.json 的 seeds 加 "frame_<鏡>": 新 seed，再跑 frames
-  - 重拍某一鏡 H3：刪 output/h3/<鏡>/clip.mp4（或加 "h3_<鏡>": 新 seed），再跑 h3（環境變數 ONLY="S2 S5" 只跑指定鏡）
-  - 改了台詞：H3 自己念的句子（預設）刪 output/h3/<鏡>/clip.mp4 再跑 h3；fixed 的句子與旁白刪 output/voice/bv 裡那句的檔，再跑 voices
+每一步的輸出都在 work/，已存在的檔案會跳過，所以可以中斷後續跑、或刪掉某個檔重做：
+  - 重生某一鏡首幀：刪 work/first/<鏡>.png，在 film.json 的 seeds 加 "frame_<鏡>": 新 seed，再跑 frames
+  - 重拍某一鏡 H3：刪 work/h3/<鏡>/clip.mp4（或加 "h3_<鏡>": 新 seed），再跑 h3（環境變數 ONLY="S2 S5" 只跑指定鏡）
+  - 改了台詞：H3 自己念的句子（預設）刪 work/h3/<鏡>/clip.mp4 再跑 h3；fixed 的句子與旁白刪 work/voice/bv 裡那句的檔，再跑 voices
 台詞聲音 voice_mode（film.json 全片設，單句可在 line 裡設）："h3_ref"（預設）＝H3 拿角色參考音自己念（h3 階段結尾
 tools/h3_line_harvest.py 分離人聲、聽寫、拼音比對原文，差太多就停）；"fixed"＝VoxCPM2 配音當 H3 固定音軌。旁白 vo 一律 fixed。
   - 改了剪接（cut_in、tail…）：跑 edl cut review 即可
-人工關卡：frames 之後看 output/first/_sheet.jpg；h3 之後看 output/review/clips_*.jpg；review 之後一定要看成片。
+人工關卡：frames 之後看 work/first/_sheet.jpg；h3 之後看 work/review/clips_*.jpg；review 之後一定要看成片。
 完整流程見 docs/02_端到端流程.md，film.json 欄位見本資料夾的 README.md。"""
 import json
 import os
@@ -33,7 +33,7 @@ HERE = Path(__file__).resolve().parent
 ARGS = [a for a in sys.argv[1:]]
 FILM = HERE / (ARGS[ARGS.index("--film") + 1] if "--film" in ARGS else "film.json")
 CFG = json.loads(FILM.read_text(encoding="utf-8"))
-OUT = HERE / "output"; OUT.mkdir(exist_ok=True)
+OUT = HERE / "work"; OUT.mkdir(exist_ok=True)
 REPO = (HERE / CFG.get("repo_dir", "../..")).resolve()
 T = Path(os.environ.get("AI_TOOLS", REPO / "tools"))     # 預設直接用 repo 的 tools/
 AI_ROOT = Path(os.environ.get("AI_ROOT", r"C:\AI"))   # 安裝根目錄（profile.cmd 有設 PY_* 時以 PY_* 為準）
@@ -122,7 +122,7 @@ def nchars(t):
 
 
 def load_picks():
-    """output/voice_picks.json：每句實際用的聲音檔（VoxCPM2 挑的，或 h3_ref 從 H3 成片分離出的人聲，source＝"h3"）。"""
+    """work/voice_picks.json：每句實際用的聲音檔（VoxCPM2 挑的，或 h3_ref 從 H3 成片分離出的人聲，source＝"h3"）。"""
     p = OUT / "voice_picks.json"
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
@@ -182,7 +182,7 @@ def gen_img(cmd):
 
 
 def image_credit():
-    """片尾的生圖工具名：依 output/image_backends.json 實際用到的後端。"""
+    """片尾的生圖工具名：依 work/image_backends.json 實際用到的後端。"""
     log = json.loads(IMG_LOG.read_text(encoding="utf-8")) if IMG_LOG.exists() else {"img25": 1}
     names = ((["OpenAI Image 2.5"] if log.get("img25") else []) + (["OpenAI 生圖（Codex）"] if log.get("codex") else [])
              + (["Qwen-Image 2.1／Edit 2511"] if log.get("local") else []))
@@ -254,7 +254,7 @@ def chars():
     預設（Image 2.5 或 Codex）：先生轉面圖 <角色>_turn.png（純文字，角色的基準），再附它生表情表 <角色>_expr.png（同一張臉），
     最後附這兩張生臉部近照 <角色>_face.png（正面＋3/4 兩格，給特寫鏡看清五官）。
     IMAGE_BACKEND=local（千問備選）：單張、灰底、正面半身 <角色>.png。
-    同時用 VoxCPM2 設計角色參考音 voice/ref_<角色>.wav（念 voice_sample）：定案後存進 films/角色/<角色>/，之後每支片複製沿用、
+    同時用 VoxCPM2 設計角色參考音 voice/ref_<角色>.wav（念 voice_sample）：定案後存進 output/角色/<角色>/，之後每支片複製沿用、
     不再重新設計，H3 每鏡拿同一個檔當音色參考，聲音才不會漂移。沒寫 voice_design 的角色（例：沿用原片聲音的換角）跳過。"""
     char_voices()
     for k, c in CHARS.items():
@@ -298,7 +298,7 @@ def chars():
 
 
 def char_voices():
-    """角色參考音 voice/ref_<角色>.wav：已存在（從 films/角色/ 複製來的）就沿用，只補缺的。旁白不是角色，留在 voices 階段。"""
+    """角色參考音 voice/ref_<角色>.wav：已存在（從 output/角色/ 複製來的）就沿用，只補缺的。旁白不是角色，留在 voices 階段。"""
     vd = OUT / "voice"; vd.mkdir(exist_ok=True)
     jobs = [dict(name=f"ref_{k}", text=c["voice_sample"], seed=seed("voice_" + k, 7), control=c["voice_design"])
             for k, c in CHARS.items() if c.get("voice_design") and not (vd / f"ref_{k}.wav").exists()]
@@ -307,7 +307,7 @@ def char_voices():
     free_comfy()
     (OUT / "vox_chars.json").write_text(json.dumps(dict(out_dir="voice", jobs=jobs), ensure_ascii=False, indent=1), encoding="utf-8")
     run([PYV, T / "voxcpm_batch.py", "vox_chars.json"])
-    print("→ 人工試聽 output/voice/ref_<角色>.wav，定案後連同 voice_sample 存進 films/角色/<角色>/（之後不換）：",
+    print("→ 人工試聽 work/voice/ref_<角色>.wav，定案後連同 voice_sample 存進 output/角色/<角色>/（之後不換）：",
           ", ".join(j["name"] for j in jobs), flush=True)
 
 
@@ -366,7 +366,7 @@ def frames():
         gen_img(cmd)
         newest(OUT / "first").rename(dst)
     sheet([OUT / "first" / f"{s['id']}.png" for s in SHOTS if s["id"] not in INSERTS], OUT / "first" / "_sheet.jpg")
-    print("→ 人工檢查 output/first/_sheet.jpg：臉、服裝、多手多腳、背景有沒有字、窗戶方向", flush=True)
+    print("→ 人工檢查 work/first/_sheet.jpg：臉、服裝、多手多腳、背景有沒有字、窗戶方向", flush=True)
 
 
 def sheet(files, dst, cols=3):
@@ -388,7 +388,7 @@ def voices():
     """設計角色聲音（一次）→ edge-tts 台灣國語答案卷 → 每句 8 候選 → 自動挑（聽寫拼音聲調全對＋腔調分數，已去頭尾靜音）。
     角色台詞（line）和旁白（vo）走同一套；旁白的聲音設計在 film.json 的 narrator。聲音設計與念台詞都用 VoxCPM2。
     送進 TTS 的文字會先套讀音替換表（tts-lexicon.md，由 voxcpm_batch／gen_voice／voice_pick 各自套用），字幕照原文。
-    角色參考音（voice/ref_<角色>.wav，給 H3 當音色參考）在 chars 階段就做好或從 films/角色/ 複製來，這裡只補旁白的；
+    角色參考音（voice/ref_<角色>.wav，給 H3 當音色參考）在 chars 階段就做好或從 output/角色/ 複製來，這裡只補旁白的；
     h3_ref 的台詞在 h3 階段由 H3 自己念。"""
     char_voices()
     free_comfy()
@@ -400,7 +400,7 @@ def voices():
         if jobs:
             (OUT / "vox_design.json").write_text(json.dumps(dict(out_dir="voice", jobs=jobs), ensure_ascii=False, indent=1), encoding="utf-8")
             run([PYV, T / "voxcpm_batch.py", "vox_design.json"])
-        print("[voices] voice_mode h3_ref：角色參考音在 output/voice/ref_<角色>.wav，台詞由 H3 在 h3 階段自己念", flush=True)
+        print("[voices] voice_mode h3_ref：角色參考音在 work/voice/ref_<角色>.wav，台詞由 H3 在 h3 階段自己念", flush=True)
         return
     for i, sid, ln in fixed:                         # 答案卷：只拿來比腔調，不進成片
         w = vd / f"tw_{i}.wav"
@@ -441,13 +441,13 @@ def voices():
     if bad and os.environ.get("ALLOW_REVIEW") != "1":
         raise SystemExit("這幾句 8 個候選聽寫都不對：" + "；".join(bad) +
                          "\n念錯的詞以後也會遇到就加進 repo 根目錄的 tts-lexicon.md（只有這支片才在片子資料夾放一份）；"
-                         "只是這句就在 film.json 該句加 \"tts\"，把念錯的字換成同音字（VoxCPM2 不支援注音標記）或換說法。改完刪掉 output/voice/bv 再跑 voices；"
+                         "只是這句就在 film.json 該句加 \"tts\"，把念錯的字換成同音字（VoxCPM2 不支援注音標記）或換說法。改完刪掉 work/voice/bv 再跑 voices；"
                          "確定只是 ASR 聽錯（例如單字喊叫）就用 ALLOW_REVIEW=1 繼續。"
                          "\n想用耳朵挑：tools/audition.py <片子資料夾> <lineN> 把候選串成一個檔，選好用 --pick sK（會記成人工挑選，重跑 voices 不會被換掉）。")
     if odd and os.environ.get("ALLOW_REVIEW") != "1":
         raise SystemExit("這幾句聽寫正確的候選音量或音質全都異常（響度離群或嘶聲）：" + "；".join(odd) +
                          "\n先聽那句的候選（tools/audition.py <片子資料夾> <lineN> 串成一個檔，標出哪幾支音量或嘶聲異常）：有能用的就 --pick sK；"
-                         "全都不行就在 film.json 該句加 \"tts\" 換說法，刪掉 output/voice/bv 再跑 voices；確定原本那支可以用就 ALLOW_REVIEW=1 繼續。")
+                         "全都不行就在 film.json 該句加 \"tts\" 換說法，刪掉 work/voice/bv 再跑 voices；確定原本那支可以用就 ALLOW_REVIEW=1 繼續。")
 
 
 # ------------------------------------------------------------------------------------------------ H3
@@ -511,7 +511,7 @@ def h3():
 
 
 def harvest_lines():
-    """h3_ref 的台詞：H3 成片 → tools/h3_line_harvest.py（分離人聲、聽寫、拼音比對原文、切出那句）→ output/voice/h3/line<i>.wav，
+    """h3_ref 的台詞：H3 成片 → tools/h3_line_harvest.py（分離人聲、聽寫、拼音比對原文、切出那句）→ work/voice/h3/line<i>.wav，
     寫進 voice_picks.json（source "h3"、at＝實際開口秒數）。H3 會改用詞、偶爾晚開口；聽寫和原文差太多就停下來換 seed。"""
     picks, bad = load_picks(), []
     hd = OUT / "voice" / "h3"; hd.mkdir(parents=True, exist_ok=True)
@@ -536,16 +536,16 @@ def harvest_lines():
                                           encoding="utf-8")
     if bad and os.environ.get("ALLOW_REVIEW") != "1":
         raise SystemExit("H3 念的台詞和原文差太多：" + "；".join(bad) +
-                         "\n在 film.json 的 seeds 加 \"h3_<鏡>\": 新數字、刪 output/h3/<鏡>/clip.mp4，再 set ONLY=<鏡> 跑 h3；抽 2–3 次都不對就在該句 line 加 "
+                         "\n在 film.json 的 seeds 加 \"h3_<鏡>\": 新數字、刪 work/h3/<鏡>/clip.mp4，再 set ONLY=<鏡> 跑 h3；抽 2–3 次都不對就在該句 line 加 "
                          "\"voice_mode\": \"fixed\"（改用 VoxCPM2 固定音軌，先跑 voices 再刪 clip 重跑 h3）。確定只是聽寫聽錯就用 ALLOW_REVIEW=1 繼續。")
 
 
 @stage("inserts")
 def inserts():
-    """後製插入鏡（shot 有 insert）：不走首幀與 H3，直接做 1920×1080、24fps、無聲的影片 output/insert/<鏡>.mp4。
+    """後製插入鏡（shot 有 insert）：不走首幀與 H3，直接做 1920×1080、24fps、無聲的影片 work/insert/<鏡>.mp4。
     insert 二選一：{"image": "圖.png"}＝靜態圖撐滿鏡長；{"script": "inserts/x.py", "args": [...]}＝用 PY_H3 跑片子資料夾裡的腳本，
     腳本會收到 args 之後再加 --out <mp4> --dur <秒> --fps 24 --size 1920x1080。鏡長＝dur，有旁白就延長到念完＋0.8 秒。
-    改了腳本或參數：刪 output/insert/<鏡>.mp4 再跑 inserts。"""
+    改了腳本或參數：刪 work/insert/<鏡>.mp4 再跑 inserts。"""
     picks = load_picks()
     (OUT / "insert").mkdir(exist_ok=True)
     for s in SHOTS:
@@ -565,7 +565,7 @@ def inserts():
 
 
 def clip_of(s):
-    """這一鏡的原始影片：後製插入鏡是 output/insert/<鏡>.mp4，其他是 H3 的 output/h3/<鏡>/clip.mp4。"""
+    """這一鏡的原始影片：後製插入鏡是 work/insert/<鏡>.mp4，其他是 H3 的 work/h3/<鏡>/clip.mp4。"""
     return insert_file(s) if s["id"] in INSERTS else OUT / "h3" / s["id"] / "clip.mp4"
 
 
@@ -586,7 +586,7 @@ def sheet_clips():
         for i, t in enumerate(tiles):
             im.paste(t, (448 * i, 0))
         im.save(rv / f"clips_{s['id']}.jpg", quality=82)
-    print("→ 人工檢查 output/review/clips_*.jpg：換臉、多出人、多手多腳、鏡頭漂移、背景同學亂動", flush=True)
+    print("→ 人工檢查 work/review/clips_*.jpg：換臉、多出人、多手多腳、鏡頭漂移、背景同學亂動", flush=True)
 
 
 @stage("amb")
@@ -633,7 +633,7 @@ def ending_secs():
 
 @stage("edl")
 def edl():
-    """時間軸：依配音長度與 cut_in／cut_out／tail 算每鏡在成片中的位置，寫 output/post/edl.json（cut、review 都讀它）。
+    """時間軸：依配音長度與 cut_in／cut_out／tail 算每鏡在成片中的位置，寫 work/post/edl.json（cut、review 都讀它）。
     cut_in＝裁掉鏡頭開頭幾秒（H3 常晚開口）；cut_out＝"full" 用到鏡尾，不寫＝最後一句台詞或旁白結束＋tail 秒（反應停頓）。
     後製插入鏡預設用到鏡尾（鏡長已經含旁白念完後的停留）。"""
     picks = load_picks()
@@ -913,7 +913,7 @@ def cut():
          "cut/film_1080p.mp4"])
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", OUT / "cut" / "film_1080p.mp4", "-vf", "scale=1280:720", "-c:v", "libx264", "-crf", "26",
          "-c:a", "aac", "-b:a", "128k", OUT / "cut" / "film_720p_phone.mp4"])
-    print(f"成片 output/cut/film_1080p.mp4（{vtotal:.2f} 秒）", flush=True)
+    print(f"成片 work/cut/film_1080p.mp4（{vtotal:.2f} 秒）", flush=True)
 
 
 @stage("review")
@@ -922,7 +922,7 @@ def review():
     c = OUT / "cut" / "film_1080p.mp4"
     r1 = run([PYH3, HERE / "review.py", c], check=False); print(r1.stdout[-3000:], flush=True)
     r2 = run([PYV, HERE / "review.py", c, "--asr"], check=False); print(r2.stdout[-2000:], flush=True)
-    print("→ 看 output/review/：film_1080p_pass1.jpg、pass5_cuts.jpg、review.json、asr.json；最後一定要人看成片", flush=True)
+    print("→ 看 work/review/：film_1080p_pass1.jpg、pass5_cuts.jpg、review.json、asr.json；最後一定要人看成片", flush=True)
 
 
 STAGES = dict(chars=chars, masters=masters, frames=frames, voices=voices, inserts=inserts, h3=h3, amb=amb, edl=edl, music=music, ending=ending, cut=cut,

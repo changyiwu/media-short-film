@@ -17,8 +17,8 @@
 
 不要另建 `.claude/skills/` 副本或符號連結（雲端硬碟不同步符號連結，副本又會跟正本分叉）。技能要用的腳本放在 `tools/`，不要放進技能資料夾；`SKILL.md` 從當前目錄往上找 repo 根。
 
-做片入口範本在 [`templates/AGENTS_TEMPLATE.md`](../../templates/AGENTS_TEMPLATE.md)：`new_film.py` 在 `films/AGENTS.md` 不存在時會自動複製過去並加 `CLAUDE.md` 橋接，不用手動建。
+做片入口範本在 [`templates/AGENTS_TEMPLATE.md`](../../templates/AGENTS_TEMPLATE.md)：`new_film.py` 在 `output/AGENTS.md` 不存在時會自動複製過去並加 `CLAUDE.md` 橋接，不用手動建。
 
-> 編劇與預演的 references 原寫於上游早期（2026-08～09，雲端 Seedance、每段 30 秒、`角色資產/`、voice-clone 技能），2026-10-15 併入 `ai-film` 時已改成本 repo 的做法（本機 H3 單鏡 ≤12 秒、`films/角色/<角色>/README.md`、VoxCPM2、首幀預設 Image 2.5、定稿 DMAD 4 步不開 EasyCache）。若還看到跟 `docs/` 衝突的說法，以 `docs/` 為準並回頭修技能。
+> 編劇與預演的 references 原寫於上游早期（2026-08～09，雲端 Seedance、每段 30 秒、`角色資產/`、voice-clone 技能），2026-10-15 併入 `ai-film` 時已改成本 repo 的做法（本機 H3 單鏡 ≤12 秒、`output/角色/<角色>/README.md`、VoxCPM2、首幀預設 Image 2.5、定稿 DMAD 4 步不開 EasyCache）。若還看到跟 `docs/` 衝突的說法，以 `docs/` 為準並回頭修技能。
 
 協作方法（知識庫分層、記憶、工作習慣）見 [docs/05_agent協作與知識庫.md](../../docs/05_agent協作與知識庫.md)。

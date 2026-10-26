@@ -50,24 +50,24 @@ python cloud/colab_h3.py stop                      # 用完一定要關
 ```
 python cloud/colab_h3.py start                     # 預設＝完整安裝：語音三環境、ComfyUI（H3、Qwen、Music 3、FlashVSR）、中文字型（舊名 full-setup 也可以）
 python cloud/colab_h3.py smoke                     # 跑 setup/smoke_test.py，結果下載到 setup/output/colab/
-python cloud/colab_h3.py film pipeline/template_local chars masters frames   # 在雲端跑 make_film.py 指定階段，output/ 同步回本機
+python cloud/colab_h3.py film pipeline/template_local chars masters frames   # 在雲端跑 make_film.py 指定階段，work/ 同步回本機
 python cloud/colab_h3.py film pipeline/template_local voices inserts h3 amb edl music ending cut review
 python cloud/colab_h3.py stop
 ```
 - **2026-10-10 新 agent 實測（只看本 repo、從零）**：`full-setup` **約 10.5 分鐘**（VM 端 540 秒；10 份模型清單約 8 分鐘）→ `smoke` 約 13 分鐘 → 範本片〈被狗吃掉的作業〉分三段 `film` 共約 28 分鐘，成片 38.5 秒 1080p、−15.9 LUFS，自審全過；G4 開機到關機約 54 分鐘、**約 8 個運算單元**。Colab 硬碟約 236GB，裝完剩約 40–80GB。
 - 全雲端模式只有 1 個 ComfyUI，還要跟 Qwen、Music 3 輪流換模型，所以 H3 每鏡約 70 秒（smoke 第一支冷載入 230 秒），比「只有 H3 上雲端」的 42 秒慢。**`film` 現在跑到 h3／amb 時會自動改成 2 個 ComfyUI 錯開跑（`cloud/vm/parallel_h3.py`，`H3_PARALLEL=2`），跑完恢復 1 個**；長片才看得出差別。
-- 範本可以直接跑 `pipeline/template_local`；做自己的片時用 `tools/new_film.py <類型> <片名>` 建成 `films/<類型>/<片名>/`，再 `film films/<類型>/<片名> …`（資料夾一定要在 repo 裡面）。
-- 每個人工關卡（首幀、H3 接觸表、成片）之間，`film` 會把 `output/` 下載回來給你看；改了要重做的檔案刪掉，再跑下一段，`film` 會把整個片子資料夾重新上傳，從斷點接著做。
+- 範本可以直接跑 `pipeline/template_local`；做自己的片時用 `tools/new_film.py <類型> <片名>` 建成 `output/<類型>/<片名>/`，再 `film output/<類型>/<片名> …`（資料夾一定要在 repo 裡面）。
+- 每個人工關卡（首幀、H3 接觸表、成片）之間，`film` 會把 `work/` 下載回來給你看；改了要重做的檔案刪掉，再跑下一段，`film` 會把整個片子資料夾重新上傳，從斷點接著做。
 - **本機設的 `ONLY`（只重做某幾鏡）、`ALLOW_REVIEW`、`UPSCALE` 會自動帶到 VM**；其他設定用 `--env KEY=VALUE`（例：`film pipeline/template_local h3 --env ONLY=S3`）。
 - **VM 被收回（閒置約 20 分鐘）或你 `stop` 之後**：重新 `full-setup`（約 10 分鐘、約 1.5 單元），再 `film` 同一個資料夾就會從斷點接著做。
-- 注意：雲端跑出來的 `output/*.json`（`voice_picks`、`amb`、`music_pick`、`edl`）裡存的是 `/content/...` 的雲端路徑；要在本機接著跑 `edl`／`cut` 得重跑前面那幾段，建議全程在雲端做完。
+- 注意：雲端跑出來的 `work/*.json`（`voice_picks`、`amb`、`music_pick`、`edl`）裡存的是 `/content/...` 的雲端路徑；要在本機接著跑 `edl`／`cut` 得重跑前面那幾段，建議全程在雲端做完。
 - smoke_test 在 Linux 上自動跳過 `rtx_vsr`（只有 Windows 有），其餘全部通過；Linux 的放大用 lanczos（`UPSCALE=lanczos`，預設）或 FlashVSR（`UPSCALE=flashvsr`）。片尾名單會依實際做法自動寫成「在 Google Colab 執行」、放大工具照實列名。
 
 ## 3b. 本機＋Colab 一起跑（本機有顯卡、也有 Google AI 訂閱）
 
 ```
 set H3_BACKEND=both                                # Linux/Mac：export H3_BACKEND=both
-python pipeline/template_local/make_film.py h3 amb # 或直接：python cloud/hybrid_h3.py output/h3/S01 output/h3/S02 ...
+python pipeline/template_local/make_film.py h3 amb # 或直接：python cloud/hybrid_h3.py work/h3/S01 work/h3/S02 ...
 ```
 - **做法**（`cloud/hybrid_h3.py`）：所有鏡頭放進同一個佇列。本機從前面一支一支拿、馬上開跑；Colab（只裝 H3）開機約 3.5 分鐘後加入，每次從後面拿一批（預設最多 8 支）交給 `colab_h3.py batch`，做完再拿。不事先對半分，因為兩邊速度不同、雲端晚開始。**佇列快空時依兩邊實測速度估算雲端該拿幾支**（讓兩邊差不多同時做完，少於 2 支就不再派雲端）。雲端失敗的鏡頭放回佇列給本機重跑；做完在背景 `stop`（`HYBRID_KEEP=1` 不關，審片後重抽可以接著用）。
 - **2026-10-11 實測**（直式短片 34 鏡、3370 格、DMAD 4 步，RTX 5090＋G4、每批 8 支）：**17.9 分鐘**完成（本機 15 支、雲端 19 支、失敗 0）；同一輪本機每格 0.58 秒 → 全部本機推算 32.6 分鐘，**省 45%**；Colab **1.97 單元**（含開機、關機）。G4 開機 216 秒（本機同時先做了 4 支）；每批 8 支約 304–314 秒，其中上傳、解壓、輪詢、下載約 70 秒。

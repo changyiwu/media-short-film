@@ -13,7 +13,7 @@ AI 影片最常見的失敗是**空間隨機性**：座位跑掉、人物增生�
 ## 開工前
 
 1. 需求確認表與鏡表已經使用者確認（`../interview.md`、`../script/segmentation.md`）。
-2. 該片 `films/<類型>/<片名>/製作紀錄.md`；角色外觀讀 `films/角色/<角色>/README.md`。
+2. 該片 `output/<類型>/<片名>/製作紀錄.md`；角色外觀讀 `output/角色/<角色>/README.md`。
 3. Blender 安裝見 `<repo>/docs/06_安裝.md` §6b（安裝版、5.1 以上）；**操作方式一律照全域技能 `blender`**，本資料夾的專用規則見 `blender-rules.md`〈前置〉。
 
 ## 只讀需要的檔
@@ -34,6 +34,6 @@ AI 影片最常見的失敗是**空間隨機性**：座位跑掉、人物增生�
 
 ## 交出
 
-鏡位契約（`films/<類型>/<片名>/output/blender/camera_plan_v<N>.json`）→ 場景與布置圖 →（必要時）運鏡 → 檢查結果。接著回主流程第 5 步，把 `visible`、`motion` 寫進 `film.json`（見 `../film-json.md`）。
+鏡位契約（`output/<類型>/<片名>/work/blender/camera_plan_v<N>.json`）→ 場景與布置圖 →（必要時）運鏡 → 檢查結果。接著回主流程第 5 步，把 `visible`、`motion` 寫進 `film.json`（見 `../film-json.md`）。
 
 **絕不**：改動既有交付版本、覆寫別人正在用的檔案、把未驗收的結果寫成已通過。

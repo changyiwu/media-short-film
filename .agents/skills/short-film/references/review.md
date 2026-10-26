@@ -32,16 +32,16 @@
 ## 4. 交付與歸檔
 
 - [ ] 給使用者：成片路徑、自審報告（用**成片時間碼**對應鏡頭）、已知限制與沒量的項目
-- [ ] 沒有片尾時：發布資訊裡要有 AI 生成標示與工具名單（MiniMax H3、Music 3 授權要求公開內容標示機器生成；生圖工具照 `output/image_backends.json`）
+- [ ] 沒有片尾時：發布資訊裡要有 AI 生成標示與工具名單（MiniMax H3、Music 3 授權要求公開內容標示機器生成；生圖工具照 `work/image_backends.json`）
 - [ ] **定案**：交完自審報告，最後問使用者「可以成片嗎？」，**使用者說可以才做**下面兩件（還在改就不做，檔名維持 `film_1080p.mp4`，`review`、重剪都照舊找得到）：
-  1. 移到 `output/` 最上層並改檔名：`output/cut/film_1080p.mp4` → `output/<片名>.mp4`、`output/cut/film_720p_phone.mp4` → `output/<片名>_手機版.mp4`（找成品只要打開 `output/`，不用進 `cut/`）（片名用 `film.json`／`recast.json` 的 `title`；有接片尾的換角片是 `film_1080p_ending.mp4` → `<片名>.mp4`）。`<片名>.mp4` 已經存在（之前定案過）就先把舊的改名 `<片名>_v<N>.mp4`，不覆蓋
-  2. 生成 `films/<類型>/<片名>/發布資訊.md`：照 `<repo>/templates/發布資訊範本.md` 填（AI 生成標示、工具名單照 `output/image_backends.json`）；已經有就照這版內容更新
+  1. 移到片子資料夾最上層並改檔名：`work/cut/film_1080p.mp4` → `<片名>.mp4`、`work/cut/film_720p_phone.mp4` → `<片名>_手機版.mp4`（找成品只要打開片子資料夾，不用進 `work/cut/`）（片名用 `film.json`／`recast.json` 的 `title`；有接片尾的換角片是 `film_1080p_ending.mp4` → `<片名>.mp4`）。`<片名>.mp4` 已經存在（之前定案過）就先把舊的改名 `<片名>_v<N>.mp4`，不覆蓋
+  2. 生成 `output/<類型>/<片名>/發布資訊.md`：照 `<repo>/templates/發布資訊範本.md` 填（AI 生成標示、工具名單照 `work/image_backends.json`）；已經有就照這版內容更新
   - 定案後又要改：重跑 `cut` 會再產生 `film_1080p.mp4`，改完再問一次、再定案一次
 - [ ] **技術 QA 通過 ≠ 使用者驗收通過**，分開記錄；保存使用者回饋原文，不擅自升級成「驗收通過」
 - [ ] 該片 `製作紀錄.md` 補一段：版本、採用的 seed、退件原因、耗時分類
-- [ ] 退件理由整理成一條規則寫進 `films/AGENTS.md`（只屬於某類影片的寫進 `films/<類型>/AGENTS.md`；不要只寫 agent 記憶：每台電腦各一份、不會同步）
-- [ ] 生成的原始檔（`output/h3/<鏡>/clip.mp4` 等）保留，方便之後重剪
-- [ ] 成片、角色照、參考音都在 `films/`，不進公開 repo
+- [ ] 退件理由整理成一條規則寫進 `output/AGENTS.md`（只屬於某類影片的寫進 `output/<類型>/AGENTS.md`；不要只寫 agent 記憶：每台電腦各一份、不會同步）
+- [ ] 生成的原始檔（`work/h3/<鏡>/clip.mp4` 等）保留，方便之後重剪
+- [ ] 成片、角色照、參考音都在 `output/`，不進公開 repo
 
 ## 最常見的失誤（回看用）
 

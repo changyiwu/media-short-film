@@ -2,7 +2,7 @@
 
 > 目的：`film.json` 填好、**還沒花錢生定妝、首幀與 H3 之前**，先讓使用者看到故事順序、跟著字幕讀一遍節奏，抓出「片長超標」「節奏太快」「轉折沒交代」。
 > 移植自上游 `table-read.md`（2026-10-23）；本專案改成直接讀 `film.json`、16:9、配音長度照 VoxCPM2 語速估，不另寫 `shots.json`、不先做 TTS。
-> 試映素材只給使用者內部看，不進成片。檔案都在 `films/<類型>/<片名>/output/preview/`。
+> 試映素材只給使用者內部看，不進成片。檔案都在 `output/<類型>/<片名>/work/preview/`。
 
 ## 1. 跑工具
 
@@ -11,9 +11,9 @@
 ```
 
 - `--target`：`需求確認.md` 的目標片長。
-- 要草圖再加 `--storyboard`：每 16 鏡一張 4×4 鉛筆草圖（`gen_image.py` 的生圖後端，預設 Image 2.5 API → Codex，**會花一次生圖費用**，先跟使用者說）。草圖已存在就沿用；改了 `frame` 要重畫，刪 `output/preview/storyboard_*.png`。
+- 要草圖再加 `--storyboard`：每 16 鏡一張 4×4 鉛筆草圖（`gen_image.py` 的生圖後端，預設 Image 2.5 API → Codex，**會花一次生圖費用**，先跟使用者說）。草圖已存在就沿用；改了 `frame` 要重畫，刪 `work/preview/storyboard_*.png`。
   - 草圖不附定妝圖、只看構圖順序，交給使用者時說明「這是看節奏用的草圖，不是首幀」。
-  - 草圖不進成片，不記到 `output/image_backends.json`（片尾名單不列）。
+  - 草圖不進成片，不記到 `work/image_backends.json`（片尾名單不列）。
 - 產出：`讀本試映.mp4`（1280×720、靜音，每鏡停留＝估計的成片鏡長、下方字幕）、`讀本_timeline.json`（每鏡 `dur` 成片鏡長、`clip` H3 生成長度、`chars` 台詞字數）。
 
 ## 2. 估法（跟 `make_film.py` 同一套算法）

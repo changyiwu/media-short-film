@@ -4,9 +4,9 @@
 
 ## 開始前
 
-- `films/<類型>/<片名>/需求確認.md` 與 `劇本.md`（含鏡表）都已經使用者確認。
-- 每個角色的 `look`、`voice_design` **照抄** `films/角色/<角色>/README.md`，不要自己改寫外觀。
-- 定妝已定：把 `<角色>_turn.png`、`<角色>_expr.png`（千問備選為 `<角色>.png`）複製到 `output/chars/`，`make_film.py` 看到檔案已存在就會沿用，不會重生。
+- `output/<類型>/<片名>/需求確認.md` 與 `劇本.md`（含鏡表）都已經使用者確認。
+- 每個角色的 `look`、`voice_design` **照抄** `output/角色/<角色>/README.md`，不要自己改寫外觀。
+- 定妝已定：把 `<角色>_turn.png`、`<角色>_expr.png`（千問備選為 `<角色>.png`）複製到 `work/chars/`，`make_film.py` 看到檔案已存在就會沿用，不會重生。
 - 有做預演的話，旁邊開著 `camera_plan_v<N>.json`：`visible`、`motion` 要跟這裡一致。
 
 ## 鏡表 → shots[]
@@ -74,7 +74,7 @@ H3 照字面演，一句話的 `action` 動作只有官方結構的 1/2.7（完�
 
 - **台詞聲音二選一**（`voice_mode`）：`h3_ref`（預設，H3 拿角色參考音自己念，表演較生動；會改用詞、讀音替換表無效）或 `fixed`（VoxCPM2 配音當固定音軌；數學名詞、數字日期這類要一字不差的片或句子用它，整支片就在頂層寫 `"voice_mode": "fixed"`）。單句可在 `line` 加 `"voice_mode"` 覆寫；旁白一律 `fixed`。說明見 `<repo>/docs/02_端到端流程.md` §5。
 - `h3_ref` 的台詞避開數字日期、難字、H3 容易換說法的詞；角色參考音（`voice_design`＋`voice_sample`）要是平常說話的語氣，要吼的戲另做一個兇的參考音角色。
-- `h3_ref` 跑完 `h3` 後，看 `output/voice_picks.json` 每句的 `heard` 跟 `text` 對一遍：程式只擋明顯念錯（拼音相似度 < 0.7），小幅改詞（「也正好」→「也剛剛好」約 0.77）和聲調錯不會擋；自審第 2 遍（門檻 0.8）會再列出改詞。
+- `h3_ref` 跑完 `h3` 後，看 `work/voice_picks.json` 每句的 `heard` 跟 `text` 對一遍：程式只擋明顯念錯（拼音相似度 < 0.7），小幅改詞（「也正好」→「也剛剛好」約 0.77）和聲調錯不會擋；自審第 2 遍（門檻 0.8）會再列出改詞。
 - **配音先定稿**（`fixed`），H3 用同一份音訊當引導；不要事後換聲音掩蓋不同步。
 - **長靜默**（說話 → 停頓 → 再說話）最容易露餡：盡量拆成兩鏡；拆不了就在 `action` 寫明靜默時段嘴巴閉上。
 - 不用嘴／眼 XY 平移貼片修表演；未做逐音素量測就照實寫「未做逐音素認證」，不寫「完美對嘴」。
@@ -87,4 +87,4 @@ H3 照字面演，一句話的 `action` 動作只有官方結構的 1/2.7（完�
 - [ ] 沒台詞的鏡頭 `line: null` 且 `action` 寫明不說話
 - [ ] 同場景各鏡的母版、景別、窗戶方向一致
 - [ ] `look` 是照抄角色 README，不是改寫
-- [ ] 片尾是選用、預設不加（`ending.enabled` 預設 false；要加改 true 或設 `ENDING=1`）；有片尾時，`ending.cards` 的生圖工具名稱符合實際用的後端（`make_film.py` 依 `output/image_backends.json` 自動寫；有手動放進去的圖要再核對）
+- [ ] 片尾是選用、預設不加（`ending.enabled` 預設 false；要加改 true 或設 `ENDING=1`）；有片尾時，`ending.cards` 的生圖工具名稱符合實際用的後端（`make_film.py` 依 `work/image_backends.json` 自動寫；有手動放進去的圖要再核對）

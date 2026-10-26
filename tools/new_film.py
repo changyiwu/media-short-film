@@ -1,14 +1,14 @@
-"""開新片：把 pipeline/template_local/ 複製成 films/<類型>/<片名>/。
+"""開新片：把 pipeline/template_local/ 複製成 output/<類型>/<片名>/。
 
 用法：python tools/new_film.py <類型> <片名>     例：python tools/new_film.py 數學故事 埃拉托賽尼的篩子
 
-- 類型是影片類型的資料夾（例：數學故事、換角重製、原創短劇、測試），各類型專屬的規則寫在 films/<類型>/AGENTS.md。
-- 只複製 film.json、make_film.py、review.py（跳過 output/、__pycache__、README.md；說明請看範本的 README.md）。
+- 類型是影片類型的資料夾（例：數學故事、換角重製、原創短劇、測試），各類型專屬的規則寫在 output/<類型>/AGENTS.md。
+- 只複製 film.json、make_film.py、review.py（跳過 work/、__pycache__、README.md；說明請看範本的 README.md）。
 - film.json 的 title 換成片名，repo_dir 改成 "../../.."（片子在 repo 下三層）。
 - 另外建空的 需求確認.md、劇本.md、製作紀錄.md（需求確認表的欄位見 .agents/skills/short-film/references/interview.md）。
-- films/AGENTS.md 不存在時（新電腦、新頻道），從 templates/AGENTS_TEMPLATE.md 建一份，並加 CLAUDE.md 橋接。
-- films/<類型>/ 是新的時，建 films/<類型>/AGENTS.md（類型規則的空白範本）＋CLAUDE.md 橋接，並列出既有類型方便核對有沒有打錯字。
-- films/<類型>/<片名>/ 已存在就停下來，不覆蓋。
+- output/AGENTS.md 不存在時（新電腦、新頻道），從 templates/AGENTS_TEMPLATE.md 建一份，並加 CLAUDE.md 橋接。
+- output/<類型>/ 是新的時，建 output/<類型>/AGENTS.md（類型規則的空白範本）＋CLAUDE.md 橋接，並列出既有類型方便核對有沒有打錯字。
+- output/<類型>/<片名>/ 已存在就停下來，不覆蓋。
 """
 import json
 import re
@@ -19,7 +19,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 TEMPLATE = REPO / "pipeline" / "template_local"
-FILMS = REPO / "films"
+FILMS = REPO / "output"
 COPY = ["film.json", "make_film.py", "review.py"]
 REQ_TEMPLATE = """# {name} 需求確認（{today}）
 
@@ -47,7 +47,7 @@ REQ_TEMPLATE = """# {name} 需求確認（{today}）
 """
 KIND_TEMPLATE = """# {kind}：類型規則
 
-> 本類型的片放在 `films/{kind}/<片名>/`。這裡只放**這個類型**的規則；所有片共用的規則在上一層 `../AGENTS.md`，兩份都要讀。
+> 本類型的片放在 `output/{kind}/<片名>/`。這裡只放**這個類型**的規則；所有片共用的規則在上一層 `../AGENTS.md`，兩份都要讀。
 > Claude Code 讀本資料夾的檔案時，會透過同資料夾的 `CLAUDE.md`（`@AGENTS.md`）自動載入本檔。
 
 ## 這類片是什麼
@@ -84,15 +84,15 @@ def main():
         FILMS.mkdir(exist_ok=True)
         shutil.copyfile(REPO / "templates" / "AGENTS_TEMPLATE.md", FILMS / "AGENTS.md")
         (FILMS / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
-        created += ["films/AGENTS.md（從 templates/AGENTS_TEMPLATE.md 建立，請改成自己的頻道規則）", "films/CLAUDE.md"]
+        created += ["output/AGENTS.md（從 templates/AGENTS_TEMPLATE.md 建立，請改成自己的頻道規則）", "output/CLAUDE.md"]
 
     if not (kind_dir / "AGENTS.md").exists():
         others = sorted(p.name for p in FILMS.iterdir() if p.is_dir() and p.name != "角色" and p.name != kind)
-        print(f"新類型「{kind}」；既有類型：{'、'.join(others) or '（無）'}。打錯字的話刪掉 films/{kind}/ 重跑。")
+        print(f"新類型「{kind}」；既有類型：{'、'.join(others) or '（無）'}。打錯字的話刪掉 output/{kind}/ 重跑。")
         kind_dir.mkdir(parents=True, exist_ok=True)
         (kind_dir / "AGENTS.md").write_text(KIND_TEMPLATE.format(kind=kind), encoding="utf-8")
         (kind_dir / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
-        created += [f"films/{kind}/AGENTS.md（類型規則，請寫上這類片的規則）", f"films/{kind}/CLAUDE.md"]
+        created += [f"output/{kind}/AGENTS.md（類型規則，請寫上這類片的規則）", f"output/{kind}/CLAUDE.md"]
 
     dst.mkdir(parents=True)
     for f in COPY:
@@ -118,7 +118,7 @@ def main():
 
     for c in created:
         print("建立", c)
-    print(f"建立 films/{kind}/{name}/：{'、'.join(COPY)}、需求確認.md、劇本.md、製作紀錄.md")
+    print(f"建立 output/{kind}/{name}/：{'、'.join(COPY)}、需求確認.md、劇本.md、製作紀錄.md")
     print("film.json 目前還是範例片〈被狗吃掉的作業〉的角色、場景與鏡表，要換成自己的。")
     print("下一步：需求訪談（需求確認.md）→ 寫劇本與鏡表 → 填 film.json → 跑 make_film.py（流程見 short-film 技能）")
 

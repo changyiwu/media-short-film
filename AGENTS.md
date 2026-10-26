@@ -8,7 +8,7 @@
 
 ## 關鍵時程
 
-- 2026-10-25：從 `media-music-video`（原 `media-comfyui-studio`）搬入古裝庭院惡搞短片《臭豆腐》（`films/原創短劇/臭豆腐/`）與 H3 灰模動作參考測試（`films/測試/測試_H3灰模動作參考/`，瘦身後只留筆記、參考片產生腳本與對照圖）
+- 2026-10-25：從 `media-music-video`（原 `media-comfyui-studio`）搬入古裝庭院惡搞短片《臭豆腐》（`output/原創短劇/臭豆腐/`）與 H3 灰模動作參考測試（`output/測試/測試_H3灰模動作參考/`，瘦身後只留筆記、參考片產生腳本與對照圖）
 
 ## 目標與路線圖
 - [x] 階段一：複製上游 repo、移除原作者個人資訊、加上來源標示、專案初始化
@@ -22,18 +22,18 @@
   - [x] 桌機 `run_demo.py`（約 27 分鐘，成片待人工看過）
   - [ ] VoxCPM2 預設配音流程（`voxcpm_batch.py`＋挑音）實機驗證：台灣腔、聽寫通過率、速度
 - [ ] 階段三之二：RTX Spark 筆電上機驗證（照 `docs/hardware_rtxspark.md`「第一次上機」，結果回填該文件）
-- [x] 階段四：建立第一個角色（`films/角色/`），用 `short-film` 技能（`tools/new_film.py`）做第一支片
-  - [x] 角色「狗狗」（`films/角色/狗狗/`）＋第一支片〈狗熊哆嗦毛_狗狗版〉（換角重製，`docs/08`）
+- [x] 階段四：建立第一個角色（`output/角色/`），用 `short-film` 技能（`tools/new_film.py`）做第一支片
+  - [x] 角色「狗狗」（`output/角色/狗狗/`）＋第一支片〈狗熊哆嗦毛_狗狗版〉（換角重製，`docs/08`）
 - [ ] 階段五：換角重製工具化與其他版本
   - [x] 把首幀換角、各鏡 spec／骨架切段、剪接收尾的一次性腳本整理成 `tools/recast.py`（片子資料夾放 `recast.json`）
   - [x] 舞蹈鏡嘴型：聽寫寫台詞＋閉嘴首幀＋換 seed（`docs/08`〈有發聲的骨架鏡〉）
   - [ ] 〈狗熊哆嗦毛〉台灣黑熊、貓貓版（「台灣黑熊」比「狗熊」多兩字，開頭鏡要拉長）
-- [ ] 階段六：劇本導向教學片（`films/數學故事/`）
-  - [x] `films/` 依影片類型分資料夾（`films/<類型>/<片名>/`，類型規則在 `films/<類型>/AGENTS.md`）
+- [ ] 階段六：劇本導向教學片（`output/數學故事/`）
+  - [x] `output/` 依影片類型分資料夾（`output/<類型>/<片名>/`，類型規則在 `output/<類型>/AGENTS.md`）
   - [x] `make_film.py` 範本支援旁白（`narrator`＋`vo`）、後製插入鏡（`insert`）、疊字（`overlay`）、每鏡 `setting`／`soundscape`、統一人聲響度（`mix.voice_lufs`）
   - [x] 角色「埃拉托賽尼」＋〈埃拉托賽尼的篩子〉（1.5 分鐘課堂引起動機）成片 99 秒
   - [x] 〈埃拉托賽尼的篩子〉人聲音量確認，存為範本 `film.json` 的預設混音
-  - [x] 〈埃拉托賽尼的篩子〉發布資訊（YouTube＋Facebook，`films/數學故事/埃拉托賽尼的篩子/發布資訊.md`）
+  - [x] 〈埃拉托賽尼的篩子〉發布資訊（YouTube＋Facebook，`output/數學故事/埃拉托賽尼的篩子/發布資訊.md`）
   - [x] `pron_check.py` 的「不」「一」一律記本調、變調交給 `sur`（「不是」「不適」不再判成不同聲調）
   - [x] 配樂維持 14 段，乾淨的都不夠長時交叉淡入自動接長（多寫段數會讓 Music 3 唱歌）
   - [x] `.gitattributes` 讓 `*.cmd`／`*.bat` 簽出成 CRLF
@@ -52,7 +52,7 @@ THIRD_PARTY_NOTICES.md         第三方模型與工具授權
 tts-lexicon.md                 讀音替換表（多音字、英文詞 → TTS 念得對的寫法；四個 repo 各一份、內容相同，同層時合併讀取）
 docs/                          總覽、端到端流程、規則與踩坑、自審清單、安裝、角色與首幀、換角重製、硬體說明
 tools/                         全域工具（各腳本直接用這裡，不再複製到 C:\AI\tools）
-films/                         自己的片與角色資產（.gitignore，不進 repo；規則見 films/AGENTS.md）
+output/                         自己的片與角色資產（.gitignore，不進 repo；規則見 output/AGENTS.md）
 pipeline/                      template_local（新片範本）、demo_local（安裝驗證）
 setup/                         模型下載清單、套件清單、smoke_test、硬體偵測、16GB 模擬測試
 cloud/                         H3 送 Google Colab 跑
@@ -74,11 +74,11 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 預設 OpenAI 生圖（`gen_image.py` 的 `IMAGE_BACKEND=auto`）：第一優先 Image 2.5 API（金鑰，確定是 Image 2.5），找不到金鑰才走 Codex CLI（`tools/codex_image.py`，扣 ChatGPT 訂閱，模型版本無法確認），兩者都不行、或選定後生成失敗就停下，不改試另一個、不自動改用千問；本機 Qwen-Image 為備選，要用就整支片設 `IMAGE_BACKEND=local`。金鑰由使用者自己設定（`OPENAI_API_KEY`／`OPENAI_KEY_FILE`／`~/.openai.env`），agent 不經手、不讀出內容、不寫進 repo。
 - `run_demo.py`、`smoke_test.py` 固定 `--backend local`（驗證本機安裝用）。
 - 角色定妝一次生三張多格圖：轉面圖（全身正、3/4、側、背）＋表情表（六格）＋臉部近照（正面＋3/4 兩格），首幀依景別每個角色附 1–3 張（每鏡 `sheets`，沒寫＝轉面圖＋表情表）；千問備選才用單張半身照（Qwen 會把多格版面照抄成拼貼）。
-- 走 Codex 的圖由 `make_film.py` 記成 `codex`，片尾寫「OpenAI 生圖（Codex）」；不要再手動用 `draw` 代 `make_film.py` 生圖（不會記到 `output/image_backends.json`，片尾名稱會錯）。
+- 走 Codex 的圖由 `make_film.py` 記成 `codex`，片尾寫「OpenAI 生圖（Codex）」；不要再手動用 `draw` 代 `make_film.py` 生圖（不會記到 `work/image_backends.json`，片尾名稱會錯）。
 
 ### 配音
 - 畫面內的角色台詞預設由 H3 拿角色參考音自己念（`film.json` 的 `voice_mode: "h3_ref"`，2026-10-24 起；`h3` 結尾 `tools/h3_line_harvest.py` 聽寫比對）；要一字不差的片或句子設 `"fixed"` 改用 VoxCPM2 固定音軌。
-- 角色參考音在定裝時（`make_film.py chars`）跟定妝圖一起做，定案後連同 `voice_sample` 存進 `films/角色/<角色>/ref_<代號>.wav`，之後每支片複製沿用、不重新設計：H3 每鏡拿同一個檔當音色參考，聲音才不會在片與片、鏡與鏡之間漂移。
+- 角色參考音在定裝時（`make_film.py chars`）跟定妝圖一起做，定案後連同 `voice_sample` 存進 `output/角色/<角色>/ref_<代號>.wav`，之後每支片複製沿用、不重新設計：H3 每鏡拿同一個檔當音色參考，聲音才不會在片與片、鏡與鏡之間漂移。
 - TTS 引擎只有 VoxCPM2（角色參考音、旁白、`fixed` 的台詞，`tools/voxcpm_batch.py`），挑音 `voice_pick.py`；VoxCPM2 不支援注音標記。
 - 多音字、英文詞念錯：加進 repo 根目錄的讀音替換表 `tts-lexicon.md`（Markdown 表格，格式寫在檔頭）；只對某支片的放片子資料夾的同名檔，只有某句的寫 `film.json` 該句的 `"tts"`（同音字）。不要改字幕或劇本原文。
 - 送進 TTS 的文字一律經 `tools/tts_lexicon.py`（`voxcpm_batch`、`gen_voice`、`voice_pick`、`recast` 已接），新寫的配音工具也要接；改 `tts-lexicon.md` 的格式時，media-video-specs 各範本的 `generate_narration.py` 要一起改。
@@ -101,13 +101,13 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 判斷套件有沒有 ARM64 版不要只看 PyPI：NVIDIA 的套件（如 `nvidia-vfx`）在 PyPI 只放 wheel-stub 空殼，真正的 wheel 在 pypi.nvidia.com；也要核對 wheel 的 Python 版本（cpXY／abi3）。
 
 ### 做片
-- 自己的片一律放 `films/<類型>/<片名>/`（類型例：數學故事、換角重製、原創短劇、測試），用 `tools/new_film.py <類型> <片名>`（`short-film` 技能）從 `pipeline/template_local/` 建立，不要手動複製；`repo_dir` 是 `../../..`（`new_film.py` 會填）；`films/` 已列入 `.gitignore`，只走雲端硬碟、沒有 GitHub 備份。
+- 自己的片一律放 `output/<類型>/<片名>/`（類型例：數學故事、換角重製、原創短劇、測試），用 `tools/new_film.py <類型> <片名>`（`short-film` 技能）從 `pipeline/template_local/` 建立，不要手動複製；`repo_dir` 是 `../../..`（`new_film.py` 會填）；`output/` 已列入 `.gitignore`，只走雲端硬碟、沒有 GitHub 備份。
 - 《臭豆腐》與〈測試_H3灰模動作參考〉是搬來的舊作，不是用 `make_film.py`／`h3_shot.py` 做的，結構不照範本（成品在 `media/`）；重現《臭豆腐》用它自己的 `build_seg.py`，舊產生器 `ref2va.py` 封存在該片的 `legacy/`，不要搬進 `tools/`，新片一律用 `tools/h3_shot.py`。
-- 頻道與角色的做片規則在 `films/AGENTS.md`（`films/CLAUDE.md` 橋接），只屬於某類影片的規則在 `films/<類型>/AGENTS.md`，角色資產在 `films/角色/`（各類型共用）；不要把這些寫進本檔或 `pipeline/`。
+- 頻道與角色的做片規則在 `output/AGENTS.md`（`output/CLAUDE.md` 橋接），只屬於某類影片的規則在 `output/<類型>/AGENTS.md`，角色資產在 `output/角色/`（各類型共用）；不要把這些寫進本檔或 `pipeline/`。
 - 照參考影片換主角（保留動作、背景、聲音）照 `docs/08_換角重製.md`：片子資料夾寫 `recast.json`，用 `tools/recast.py`（首幀、配音、各鏡 spec、H3、剪接）；不要走 `make_film.py` 的 h3 階段（它不會把 `control` 傳給 H3）。
-- 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `output/cut/film_1080p.mp4` 移到該片 `output/` 最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `.agents/skills/short-film/references/review.md`）。
+- 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `work/cut/film_1080p.mp4` 移到片子資料夾（`output/<類型>/<片名>/`）最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `.agents/skills/short-film/references/review.md`）。
 - 片尾是選用、預設不加：`film.json` 的 `ending.enabled` 為 true（或設 `ENDING=1`）才做片尾、接進成片。
-- `films/AGENTS.md` 是從 `templates/AGENTS_TEMPLATE.md` 改寫的獨立檔：改了範本裡的通用規則，要手動同步過去。
+- `output/AGENTS.md` 是從 `templates/AGENTS_TEMPLATE.md` 改寫的獨立檔：改了範本裡的通用規則，要手動同步過去。
 - 技能只放專案的 `.agents/skills/`，不用 skill-sync 裝到任何 agent 的全域目錄，也不另建 `.claude/skills/` 副本或符號連結（雲端硬碟不同步符號連結）；改完直接生效，不用「同步技能」。技能要用的腳本照舊放 `tools/`，SKILL.md 從當前目錄往上找 repo 根。
 
 ## 技能路由（四個 Agent 共用）
@@ -153,4 +153,4 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 修改前先確認計畫，優先保留原有資料結構
 - agent 要寫一次性的批次腳本時改寫 PowerShell（`.ps1`，用 `pwsh -File` 跑），不要用 Write 寫 `.cmd`：寫出來是 LF＋UTF-8，路徑有中文時 cmd 會把整行讀壞。
 - Windows 上 agent 用 Bash（Git Bash）改檔時，凡是字串裡有反斜線，一律先用 Write 把 Python 修改腳本寫成檔案再執行，不要用 heredoc 或 `python -c`（反斜線會被吃掉或變成控制字元，寫出壞掉的路徑）
-- **產出一律放 `output/`**：每支片的產出放該片的 `films/<類型>/<片名>/output/`（工作檔在子資料夾，定案的 `<片名>.mp4`、`<片名>_手機版.mp4` 放 `output/` 最上層，一打開就找得到）；安裝驗證與範例的產出放各自旁邊的 `output/`（`setup/output/`、`pipeline/demo_local/output/`）。不另開 `out/`、`outputs/` 之類的資料夾；`output/` 不進 git。
+- **產出一律放 `output/`**：每支片整個資料夾就在 `output/<類型>/<片名>/`：定案的 `<片名>.mp4`、`<片名>_手機版.mp4` 放片子資料夾最上層（一打開就找得到），工作檔放片內的 `work/`，手動跑的 log 放 `work/log/`，舊稿、舊程式放 `舊版/`；安裝驗證與範例的產出放各自旁邊的 `output/`（`setup/output/`、`pipeline/demo_local/output/`）。不另開 `out/`、`outputs/` 之類的資料夾；`output/` 不進 git。
