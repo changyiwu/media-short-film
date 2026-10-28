@@ -81,8 +81,14 @@ def spark_plan(g, r):
     }
     if emulated:
         info["notes"].insert(0, "目前的 Python 是 x64 模擬版：請改裝原生 ARM64 Python 3.12（python.org 的 ARM64 installer 或 uv python install cpython-3.12-windows-aarch64）")
-    if r["total_gb"] < 60:
-        info["notes"].append(f"統一記憶體只有 {r['total_gb']}GB（CPU 與 GPU 共用）：H3 需要約 45–50GB，建議 64GB 以上")
+    # 64GB 機種可在驅動／BIOS 切出固定的 GPU 專用記憶體（例如 32＋32）：Windows 只回報剩下的系統部分，要加回 nvidia-smi 的專用 VRAM
+    vram = g.get("vram_gb", 0)
+    total = round(r["total_gb"] + vram, 1)
+    info["memory"] = dict(system_gb=r["total_gb"], gpu_dedicated_gb=vram, total_gb=total)
+    if vram:
+        info["notes"].append(f"記憶體切分：系統 {r['total_gb']}GB＋GPU 專用 {vram}GB＝{total}GB（見 docs/hardware_rtxspark.md〈記憶體切分〉）")
+    if total < 60:
+        info["notes"].append(f"總記憶體只有 {total}GB（系統＋GPU）：H3 需要約 45–50GB，建議 64GB 以上")
     return info
 
 

@@ -8,7 +8,7 @@
 | 項目 | 桌機（本專案主設定） | RTX Spark 筆電 |
 |---|---|---|
 | CPU 架構 | x64 | **ARM64**（Windows 11 on Arm） |
-| 記憶體 | 16GB 顯存＋64GB 系統記憶體（各自獨立，共 80GB） | **64GB 統一記憶體，CPU 與 GPU 共用** |
+| 記憶體 | 16GB 顯存＋64GB 系統記憶體（各自獨立，共 80GB） | **64GB 統一記憶體，CPU 與 GPU 共用**；可切成固定的系統＋GPU 專用（見〈記憶體切分〉） |
 | GPU | RTX 50 系列，正式版 CUDA 驅動 | N1X 內建 Blackwell GPU（5120 或 6144 CUDA 核心） |
 | CUDA／PyTorch | 正式版（cu130 wheel） | **開發者預覽版**（CUDA 13.4 preview、NVIDIA nightly PyTorch） |
 | 設定檔 | `configs\profile.cmd` | `configs\profile_rtxspark.cmd` |
@@ -24,6 +24,20 @@
    | `C:\AI\Voice`（VoxCPM2、faster-whisper、分軌） | 126／146 | **`ctranslate2`（faster-whisper 核心）任何版本都沒有 Windows ARM64 版**（CUDA 12 函式庫也只有 x64；CUDA 13 版有 ARM64，但 ctranslate2 用不到）；`soxr`、`torchcodec` 沒有 ARM64 wheel（見下方〈語音〉）；`tiktoken`（openai-whisper 需要）與 `praat-parselmouth`（挑音的聲調比對）只有原始碼 | 聽寫：`stt.py` 自動改用 openai-whisper，但要先編得出 tiktoken（要 Rust 工具鏈）；parselmouth 編不起來時挑音照跑，只是沒有腔調分數；VoxCPM2 先試本機 |
 
 3. **記憶體是共用的**：桌機的做法是「顯存放不下的模型先放系統記憶體」，在統一記憶體上這等於同一池子放兩份。上游 16GB 顯存＋32GB 記憶體版實測 H3 一共約用掉 45–50GB 仍可跑，所以 64GB 統一記憶體**理論上夠**，但 Windows 與桌面程式也從同一池子拿，生成時一定要關掉其他大程式。
+
+## 記憶體切分（例：32GB 系統＋32GB GPU 專用）
+
+64GB 機種可以把統一記憶體切出一塊固定給 GPU。切了之後各工具看到的數字都只是其中一半，**不要誤判成只有 32GB**：
+
+| 從哪裡看 | 32＋32 時看到的 | 意思 |
+|---|---|---|
+| `nvidia-smi` 的 `memory.total` | 約 31GB（31232MiB） | GPU 專用那一塊 |
+| Windows 實體記憶體（工作管理員、`GlobalMemoryStatusEx`） | 約 32GB | 只剩系統那一塊 |
+| Windows 認可上限（commit limit） | 約 66GB | 系統那一塊＋分頁檔，不含 GPU 專用 |
+
+- `setup/detect_hardware.py` 的總記憶體＝系統＋`nvidia-smi` 回報的專用 VRAM（輸出的 `memory` 欄），H3 夠不夠用總數判斷；`nvidia-smi` 回 `[N/A]`（沒切分、全部共用）時專用 VRAM 記 0，總數就是系統記憶體。
+- 切分後 GPU 那一塊是真的專用，比較像桌機的「顯存＋系統記憶體」兩池：H3 放不下顯存的部分要擠進 32GB 系統記憶體，系統那邊比較緊（Windows、瀏覽器也在用）。
+- 上面〈設定〉的 ComfyUI 參數（`--reserve-vram 6`、關掉釘選記憶體與非同步搬移）是照「全部共用」設計的，切分後是否仍最合適**還沒實測**：第一次上機跑 H3 時記下峰值，再決定要不要調 `--reserve-vram` 或拿掉 `--disable-pinned-memory`，結果回填這裡。
 
 ## 設定（`configs\profile_rtxspark.cmd`）
 
