@@ -115,7 +115,7 @@ ARM64 套件狀況：
      uv pip install --python "%PY_H3%" --no-deps nvidia-vfx==0.2.0.0 gguf==0.19.0 accelerate==1.15.0 numba==0.68.0 llvmlite==0.50.0 "diffusers @ https://github.com/huggingface/diffusers/archive/e0abab83b5df05de9e7abd788643c1a7c1e42e28.zip" --extra-index-url https://pypi.nvidia.com --index-strategy unsafe-best-match
      ```
      Desktop 預設會自動更新 ComfyUI（可能連 torch 一起換），更新後先跑 `smoke_test.py`。下面第 5、6b 步的 `C:\AI\H3\venv\Scripts\python.exe` 改用 `%PY_H3%`。
-   - **沒有 Desktop**：自己建 `C:\AI\H3`（torch 安裝檔 1.7GB，uv 預設 30 秒逾時會失敗，先 `set UV_HTTP_TIMEOUT=600`）：
+   - **沒有 Desktop**：自己建 `C:\AI\H3`（torch 安裝檔 1.7GB，pypi.nvidia.com 很慢、uv 預設 30 秒逾時會失敗，先 `set UV_HTTP_TIMEOUT=600`，或改從 NVIDIA pytorch-windows-ci 的 GitHub release 下載，見第 7 步）：
    ```
    py -V:3.12-arm64 -m venv C:\AI\H3\venv
    C:\AI\H3\venv\Scripts\python.exe -m pip install --pre --upgrade --only-binary=:all: --extra-index-url https://pypi.nvidia.com/nvtorch_oot_nightly torch torchvision torchaudio
@@ -134,6 +134,14 @@ ARM64 套件狀況：
    C:\AI\Voice\venv\Scripts\python.exe -m pip install --pre --upgrade --only-binary=:all: --extra-index-url https://pypi.nvidia.com/nvtorch_oot_nightly torch torchvision torchaudio
    uv pip install --python C:\AI\Voice\venv\Scripts\python.exe --no-deps -r <repo>\setup\env\arm64\requirements_voice_venv_arm64.txt --index-strategy unsafe-best-match
    ```
+   **動手前先參考 media-voice-clone 的經驗**（同一台 RTX Spark 2026-10-28 已裝成 VoxCPM2 GPU 環境，RTF 1.7、載入約 25 秒；細節見該 repo 的 `install.ps1`、`requirements-win-arm64.txt`、`sac-pins.txt`、`shims/sklearn-unavailable/`、`AGENTS.md`〈Windows on ARM＋RTX Spark 的 GPU 環境〉）。重點：
+   - **Python 3.13**，torch／torchaudio 用 NVIDIA [pytorch-windows-ci](https://github.com/NVIDIA/pytorch-windows-ci/releases) GitHub release 的固定 nightly（只出 cp313，兩個要同一天那批）；不要用 pypi.nvidia.com（同樣的檔只有約 62 KB/s，本頁第 4 步自建 H3 時 torch 1.7GB 也是在這裡逾時）。上面指令的 3.12 要跟著改。
+   - **soxr 沒有任何 win_arm64 wheel**：voice-clone 改用 librosa 0.9.2（最後一版不需要 soxr）＋`setuptools<81`。本專案清單是 librosa 1.0.0（需要 soxr），要降版先確認 `voice_pick.py` 等工具在 0.9.2 下照常。
+   - **scikit-learn 的 cp313 win_arm64 每一版都被 SAC 擋**，而 librosa 0.9.2 一 import 就要它：voice-clone 先試真的、被擋才換成 `shims/sklearn-unavailable` 空殼（import 得到，真的用到才丟 `ImportError`）。
+   - **SAC 放行的版本**：voice-clone 的語音環境 numba 0.68.0／0.68.1、scipy 1.17／1.18 被擋，改用 numba 0.68.0rc1、scipy 1.16.3；但同一天 Desktop 的 `.venv` 裡 numba 0.68.0（`njit` 實際編譯）與 scipy 1.18.1 都沒被擋，**以實測為準**，被擋才降。
+   - **voxcpm `--no-deps`**，它宣告的 pyarrow、tiktoken、cryptography、funasr、modelscope 只有訓練／ASR／降噪才用，而且沒有 win_arm64 wheel。注意本專案的聽寫備援 openai-whisper 需要 tiktoken（只有原始碼、要 Rust），所以 ASR 這條仍要另外驗證。
+   - 環境放 `C:\AI\Voice`（不在 `%LOCALAPPDATA%`）：從 Claude 桌面版跑的程式在 `%LOCALAPPDATA%` **新建**的資料夾會被虛擬化到 `Packages\Claude_*\LocalCache\Local\`，別的程式看不到（寫進已存在的資料夾，例如 Desktop 的 `.venv`，不受影響）。
+
    **可能被 Smart App Control 擋**（見〈Smart App Control〉）：ARM64 原生套件（例如 librosa 會 import 的 scikit-learn、現場編譯出來的 soxr）載入時報 `WinError 4551` 或 DLL 載入失敗，就記下是哪個套件；不要自己關 SAC，先問使用者，或這一步改送 Colab／桌機。
    逐項確認並回填（下面的 `gen_voice.py` 指 `C:\AI\Voice\venv\Scripts\python.exe <repo>\tools\gen_voice.py`）：
    - `soxr` 有沒有編譯成功：`C:\AI\Voice\venv\Scripts\python.exe -c "import soxr, librosa; print('ok')"`
