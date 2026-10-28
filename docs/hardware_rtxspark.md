@@ -1,6 +1,6 @@
 # 硬體說明：RTX Spark 筆電（Windows on Arm＋64GB 統一記憶體）
 
-> **狀態：尚未在 RTX Spark 實機上驗證（2026-10-11）。** 本文件是依上游 16GB 版的實測數據、NVIDIA 公開資訊與 PyPI 套件掃描推出來的計畫；拿到筆電後照「第一次上機」逐步驗證，結果回填本文件。
+> **狀態：第一次上機進行中（2026-10-28，第 1–5 步完成，結果見〈實機結果〉）。** 本文件原本是依上游 16GB 版的實測數據、NVIDIA 公開資訊與 PyPI 套件掃描推出來的計畫；照「第一次上機」逐步驗證，結果回填本文件。
 > 本專案的其他內容（流程、規則、腳本）不變；這份只處理「同一套工作流怎麼在 RTX Spark 上跑」。
 
 ## 跟桌機版差在哪
@@ -34,6 +34,7 @@
 | `nvidia-smi` 的 `memory.total` | 約 31GB（31232MiB） | GPU 專用那一塊 |
 | Windows 實體記憶體（工作管理員、`GlobalMemoryStatusEx`） | 約 32GB | 只剩系統那一塊 |
 | Windows 認可上限（commit limit） | 約 66GB | 系統那一塊＋分頁檔，不含 GPU 專用 |
+| torch `cuda.mem_get_info()`／`spark_check.py` 的 `gpu_total_gb` | 46.0GB（閒置時可用 45.8GB） | 比 `nvidia-smi` 多約 15GB，推測含 Windows 共用 GPU 記憶體（從系統那一塊借）；跑 H3 時看實際峰值再確認 |
 
 - `setup/detect_hardware.py` 的總記憶體＝系統＋`nvidia-smi` 回報的專用 VRAM（輸出的 `memory` 欄），H3 夠不夠用總數判斷；`nvidia-smi` 回 `[N/A]`（沒切分、全部共用）時專用 VRAM 記 0，總數就是系統記憶體。
 - 切分後 GPU 那一塊是真的專用，比較像桌機的「顯存＋系統記憶體」兩池：H3 放不下顯存的部分要擠進 32GB 系統記憶體，系統那邊比較緊（Windows、瀏覽器也在用）。
@@ -142,6 +143,18 @@ ARM64 套件狀況：
    - 聽寫備援（openai-whisper）：`C:\AI\Voice\venv\Scripts\python.exe <repo>\tools\stt.py --audio design.wav --outdir stt` → `stt\transcript.json` 的 `backend` 應為 `openai`，記下秒數
 8. **smoke test**：`setup\smoke_test.py`；過了再跑 `pipeline\demo_local\run_demo.py`（聽寫應該會印出 `[asr] ... falling back to openai-whisper`，代表備援生效）。
 9. 把每一步的結果（成功／失敗、速度、記憶體峰值）寫回本文件，並更新上面的分工表。
+
+## 實機結果
+
+第一台：RTX Spark N1X（6144 核心），64GB 切成 32GB 系統＋32GB GPU 專用，Comfy Desktop 路線。
+
+| 步驟 | 日期 | 結果 |
+|---|---|---|
+| 1. 硬體偵測 | 2026-10-28 | ✅ 認出 RTX Spark；總記憶體 62.7GB（系統 32.2＋GPU 專用 30.5，見〈記憶體切分〉），C 槽 647GB 可用 |
+| 2. ARM64 Python | 2026-10-28 | ✅ 系統有 python.org 3.13 ARM64；Desktop 自帶 3.13.12 ARM64，不必另裝 3.12 |
+| 3. 驅動與 CUDA | 2026-10-28 | ✅ 驅動 617.42、CUDA 13.4（出廠已裝） |
+| 4. H3 環境 | 2026-10-28 | ✅ Desktop v0.42.1 `beta-win-nvidia-arm64`，torch `2.15.0.dev20260902+cu134`；補裝 nvidia-vfx、gguf、accelerate、numba 0.68、llvmlite 0.50、diffusers 都能 import，未裝 triton。清單裡要現場編譯的 blake3、cryptography、kornia_rs Desktop 已內建。網路慢時大檔（nvidia-vfx 523MB）會斷線，重試加 `UV_HTTP_RETRIES=10` |
+| 5. 相容性總檢查 | 2026-10-28 | ✅ `torch.cuda` true、capability 12.1、`gpu_total_gb` 46.0；ffmpeg 9.0.2 是 x64 版（模擬執行，可用但較慢，日後可找 ARM64 版）；wheel 掃描與 2026-10-14 相同（H3 97／109、語音 126／146） |
 
 ## 重新產生 ARM64 套件清單
 
