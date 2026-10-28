@@ -134,6 +134,7 @@ ARM64 套件狀況：
    C:\AI\Voice\venv\Scripts\python.exe -m pip install --pre --upgrade --only-binary=:all: --extra-index-url https://pypi.nvidia.com/nvtorch_oot_nightly torch torchvision torchaudio
    uv pip install --python C:\AI\Voice\venv\Scripts\python.exe --no-deps -r <repo>\setup\env\arm64\requirements_voice_venv_arm64.txt --index-strategy unsafe-best-match
    ```
+   **可能被 Smart App Control 擋**（見〈Smart App Control〉）：ARM64 原生套件（例如 librosa 會 import 的 scikit-learn、現場編譯出來的 soxr）載入時報 `WinError 4551` 或 DLL 載入失敗，就記下是哪個套件；不要自己關 SAC，先問使用者，或這一步改送 Colab／桌機。
    逐項確認並回填（下面的 `gen_voice.py` 指 `C:\AI\Voice\venv\Scripts\python.exe <repo>\tools\gen_voice.py`）：
    - `soxr` 有沒有編譯成功：`C:\AI\Voice\venv\Scripts\python.exe -c "import soxr, librosa; print('ok')"`
    - VoxCPM2 載入：`C:\AI\Voice\venv\Scripts\python.exe -c "import voxcpm; print('ok')"`
@@ -154,7 +155,20 @@ ARM64 套件狀況：
 | 2. ARM64 Python | 2026-10-28 | ✅ 系統有 python.org 3.13 ARM64；Desktop 自帶 3.13.12 ARM64，不必另裝 3.12 |
 | 3. 驅動與 CUDA | 2026-10-28 | ✅ 驅動 617.42、CUDA 13.4（出廠已裝） |
 | 4. H3 環境 | 2026-10-28 | ✅ Desktop v0.42.1 `beta-win-nvidia-arm64`，torch `2.15.0.dev20260902+cu134`；補裝 nvidia-vfx、gguf、accelerate、numba 0.68、llvmlite 0.50、diffusers 都能 import，未裝 triton。清單裡要現場編譯的 blake3、cryptography、kornia_rs Desktop 已內建。網路慢時大檔（nvidia-vfx 523MB）會斷線，重試加 `UV_HTTP_RETRIES=10` |
-| 5. 相容性總檢查 | 2026-10-28 | ✅ `torch.cuda` true、capability 12.1、`gpu_total_gb` 46.0；ffmpeg 9.0.2 是 x64 版（模擬執行，可用但較慢，日後可找 ARM64 版）；wheel 掃描與 2026-10-14 相同（H3 97／109、語音 126／146） |
+| 5. 相容性總檢查 | 2026-10-28 | ✅ `torch.cuda` true、capability 12.1、`gpu_total_gb` 46.0；ffmpeg 9.0.2 是 x64 版（winget `Gyan.FFmpeg`，模擬執行，可用但較慢；BtbN 的 winarm64 版被 Smart App Control 擋，見下方〈Smart App Control〉）；wheel 掃描與 2026-10-14 相同（H3 97／109、語音 126／146） |
+
+## Smart App Control（SAC）會擋 ARM64 執行檔與套件
+
+Windows 11 的 Smart App Control（智慧型應用程式控制）會擋信譽不足、沒有簽章的執行檔與 DLL；社群編譯的 ARM64 版常常中招，錯誤看起來像套件壞掉（`WinError 4551`、啟動器一執行就被擋、`import` 時載入 DLL 失敗）。2026-10-28 在第一台 RTX Spark 實際遇到：
+
+| 東西 | 結果 | 處理 |
+|---|---|---|
+| ffmpeg（BtbN `ffmpeg-n9.0.2-…-winarm64-gpl-9.0.zip`） | ❌ 被擋 | 改用 winget `Gyan.FFmpeg` 的 x64 full build（9.0.2，模擬執行，可用但較慢） |
+| scikit-learn 1.x 的 win_arm64 wheel（其他專案的語音環境） | ❌ 每個版本都被擋 | 見第 7 步 |
+| `pdfium.dll`（其他專案） | 第一次被擋，後來沒再被擋 | 推測信譽累積夠了，可以過一陣子再試 |
+
+- Comfy Desktop 的 ARM64 環境與本專案補裝的套件（第 4 步）沒有被擋。
+- 遇到 ARM64 東西莫名載入失敗，先懷疑 SAC。**關閉 SAC 是系統安全設定，由使用者自己決定**，agent 不要去改；能退回 x64 版（模擬執行）的就先退。
 
 ## 重新產生 ARM64 套件清單
 
