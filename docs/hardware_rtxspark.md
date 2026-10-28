@@ -43,7 +43,8 @@
 
 | 項目 | 值 | 理由 |
 |---|---|---|
-| 模型 | 跟 16GB 版完全一樣（H3 剪枝 int8、Heretic int8 文字編碼器、fp16 影片 VAE、DMAD 4 步） | 上游驗證過的組合，結果可對照 |
+| ComfyUI | 有 Comfy Desktop 就用它（`COMFY_DIR`、`PY_H3` 指向 Desktop 的 `ComfyUI` 與 `.venv`，模型在 `ComfyUI-Shared\models`），偵測方式與 `profile.cmd` 相同；沒有才用 `C:\AI\H3`，或 `set DESKTOP_COMFY=none` 強制不用 | Desktop 在 RTX Spark 上裝的是 `beta-win-nvidia-arm64` 版，自帶 ARM64 Python 3.13 與 NVIDIA 預覽版 torch，不用自己建 H3 環境 |
+| 模型 | 跟 16GB 版完全一樣（H3 剪枝 int8、Heretic int8 文字編碼器、fp16 影片 VAE、DMAD 4 步）；用 Desktop 時文字編碼器同桌機換成 Desktop 範本的 NVFP4（`H3_CLIP`） | 上游驗證過的組合，結果可對照 |
 | ComfyUI 參數 | `--reserve-vram 6 --disable-pinned-memory --disable-async-offload` | 統一記憶體不需要釘選記憶體與非同步搬移（只會重複佔用）；保留 6GB 給 Windows |
 | 放大 | `UPSCALE=lanczos`，第一次上機 6b 通過後改 `rtxvsr`；FlashVSR 見下方〈放大：FlashVSR〉 | nvidia-vfx 0.2.0.0 有 ARM64 版，但 RTX Spark 上還沒實測 |
 | 單鏡長度 | ≤12 秒 | 同主設定 |
@@ -107,12 +108,19 @@ ARM64 套件狀況：
 2. **原生 ARM64 Python**：裝 python.org 的 Python 3.12 **ARM64** 版（或 `uv python install cpython-3.12-windows-aarch64`）。用 x64 版 Python 會走模擬，CUDA 用不了。確認：`python -c "import platform;print(platform.machine())"` → `ARM64`。
 3. **驅動與 CUDA**：照 NVIDIA RTX Spark 開發者頁面裝 Windows on Arm 驅動與 CUDA 13.4 preview。確認：`nvidia-smi` 看得到 GPU。
 4. **H3 環境**：
+   - **有 Comfy Desktop（優先）**：Desktop 的 `.venv` 已有 ARM64 torch（2026-10-28 實機：Desktop v0.42.1 `beta-win-nvidia-arm64`、Python 3.13.12、torch `2.15.0.dev20260902+cu134`，`cuda.is_available()` 為 True），只補 ARM64 清單裡的幾個套件（不裝 triton，FlashVSR 節點也先不裝）：
+     ```
+     call <repo>\configs\profile_rtxspark.cmd
+     uv pip install --python "%PY_H3%" --no-deps nvidia-vfx==0.2.0.0 gguf==0.19.0 accelerate==1.15.0 numba==0.68.0 llvmlite==0.50.0 "diffusers @ https://github.com/huggingface/diffusers/archive/e0abab83b5df05de9e7abd788643c1a7c1e42e28.zip" --extra-index-url https://pypi.nvidia.com --index-strategy unsafe-best-match
+     ```
+     Desktop 預設會自動更新 ComfyUI（可能連 torch 一起換），更新後先跑 `smoke_test.py`。下面第 5、6b 步的 `C:\AI\H3\venv\Scripts\python.exe` 改用 `%PY_H3%`。
+   - **沒有 Desktop**：自己建 `C:\AI\H3`（torch 安裝檔 1.7GB，uv 預設 30 秒逾時會失敗，先 `set UV_HTTP_TIMEOUT=600`）：
    ```
    py -V:3.12-arm64 -m venv C:\AI\H3\venv
    C:\AI\H3\venv\Scripts\python.exe -m pip install --pre --upgrade --only-binary=:all: --extra-index-url https://pypi.nvidia.com/nvtorch_oot_nightly torch torchvision torchaudio
    uv pip install --python C:\AI\H3\venv\Scripts\python.exe --no-deps -r <repo>\setup\env\arm64\requirements_h3_venv_arm64.txt --index-strategy unsafe-best-match
    ```
-   ComfyUI 與自訂節點照 `AGENT_SETUP.md` 2a（`Nvidia_RTX_Nodes_ComfyUI` 先不要裝）。
+   ComfyUI 與自訂節點照 `AGENT_SETUP.md` 2a′（`Nvidia_RTX_Nodes_ComfyUI` 先不要裝）。
 5. **相容性總檢查**：`python setup\spark_check.py --torch-python C:\AI\H3\venv\Scripts\python.exe --out spark_report.json` → 看 `torch.cuda` 是否為 `true`、`gpu_total_gb` 報多少。
 6. **ComfyUI 啟動**：`call configs\profile_rtxspark.cmd` 後 `<repo>\tools\start_comfy.cmd`。
 6b. **RTX VSR 放大**（nvidia-vfx 0.2.0.0 win_arm64；Windows 驅動要 570.65 以上）：
