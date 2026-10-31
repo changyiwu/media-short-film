@@ -173,6 +173,8 @@ def files_in(spec):
     for k in ("fixed", "voice_ref"):
         if isinstance(spec.get("audio", {}).get(k), dict) and spec["audio"][k].get("file"):
             out.append((("audio", k, "file"), spec["audio"][k]["file"]))
+    for i, v in enumerate(spec.get("audio", {}).get("voice_refs") or []):
+        out.append((("audio", "voice_refs", i, "file"), v["file"]))
     if isinstance(spec.get("camera_video"), dict) and spec["camera_video"].get("file"):
         out.append((("camera_video", "file"), spec["camera_video"]["file"]))
     for i, s in enumerate(spec.get("subjects", [])):
