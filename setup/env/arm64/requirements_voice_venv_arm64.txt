@@ -80,6 +80,7 @@ onnx2torch-py313==1.6.0
 onnxruntime==1.30.0
 openai-whisper==20250625
 opencc-python-reimplemented==0.1.7
+# opencv-python-headless：PyPI 沒有 win_arm64 wheel（2026-10-31 查）；先不裝，只影響 tools/face_count.py，make_film.py 會提醒改人工看
 openpyxl==3.1.5
 packaging==26.3
 pdfminer.six==20260107

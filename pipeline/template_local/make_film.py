@@ -366,6 +366,10 @@ def frames():
         gen_img(cmd)
         newest(OUT / "first").rename(dst)
     sheet([OUT / "first" / f"{s['id']}.png" for s in SHOTS if s["id"] not in INSERTS], OUT / "first" / "_sheet.jpg")
+    expect = [f"{s['id']}={len(s['refs'])}" for s in SHOTS if s["id"] not in INSERTS and s.get("refs")]   # 空景不查
+    if expect:
+        r = run([PYV, T / "face_count.py", OUT / "first", *expect], check=False)        # 只是提醒，偵測失敗不擋流程
+        print(r.stdout[-1500:] if r.returncode == 0 else f"⚠ 首幀臉數檢查失敗（{r.returncode}），改人工看：\n{r.stderr[-800:]}", flush=True)
     print("→ 人工檢查 work/first/_sheet.jpg：臉、服裝、多手多腳、背景有沒有字、窗戶方向", flush=True)
 
 
@@ -920,8 +924,10 @@ def cut():
 def review():
     """自審五遍（review.py）：1 逐鏡抽格、2 成片聽寫、3 雜訊、4 黑畫面／定格／響度、5 切點明暗／台詞重疊／台詞被鏡尾切掉。"""
     c = OUT / "cut" / "film_1080p.mp4"
-    r1 = run([PYH3, HERE / "review.py", c], check=False); print(r1.stdout[-3000:], flush=True)
-    r2 = run([PYV, HERE / "review.py", c, "--asr"], check=False); print(r2.stdout[-2000:], flush=True)
+    for r in (run([PYH3, HERE / "review.py", c], check=False), run([PYV, HERE / "review.py", c, "--asr"], check=False)):
+        print(r.stdout[-3000:], flush=True)
+        if r.returncode != 0:                                    # 自審失敗不能悄悄略過
+            print(f"⚠ review.py 失敗（{r.returncode}）：\n{r.stderr[-2000:]}", flush=True)
     print("→ 看 work/review/：film_1080p_pass1.jpg、pass5_cuts.jpg、review.json、asr.json；最後一定要人看成片", flush=True)
 
 

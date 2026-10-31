@@ -16,7 +16,7 @@
    cd <repo>\output\<類型>\<片名>
    "%PY_H3%" make_film.py chars masters frames
    ```
-4. **人工關卡 1**：看 `work/first/_sheet.jpg`。臉、服裝要一致，不能多手多腳，背景不能有字，窗戶方向要對。不滿意的鏡：刪 `work/first/<鏡>.png`，在 `film.json` 的 `seeds` 加 `"frame_<鏡>": 新數字`，或改該鏡的 `frame` 描述，再跑 `frames`。
+4. **人工關卡 1**：看 `work/first/_sheet.jpg`（`frames` 結尾會提醒臉比角色多的鏡）。臉、服裝要一致，不能多手多腳，背景不能有字，窗戶方向要對。不滿意的鏡：刪 `work/first/<鏡>.png`，在 `film.json` 的 `seeds` 加 `"frame_<鏡>": 新數字`，或改該鏡的 `frame` 描述，再跑 `frames`。
 5. `make_film.py voices inserts h3`（`inserts` 只在有後製插入鏡時才有事做）
    - 有句子 8 個候選都念錯時程式會停下來：以後也會遇到的詞加進 repo 根目錄的 `tts-lexicon.md`（只對這支片的，在片子資料夾放一份同名檔）；只有這句的就在該句加 `"tts"`，把念錯的字換成同音字（VoxCPM2 不支援注音）。刪掉 `work/voice/bv` 再跑 `voices`。
    - 單字喊叫這類 ASR 本來就聽不準的句子，人聽過沒問題就用 `set ALLOW_REVIEW=1` 繼續。

@@ -37,6 +37,7 @@ SPECIAL = {
     "torchaudio": "同 torch",
     "triton-windows": "3.8.0.post28 起 PyPI 有 win_arm64 wheel（2026-10-14 查），但 NVIDIA 預覽版 CUDA 上未驗證；先不裝（ComfyUI 不用 torch.compile 即可），上機穩定後再試",
     "onnxruntime-gpu": "沒有 ARM64 CUDA 版時改裝 onnxruntime（CPU）",
+    "opencv-python-headless": "PyPI 沒有 win_arm64 wheel（2026-10-31 查）；先不裝，只影響 tools/face_count.py，make_film.py 會提醒改人工看",
 }
 # NVIDIA 有些套件在 PyPI 只放 wheel-stub 空殼（sdist），真正的 wheel 在這個索引（例：nvidia-vfx 0.2.0.0 起有 win_arm64）
 NV_INDEX = "https://pypi.nvidia.com"

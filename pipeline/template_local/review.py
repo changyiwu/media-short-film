@@ -86,6 +86,24 @@ for r in SH:
     ratio = s / s0 if s0 else 0
     noisy.append((r["id"], round(s, 3), round(ratio, 2), "WARN" if (s > 0.54 and ratio > 1.25) else "ok"))
 out["pass3_noise"] = noisy
+# 同一遍順便抓 H3 自己切鏡、構圖漂走：相鄰格平均差 > max(18, 6×中位數)；跟第一格相關係數 < 0.7。只看剪進成片的段落；走位、運鏡大的鏡會誤報，列出來的要人看
+drift = {}
+for r in SH:
+    c = Path(r.get("src") or OUT / "h3" / r["id"] / "clip.mp4")
+    if r.get("insert") or not c.exists():
+        continue
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(c), "-vf", "scale=168:96,format=gray", "-f", "rawvideo", "-"], capture_output=True).stdout
+    f = np.frombuffer(raw, np.uint8).reshape(-1, 96, 168).astype(np.float32)
+    if len(f) < 2:
+        continue
+    d = np.abs(np.diff(f, axis=0)).mean(axis=(1, 2)); thr = max(18.0, 6 * float(np.median(d)))
+    a0 = f[0] - f[0].mean(); u0, u1 = r.get("src_in", 0), r.get("src_out", len(f) / 24)
+    corr = [float((a0 * (g - g.mean())).sum() / (np.linalg.norm(a0) * np.linalg.norm(g - g.mean()) + 1e-6)) for g in f]
+    jumps_ = [round((i + 1) / 24, 2) for i, x in enumerate(d) if x > thr and u0 <= (i + 1) / 24 <= u1]
+    moved = next((round(i / 24, 2) for i, x in enumerate(corr) if x < 0.7 and u0 <= i / 24 <= u1), None)
+    if jumps_ or moved is not None:
+        drift[r["id"]] = dict(cuts=jumps_, drift=moved)
+out["pass3_h3_cuts_drift"] = drift
 
 # 第 4 遍：黑畫面、定格、響度
 p = subprocess.run(["ffmpeg", "-i", str(cut), "-vf", "blackdetect=d=0.2:pix_th=0.08,freezedetect=n=0.002:d=0.8", "-af", "ebur128=peak=true", "-f", "null", "-"],
