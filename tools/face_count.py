@@ -20,6 +20,7 @@ for _s in (sys.stdout, sys.stderr):
 YUNET_URL = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
 YUNET = Path(os.environ.get("AI_ROOT", r"C:\AI")) / "models" / "face_detection_yunet_2023mar.onnx"
 MIN_FACE = 0.08
+MIN_SCORE = 0.85   # 2026-10-31 舊片 44 張首幀實測：真臉 0.90–0.95；卷軸切面、書架、石牆誤判最高 0.79（上游用 0.6 會把卷軸當成臉）
 
 
 def faces(im):
@@ -28,7 +29,7 @@ def faces(im):
         YUNET.parent.mkdir(parents=True, exist_ok=True)
         urllib.request.urlretrieve(YUNET_URL, str(YUNET))
     h, w = im.shape[:2]
-    _, res = cv2.FaceDetectorYN.create(str(YUNET), "", (w, h), 0.6).detect(im)
+    _, res = cv2.FaceDetectorYN.create(str(YUNET), "", (w, h), MIN_SCORE).detect(im)
     return [tuple(int(v) for v in r[:4]) for r in (res if res is not None else [])]
 
 
