@@ -39,6 +39,7 @@
 | `set_sentence` | 場景參考圖那句，`{n}` 會換成場景圖的編號（角色數＋1） |
 | `frame_suffix` | 每張首幀結尾（不要字、不要浮水印…） |
 | `voice_mode` | 台詞聲音：`"h3_ref"`（預設，2026-10-24 起）＝H3 拿角色參考音（`work/voice/ref_<角色>.wav`）自己念，嘴型和聲音一起生成、表演較生動，但會改用詞、讀音替換表無效；`"fixed"`＝VoxCPM2 配音當 H3 的固定音軌（數學名詞、數字日期這類要一字不差的片，或 H3 念錯抽不出來的句子）。單句可在 `line` 裡另設；旁白一律 `fixed`。移植自上游 2026-10-23，實測見 `docs/02` §5 |
+| `voice_engine` | 旁白與 `fixed` 台詞的 TTS：`"ming"`（預設，2026-10-31 起，要先照 `AGENT_SETUP.md` §2d 安裝）或 `"voxcpm2"`。參考音設計都用 VoxCPM2 |
 | `h3` | H3 共用設定：`style`、`setting`、`soundscape`（不寫台詞）、`camera`、`constraints`（每鏡都加的限制） |
 | `chars.<代號>` | `name`（字幕顯示）、`look`（**完整外觀描述**，每張首幀都會照抄）、`voice_design`（VoxCPM2 設計聲音的描述）、`voice_sample`（設計聲音時念的句子）、`h3_voice`、`edge_voice`（挑音用的台灣國語答案卷聲音）、`sub_color`（字幕顏色，ASS 格式 `&H00BBGGRR`） |
 | `narrator` | 旁白（選填，只有聲音）：`name`、`voice_design`、`voice_sample`、`edge_voice`、`sub_color`，跟角色同一套欄位但**不要 `look`、`h3_voice`**——不生定妝、不進 H3。代號固定是 `vo`（`chars` 不能再用這個代號）。字幕預設不加「名字：」，要加就設 `"sub_prefix": true` |

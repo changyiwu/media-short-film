@@ -108,6 +108,24 @@ uv venv --python 3.12 C:\AI\Voice\venv
 
 不用複製：`make_film.py`、`run_demo.py`、`smoke_test.py` 預設直接用 repo 的 `tools/`（要放別處才設 `AI_TOOLS`）。repo 放在 Google 雲端硬碟時，把 repo 資料夾設成「可離線使用」（或雲端硬碟用鏡像模式），否則串流模式下工具檔可能只在雲端，離線時會失敗。
 
+### 2d. Ming-3.0-TTS（⭐ 旁白與 `fixed` 台詞的預設引擎）
+
+裝在獨立的 `C:\AI\Ming`（約 7GB），不動 Comfy Desktop；`tools\ming_batch.py` 會自己在 8189 埠背景啟動它、跑完釋放顯存（`ComfyUI` 視窗不會出現，要關就結束那個 python 程序）。在 Git Bash：
+
+```bash
+M=/c/AI/Ming; mkdir -p $M
+git clone --depth 1 --branch v0.43.2 https://github.com/Comfy-Org/ComfyUI $M/ComfyUI
+git clone https://github.com/Saganaki22/ComfyUI-Ming-3-tts $M/ComfyUI/custom_nodes/ComfyUI-Ming-3-tts
+git -C $M/ComfyUI/custom_nodes/ComfyUI-Ming-3-tts checkout 1e97248
+uv venv --python 3.13 $M/venv
+uv pip install --python $M/venv/Scripts/python.exe torch==2.12.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+uv pip install --python $M/venv/Scripts/python.exe -r $M/ComfyUI/requirements.txt -r $M/ComfyUI/custom_nodes/ComfyUI-Ming-3-tts/requirements.txt
+$M/venv/Scripts/python.exe setup/download.py setup/downloads_ming.json
+```
+
+- 模型 3.0GB。2026-10-31 在 RTX 5060 Ti 實測，一支約 8 秒。路徑不同設 `MING_DIR`、埠不同設 `MING_COMFY_PORT`（`downloads_ming.json` 的 `destination` 也要改）。
+- RTX Spark 筆電、Colab 未測：片子先設 `"voice_engine": "voxcpm2"`。
+
 ## 3. 下載模型（全部鎖定版本、逐檔驗證雜湊、可續傳）
 
 cmd 視窗：

@@ -45,7 +45,7 @@ output/
 - 影片：本機 H3，只給首幀；需要時加尾幀。`"draft": true`（DMAD 4 步）是定稿。
 - 片尾：預設不加（`ending.enabled: false`）；使用者要才打開。沒片尾時，AI 生成標示寫在貼文。
 - 照參考影片換主角：照 `../docs/08_換角重製.md`。
-- 配音：角色參考音在定裝時（`make_film.py chars`）做好，定案存進 `角色/<角色>/ref_<代號>.wav`，之後每支片複製沿用、不重新設計（防聲音漂移）。畫面內的角色台詞預設由 H3 拿角色參考音自己念（`film.json` 的 `voice_mode: "h3_ref"`；跑完 `h3` 看 `work/voice_picks.json` 的 `heard` 跟原文對一遍，念錯換 seed，抽 2–3 次還錯那句改 `"voice_mode": "fixed"`）。旁白與 `fixed` 的台詞用 `<repo>\tools\make_voxcpm.cmd jobs.json`（VoxCPM2，每句 8 候選自動挑；`make_film.py` 內建），念錯的多音字、英文詞加進 `<repo>\tts-lexicon.md`（讀音替換表，只對 VoxCPM2 有效，字幕照原文），只有某句的就改同音字，`needs_review` 的句子請人聽。
+- 配音：角色參考音在定裝時（`make_film.py chars`）做好，定案存進 `角色/<角色>/ref_<代號>.wav`，之後每支片複製沿用、不重新設計（防聲音漂移）。畫面內的角色台詞預設由 H3 拿角色參考音自己念（`film.json` 的 `voice_mode: "h3_ref"`；跑完 `h3` 看 `work/voice_picks.json` 的 `heard` 跟原文對一遍，念錯換 seed，抽 2–3 次還錯那句改 `"voice_mode": "fixed"`）。旁白與 `fixed` 的台詞預設用 Ming-3.0-TTS（`<repo>\tools\make_ming.cmd jobs.json`，每句 8 候選自動挑；`make_film.py` 內建；`"voice_engine": "voxcpm2"` 改回 VoxCPM2），念錯的多音字、英文詞加進 `<repo>\tts-lexicon.md`（讀音替換表，字幕照原文），只有某句的就改同音字，`needs_review` 的句子請人聽。
 - 配樂：MiniMax Music 3 純器樂。
 - 放大：近景 RTX VSR、全景 FlashVSR（RTX Spark 筆電見 `../docs/hardware_rtxspark.md`）。
 - 雲端影片服務（Seedance 等）：使用者明說才用。

@@ -25,6 +25,7 @@
 | Qwen-Image-Edit 2511（含 Comfy-Org 版）、Qwen2.5-VL-7B 文字編碼器 | Apache-2.0 | 可以 | 保留授權與 NOTICE | https://huggingface.co/Qwen/Qwen-Image-Edit-2511 |
 | MiniMax Music 3 | MiniMax-Music3 COMMUNITY LICENSE（2026-08-06）；Comfy-Org 版標示的 Apache-2.0 **與原始授權不符，以原始為準** | 可以（年營收 > 2,000 萬美元需授權） | 保留聲明；商業產品顯著標示「MiniMax-Music3」；公開內容標示機器生成；不得冒充他人 | https://huggingface.co/MiniMaxAI/MiniMax-Music3/blob/main/LICENSE |
 | VoxCPM2（權重與程式碼） | Apache-2.0 | 可以 | 嚴禁冒充他人、詐騙、假訊息；強烈建議標示 AI 生成 | https://huggingface.co/openbmb/VoxCPM2 |
+| **Ming-3.0-TTS 0.5B**（inclusionAI 螞蟻集團；drbaph 的 ComfyUI 單檔轉檔）＋ComfyUI-Ming-3-tts 節點（Saganaki22） | MIT（程式、權重、轉檔、節點） | 可以 | 保留授權；參考音須有權利 | https://huggingface.co/inclusionAI 、https://huggingface.co/drbaph/Ming-3.0-tts-ComfyUI 、https://github.com/Saganaki22/ComfyUI-Ming-3-tts |
 | Whisper large-v3（openai）／faster-whisper-large-v3（Systran 轉檔） | Apache-2.0／MIT | 可以 | 保留授權 | https://huggingface.co/Systran/faster-whisper-large-v3 |
 | BS-RoFormer `model_bs_roformer_ep_317_sdr_12.9755`（viperx 訓練） | **未標示授權** | 不明 | 只附下載連結，不轉散布，自行評估 | https://github.com/ZFTurbo/Music-Source-Separation-Training/blob/main/docs/pretrained_models.md |
 | FlashVSR v1.1 | Apache-2.0（含 Wan2.1 VAE，Apache-2.0） | 可以 | 保留授權 | https://huggingface.co/JunhaoZhuang/FlashVSR-v1.1 |
@@ -60,7 +61,7 @@
 |---|---|---|---|
 | 角色定妝照、LoRA 首幀 | Qwen-Image 2.1 | 雲端 OpenAI Image 2.5（`tools/img25.py`，產出歸使用者，依 OpenAI 條款）；或向 Qwen 申請商業授權 | Image 2.5 是原專案實際出片用的首幀工具；替換後的整條流程未在本 repo 重測 |
 | 首幀（附參考圖） | Qwen-Image-Edit 2511 | 不用換（Apache-2.0） | 已測 |
-| 台詞配音 | VoxCPM2（2026-10-14 起） | 不用換（Apache-2.0） | 上游實測整片 53 句台灣國語腔調分數 0.80；本專案已用它出片 |
+| 台詞配音 | Ming-3.0-TTS 0.5B（2026-10-31 起預設）；備選 VoxCPM2（2026-10-14 起） | 不用換（Apache-2.0） | 上游實測整片 53 句台灣國語腔調分數 0.80；本專案已用它出片 |
 | 角色參考音（聲音設計） | VoxCPM2 文字聲音設計（Apache-2.0） | 不用換；也可改用自己有權利的真人錄音 | VoxCPM2 聲音設計已能產生聲音；設計出的聲音台灣腔夠不夠未系統比較 |
 | 挑音的發音對照 | edge-tts | 自己錄標準音，或只靠聽寫（ASR）挑 | 未測 |
 | H3、Music 3 | — | 不用換，但要遵守地區限制、標示 AI 生成、商業顯著標示模型名稱 | — |

@@ -109,6 +109,7 @@ INSERTS = {s["id"] for s in SHOTS if s.get("insert")}               # 後製插�
 # 表演較生動；h3 階段結尾用 h3_line_harvest.py 抓出台詞、比對原文）｜fixed＝VoxCPM2 配音當 H3 固定音軌（要念對的名詞、數字日期、念錯抽不出來的句子）。
 # 全片設 film.json 的 voice_mode，單句可在 line 裡設 "voice_mode"。旁白（vo）不進 H3，一律 fixed。讀音替換表對 h3_ref 無效（H3 照字念）。
 VOICE_MODE = CFG.get("voice_mode", "h3_ref")
+VOICE_ENGINE = CFG.get("voice_engine", "ming")   # 旁白與 fixed 台詞的引擎：ming（預設）｜voxcpm2；參考音設計一律 VoxCPM2
 H3_CPS, H3_PAD, H3_MIN = 3.0, 2.0, 3.0                              # h3_ref 鏡長＝max(3, 字數 ÷ 3＋2 秒)：同 tools/table_read.py
 
 
@@ -424,7 +425,7 @@ def voices():
     if jobs:
         (OUT / "vox_design.json").write_text(json.dumps(dict(out_dir="voice", jobs=jobs), ensure_ascii=False, indent=1), encoding="utf-8")
         run([PYV, T / "voxcpm_batch.py", "vox_design.json"])
-    run([PYV, T / "voxcpm_batch.py", "bv.json"])
+    run([PYV, T / ("ming_batch.py" if VOICE_ENGINE == "ming" else "voxcpm_batch.py"), "bv.json"])
     run([PYV, T / "voice_pick.py", "bv.json"])
     bp = json.loads((vd / "bv" / "picks.json").read_text(encoding="utf-8"))
     picks, bad, odd = {k: v for k, v in load_picks().items() if v.get("source") == "h3"}, [], []   # 保留 h3 階段抓到的 h3_ref 台詞
@@ -541,7 +542,7 @@ def harvest_lines():
     if bad and os.environ.get("ALLOW_REVIEW") != "1":
         raise SystemExit("H3 念的台詞和原文差太多：" + "；".join(bad) +
                          "\n在 film.json 的 seeds 加 \"h3_<鏡>\": 新數字、刪 work/h3/<鏡>/clip.mp4，再 set ONLY=<鏡> 跑 h3；抽 2–3 次都不對就在該句 line 加 "
-                         "\"voice_mode\": \"fixed\"（改用 VoxCPM2 固定音軌，先跑 voices 再刪 clip 重跑 h3）。確定只是聽寫聽錯就用 ALLOW_REVIEW=1 繼續。")
+                         "\"voice_mode\": \"fixed\"（改用固定音軌，先跑 voices 再刪 clip 重跑 h3）。確定只是聽寫聽錯就用 ALLOW_REVIEW=1 繼續。")
 
 
 @stage("inserts")

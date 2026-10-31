@@ -4,7 +4,7 @@
 > Claude Code 預設只在沒有 `CLAUDE.md` 時才讀 `AGENTS.md`，故由 `CLAUDE.md` 的 `@AGENTS.md` import 本檔（`CLAUDE.md` 只有這一行）；Claude 專屬規範寫在本檔〈Claude Code 專屬〉一節。
 
 ## 專案簡介
-在 16GB VRAM＋64GB RAM 的本機，用開源模型（MiniMax H3、Qwen-Image 2.1／Edit、VoxCPM2、MiniMax Music 3）製作 1–3 分鐘、16:9、24fps 的原創 AI 短片。改作自 [mathruffian-dot/shanshiba-workflow-16gvram-64gram](https://github.com/mathruffian-dot/shanshiba-workflow-16gvram-64gram)，來源與修改內容見 `NOTICE.md`。
+在 16GB VRAM＋64GB RAM 的本機，用開源模型（MiniMax H3、Qwen-Image 2.1／Edit、VoxCPM2、Ming-3.0-TTS、MiniMax Music 3）製作 1–3 分鐘、16:9、24fps 的原創 AI 短片。改作自 [mathruffian-dot/shanshiba-workflow-16gvram-64gram](https://github.com/mathruffian-dot/shanshiba-workflow-16gvram-64gram)，來源與修改內容見 `NOTICE.md`。
 
 ## 關鍵時程
 
@@ -42,6 +42,7 @@
   - [x] 角色「劉徽」＋〈劉徽的紅黑算籌〉（康軒 7 上 1-2〈整數的加減〉〈數學史：算籌〉）成片 101 秒＋發布資訊
   - [x] 每鏡配樂倍數（`music_gain`）併進範本
   - [x] 移除選用配音引擎 BreezyVoice／Breeze TTS 2；讀音替換表從 media-video-specs 移植成兩專案共用的 `tts-lexicon.md`
+  - [x] 旁白與 `fixed` 台詞預設引擎改 Ming-3.0-TTS（`voice_engine`，參考音設計維持 VoxCPM2）
 
 ## 資料夾結構
 ```
@@ -79,9 +80,9 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 ### 配音
 - 畫面內的角色台詞預設由 H3 拿角色參考音自己念（`film.json` 的 `voice_mode: "h3_ref"`，2026-10-24 起；`h3` 結尾 `tools/h3_line_harvest.py` 聽寫比對）；要一字不差的片或句子設 `"fixed"` 改用 VoxCPM2 固定音軌。
 - 角色參考音在定裝時（`make_film.py chars`）跟定妝圖一起做，定案後連同 `voice_sample` 存進 `output/角色/<角色>/ref_<代號>.wav`，之後每支片複製沿用、不重新設計：H3 每鏡拿同一個檔當音色參考，聲音才不會在片與片、鏡與鏡之間漂移。
-- TTS 引擎只有 VoxCPM2（角色參考音、旁白、`fixed` 的台詞，`tools/voxcpm_batch.py`），挑音 `voice_pick.py`；VoxCPM2 不支援注音標記。
+- TTS 引擎：旁白與 `fixed` 台詞預設 Ming-3.0-TTS（`film.json` 的 `voice_engine`，`tools/ming_batch.py`；裝在獨立的 `%AI_ROOT%\Ming`、8189 埠，不動 Comfy Desktop，見 `AGENT_SETUP.md` §2d），角色與旁白的參考音設計用 VoxCPM2（`tools/voxcpm_batch.py`）。要改回 VoxCPM2 念台詞就設 `"voice_engine": "voxcpm2"`；Ming 沒裝好時會停下，不自動換引擎。挑音都用 `voice_pick.py`；不支援注音標記。
 - 多音字、英文詞念錯：加進 repo 根目錄的讀音替換表 `tts-lexicon.md`（Markdown 表格，格式寫在檔頭）；只對某支片的放片子資料夾的同名檔，只有某句的寫 `film.json` 該句的 `"tts"`（同音字）。不要改字幕或劇本原文。
-- 送進 TTS 的文字一律經 `tools/tts_lexicon.py`（`voxcpm_batch`、`gen_voice`、`voice_pick`、`recast` 已接），新寫的配音工具也要接；改 `tts-lexicon.md` 的格式時，media-video-specs 各範本的 `generate_narration.py` 要一起改。
+- 送進 TTS 的文字一律經 `tools/tts_lexicon.py`（`voxcpm_batch`、`ming_batch`、`gen_voice`、`voice_pick`、`recast` 已接），新寫的配音工具也要接；改 `tts-lexicon.md` 的格式時，media-video-specs 各範本的 `generate_narration.py` 要一起改。
 - 讀音替換表**四個 repo 各一份、內容逐位元組相同**（media-video-specs、media-short-film、media-voice-clone、agent-speak/speak/；四個都公開，不能假設使用者每個都下載，各自要單獨可用）：**改表時四份一起改**，用 `tools/tts_lexicon.py --check` 檢查、`--sync` 把各份條目合併寫回四份（遇到同一個原文改寫不同、或表頭說明不一樣時不寫入）；同層時 `tts_lexicon.py` 會合併讀取，本 repo 的優先。只有某個引擎會念錯的條目四份照樣都加，說明欄註明引擎。
 - 語音環境照 `AGENT_SETUP.md` §2b 自建（位置用 `AI_ROOT`／`PY_VOICE` 設定），不要拿其他專案的 venv 共用（例如 `media-voice-clone`）。
 - 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。
