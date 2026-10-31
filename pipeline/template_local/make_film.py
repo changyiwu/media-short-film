@@ -110,6 +110,7 @@ INSERTS = {s["id"] for s in SHOTS if s.get("insert")}               # 後製插�
 # 全片設 film.json 的 voice_mode，單句可在 line 裡設 "voice_mode"。旁白（vo）不進 H3，一律 fixed。讀音替換表對 h3_ref 無效（H3 照字念）。
 VOICE_MODE = CFG.get("voice_mode", "h3_ref")
 VOICE_ENGINE = CFG.get("voice_engine", "ming")   # 旁白與 fixed 台詞的引擎：ming（預設）｜voxcpm2；參考音設計一律 VoxCPM2
+VO_CHUNK = VOICE_ENGINE == "ming" and CFG.get("vo_chunk", True)   # 連續幾鏡的旁白併成一塊念再切回各鏡（語氣才連貫）；VoxCPM2 未測，維持逐句
 H3_CPS, H3_PAD, H3_MIN = 3.0, 2.0, 3.0                              # h3_ref 鏡長＝max(3, 字數 ÷ 3＋2 秒)：同 tools/table_read.py
 
 
@@ -388,6 +389,23 @@ def sheet(files, dst, cols=3):
 
 
 # ------------------------------------------------------------------------------------------------ 聲音
+def vo_blocks(fixed):
+    """把連續幾鏡的旁白併塊（照上游 make_narration：最多 3 句、100 字，中間隔了別的鏡就斷開）。回傳 2 句以上的塊，單句不併。"""
+    order = {s["id"]: n for n, s in enumerate(SHOTS)}
+    nsent = lambda t: max(1, len(re.findall(r"[。？！]", t)))
+    blocks, cur = [], []
+    for x in fixed:
+        i, sid, ln = x
+        if ln["kind"] != "vo":
+            continue
+        t = ln.get("tts", ln["text"])
+        if cur and (order[sid] != order[cur[-1][1]] + 1 or sum(nsent(c[2].get("tts", c[2]["text"])) for c in cur) >= 3
+                    or nchars("".join(c[2].get("tts", c[2]["text"]) for c in cur) + t) > 100):
+            blocks.append(cur); cur = []
+        cur.append(x)
+    return [b for b in blocks + [cur] if len(b) > 1]
+
+
 @stage("voices")
 def voices():
     """設計角色聲音（一次）→ edge-tts 台灣國語答案卷 → 每句 8 候選 → 自動挑（聽寫拼音聲調全對＋腔調分數，已去頭尾靜音）。
@@ -407,29 +425,52 @@ def voices():
             run([PYV, T / "voxcpm_batch.py", "vox_design.json"])
         print("[voices] voice_mode h3_ref：角色參考音在 work/voice/ref_<角色>.wav，台詞由 H3 在 h3 階段自己念", flush=True)
         return
-    for i, sid, ln in fixed:                         # 答案卷：只拿來比腔調，不進成片
+    blocks = vo_blocks(fixed) if VO_CHUNK else []
+    inblock = {x[0] for b in blocks for x in b}
+    single = [x for x in fixed if x[0] not in inblock]
+    keys = {f"K{n}": b for n, b in enumerate(blocks, 1)}
+    targets = [(i, ln["text"], ln["who"]) for i, sid, ln in single] + [(k, "".join(x[2]["text"] for x in b), "vo") for k, b in keys.items()]
+    for i, text, who in targets:                     # 答案卷：只拿來比腔調，不進成片
         w = vd / f"tw_{i}.wav"
         if w.exists():
             continue
         mp3 = vd / f"tw_{i}.mp3"
-        r = run([PYV, T / "gen_voice.py", "--engine", "edge", "--text", ln["text"], "--voice", VOICES[ln["who"]].get("edge_voice", "zh-TW-YunJheNeural"),
+        r = run([PYV, T / "gen_voice.py", "--engine", "edge", "--text", text, "--voice", VOICES[who].get("edge_voice", "zh-TW-YunJheNeural"),
                  "--out", mp3], check=False)
         if r.returncode == 0 and mp3.exists():
             run(["ffmpeg", "-y", "-loglevel", "error", "-i", mp3, "-ar", "48000", "-ac", "1", w])
         else:                                        # 沒網路：改用設計出來的播報聲音產生答案卷（可靠度較低）
-            jobs.append(dict(name=f"tw_{i}", text=ln["text"], seed=11,
+            jobs.append(dict(name=f"tw_{i}", text=text, seed=11,
                              control="A clear, neutral standard Taiwanese Mandarin news-reading voice, calm, precise tones."))
     bv = [dict(name=f"line{i}", text=ln.get("tts", ln["text"]), ref_audio=f"voice/ref_{ln['who']}.wav", ref_text=VOICES[ln["who"]]["voice_sample"],
-               tw_ref=f"voice/tw_{i}.wav", seeds=8) for i, sid, ln in fixed]
+               tw_ref=f"voice/tw_{i}.wav", seeds=8) for i, sid, ln in single]
+    bv += [dict(name=k, text="".join(x[2].get("tts", x[2]["text"]) for x in b), ref_audio="voice/ref_vo.wav", ref_text=VOICES["vo"]["voice_sample"],
+                tw_ref=f"voice/tw_{k}.wav", seeds=8) for k, b in keys.items()]
     (OUT / "bv.json").write_text(json.dumps(dict(out_dir="voice/bv", jobs=bv), ensure_ascii=False, indent=1), encoding="utf-8")
     if jobs:
         (OUT / "vox_design.json").write_text(json.dumps(dict(out_dir="voice", jobs=jobs), ensure_ascii=False, indent=1), encoding="utf-8")
         run([PYV, T / "voxcpm_batch.py", "vox_design.json"])
     run([PYV, T / ("ming_batch.py" if VOICE_ENGINE == "ming" else "voxcpm_batch.py"), "bv.json"])
     run([PYV, T / "voice_pick.py", "bv.json"])
+    split = {}
+    if keys:                                         # 併塊切回各鏡：每句一個 line<i>.wav，跟逐句的檔名相同，後面階段不用分辨
+        (OUT / "vo_blocks.json").write_text(json.dumps(dict(dir="voice/bv", blocks=[
+            dict(name=k, lines=[dict(name=f"line{x[0]}", text=x[2].get("tts", x[2]["text"])) for x in b]) for k, b in keys.items()]),
+            ensure_ascii=False, indent=1), encoding="utf-8")
+        r = run([PYV, T / "vo_split.py", "vo_blocks.json"]); print(r.stdout[-1500:], flush=True)
+        split = json.loads((vd / "bv" / "vo_split.json").read_text(encoding="utf-8"))
     bp = json.loads((vd / "bv" / "picks.json").read_text(encoding="utf-8"))
     picks, bad, odd = {k: v for k, v in load_picks().items() if v.get("source") == "h3"}, [], []   # 保留 h3 階段抓到的 h3_ref 台詞
-    for i, sid, ln in fixed:
+    for k, b in keys.items():
+        p = bp[k]; best = next(c for c in p["cands"] if c["file"] == p["pick"])
+        if p["needs_review"]:
+            (odd if p.get("review_reason") == "sound" else bad).append(f"{k}（{b[0][1]}–{b[-1][1]}）「{'、'.join(x[2]['text'][:8] for x in b)}…」聽成「{best['asr']}」")
+        for i, sid, ln in b:
+            s = split[f"line{i}"]
+            picks[str(i)] = dict(shot=sid, who=ln["who"], text=ln["text"], file=str(vd / "bv" / f"line{i}.wav"), heard=s["heard"], block=k,
+                                 tw_score=best.get("tw_score"), lufs=best.get("lufs"), hf_4k=best.get("hf_4k"), needs_review=p["needs_review"])
+        print("pick", k, p["pick"], best["asr"], best.get("tw_score"), best.get("lufs"), "LUFS", flush=True)
+    for i, sid, ln in single:
         p = bp[f"line{i}"]; best = next(c for c in p["cands"] if c["file"] == p["pick"])
         if p["needs_review"] and p.get("review_reason") == "sound":
             odd.append(f"{sid}「{ln['text']}」響度差 {best.get('lufs_dev')} dB、4 kHz 以上能量比 {best.get('hf_4k')}")

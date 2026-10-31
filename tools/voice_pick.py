@@ -141,7 +141,7 @@ def main():
             tw = Path(j["tw_ref"]); tw = tw if tw.is_absolute() else spec_path.parent / tw
             if not ref.exists() or ref.stat().st_mtime < tw.stat().st_mtime:
                 subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tw), str(ref)], check=True)
-        elif not ref.exists():
+        elif not ref.exists() or ref.stat().st_size == 0:     # edge-tts 失敗會留下 0 位元組的檔
             subprocess.run([sys.executable, "-m", "edge_tts", "--voice", j.get("edge_voice", "zh-TW-YunJheNeural"), "--text", plain, "--write-media", str(ref)], check=True)
         rd = dur(ref)
         rows = []
