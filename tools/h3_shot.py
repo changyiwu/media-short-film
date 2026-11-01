@@ -21,6 +21,7 @@ Shot spec (JSON; relative paths resolve against the JSON file's folder):
   "setting": "a Taiwanese elementary school classroom",
   "first_frame": "kf.png",          # <Picture 1>; pinned at frame 0 (strongly recommended - project default)
   "camera_video": {"file": "blender_S01.mp4"},   # optional <Video 1>: Blender previs camera/layout guide (short-film skill, previs step)
+  # or {"file": "wm.mp4", "kind": "motion", "people": 1, "follow": "..."}: gray-mannequin motion reference from make_whitemodel.py
   "last_frame": "end.png",          # optional; pinned at the last frame (only for long continuous actions / fixed end states)
   "subjects": [                     # everyone visible or speaking; order = <Subject N>
                                     # {"key": "sky", "desc": "a deep, echoing off-screen male voice", "voice_only": true}
@@ -143,7 +144,17 @@ def build_prompt(spec):
     if first:
         L.append("<Picture 1> is the first frame of [Shot 1], fixing the camera position, framing, set layout and lighting.")
     cam = spec.get("camera_video")
-    if cam:
+    motion = bool(cam) and cam.get("kind") == "motion"  # gray-mannequin video from make_whitemodel.py as the motion reference
+    if motion:
+        cols = cam.get("colors")  # per-person colored mannequins (make_whitemodel.py --colors), in <Subject> order
+        L.append("<Video 1> is ONLY a motion reference: " + (f"{len(cols)} smooth 3D mannequins colored " + ", ".join(cols) if cols else
+                 "smooth gray 3D mannequin" + ("s" if cam.get("people", 1) > 1 else ""))
+                 + " on a plain background performing the movement. Only body movement, timing, foot placement and arm positions are followed;"
+                 + (" the mannequin colors only tell the characters apart and are not reproduced;" if cols else "")
+                 + " the " + ("colored" if cols else "gray") + " skin, bald heads, adult body proportions and plain background are not reproduced, and the mannequins carry no props.")
+        if cols:
+            L.append(" ".join(f"<Subject {idx[s['key']]}> moves like the {c} mannequin." for s, c in zip(subs, cols)))
+    elif cam:
         L.append("<Video 1> is ONLY a " + cam.get("role", "Blender camera and spatial-layout guide")
                  + ": its low-poly proxy figures and flat colors are not characters or visual style; only its camera path and spatial relationships are followed.")
     for k, v in enumerate(vrefs, start=1):  # up to 3 speakers, one <Audio k> each (node input ref_audio_{k-1})
@@ -181,7 +192,10 @@ def build_prompt(spec):
                  + (" and props" if s.get("props") else "") + " are retained.")
     if first:
         L.append("<Picture 1> ([Shot 1] first frame): fully_preserved - camera position, framing, set layout, furniture and lighting are retained.")
-    if cam:
+    if motion:
+        L.append("<Video 1> (motion reference): partially_preserved - body movement, timing, leg and arm positions are followed;"
+                 " the mannequins' appearance, proportions and background are discarded.")
+    elif cam:
         L.append("<Video 1> (camera path and spatial layout): partially_preserved - the camera trajectory and room geometry are followed; the proxy figures' appearance and stiffness are discarded.")
     for k in range(1, len(vrefs) + 1):
         L.append(f"<Audio {k}>: reference - only the voice timbre and accent are followed; the words of <Audio {k}> are not reused.")
@@ -198,7 +212,16 @@ def build_prompt(spec):
             parts.append(" ".join(f"{_cap(s.get('name') or s['desc'].split(',')[0].split(' (')[0])} is {lab(s['key'])}." for s in subs))
         if sh.get("camera"):
             parts.append(sh["camera"])
-        if i == 1 and cam:
+        if i == 1 and motion:
+            cols = cam.get("colors")
+            parts.append(cam.get("follow") or (" ".join(f"{_cap(s.get('name') or s['desc'].split(',')[0].split(' (')[0])} moves exactly like the {c} mannequin in <Video 1>."
+                                                        for s, c in zip(subs, cols)) + " Same timing; everyone keeps their own body proportions."
+                                               if cols else
+                                               "The characters move exactly like the mannequins in <Video 1>, with the same timing, "
+                                               "each keeping their own body proportions." if cam.get("people", 1) > 1 else
+                                               f"{_cap(subs[0].get('name') or subs[0]['desc'].split(',')[0].split(' (')[0])} moves exactly like the mannequin in <Video 1>, "
+                                               "with the same timing, keeping their own body proportions."))
+        elif i == 1 and cam:
             parts.append("The camera follows the path and spatial layout of <Video 1>.")
         if sh.get("action"):
             parts.append(sh["action"])

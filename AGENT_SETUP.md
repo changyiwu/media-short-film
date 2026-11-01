@@ -152,7 +152,7 @@ foreach ($f in 'downloads.json','downloads_uncensored.json','downloads_dmad.json
 | `downloads_music3.json` | MiniMax Music 3 | 11.1GB |
 | `downloads_voxcpm2.json` | VoxCPM2 主權重（**預設配音引擎**） | 4.6GB（另需同 repo 的 config／tokenizer 小檔，見下） |
 | `downloads_flashvsr.json` | FlashVSR v1.1 | 6.3GB |
-| 選用 | `downloads_action_loras.json`（動作 LoRA）、`downloads_funcontrol.json`（舞蹈骨架控制）、`downloads_yue2.json`（YuE2 int8，唱詞歌，4.0GB，ComfyUI 內建節點） | — |
+| 選用 | `downloads_action_loras.json`（動作 LoRA）、`downloads_funcontrol.json`（舞蹈骨架控制）、`downloads_yue2.json`（YuE2 int8，唱詞歌，4.0GB，ComfyUI 內建節點）、`downloads_whitemodel.json`（白模動作參考，7.2GB，ComfyUI 內建節點） | — |
 
 另外三個會自動下載的：
 - VoxCPM2 小檔：`C:\AI\Voice\venv\Scripts\python.exe -c "from huggingface_hub import snapshot_download as s; s('openbmb/VoxCPM2', revision='32279effe8c19989596f05d353d1447f51d9e915', local_dir=r'C:\AI\Voice\models\VoxCPM2')"`
