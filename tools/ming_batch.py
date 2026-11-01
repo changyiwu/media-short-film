@@ -9,7 +9,7 @@ jobs.json 跟 voxcpm_batch.py 相同，差別是一定要有 ref_audio 與 ref_t
 送進模型前的文字處理同 voxcpm_batch.py（讀音替換表、數字轉國字、繁轉簡；Ming 餵繁體會念錯）。[Sigh]、[Laughter] 等行內標籤可寫在台詞裡。
 聲音設計（角色參考音、旁白參考音）仍用 VoxCPM2；克隆模式不能下語氣指令。
 Ming 會太早收尾：最後 60 ms 振幅太大的候選移到 cand_trunc/；整句都被截斷時句尾改「……」多抽 extra_seeds 支（檔名 _s101 起）。
-跑完叫 ComfyUI 釋放顯存，讓 H3 可以接著跑。"""
+跑完叫 ComfyUI 釋放顯存，讓 H3 可以接著跑；這次由本工具啟動的 ComfyUI 跑完就關掉（已經開著的不動）。"""
 import json
 import os
 import shutil
@@ -41,25 +41,39 @@ def api(path, data=None, timeout=30):
 
 
 def ensure_comfy():
+    """回傳這次啟動的程序；ComfyUI 本來就開著就回傳 None。"""
     try:
-        api("/system_stats", timeout=4); return
+        api("/system_stats", timeout=4); return None
     except Exception:
         pass
     if not PY.exists():
         sys.exit(f"找不到 Ming 環境 {PY}：照 AGENT_SETUP.md §2d 安裝，或 film.json 設 \"voice_engine\": \"voxcpm2\"")
     print(f"[ming] 啟動 ComfyUI（{COMFY_DIR}，{PORT} 埠）…", flush=True)
     log = open(MING / "comfy.log", "ab")
-    flags = dict(creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP) if os.name == "nt" else dict(start_new_session=True)
-    subprocess.Popen([str(PY), "-X", "utf8", str(COMFY_DIR / "main.py"), "--listen", "127.0.0.1", "--port", PORT, "--disable-auto-launch",
+    flags = dict(creationflags=subprocess.CREATE_NO_WINDOW) if os.name == "nt" else dict(start_new_session=True)  # DETACHED_PROCESS 擋不住 venv 啟動器再開的子程序跳出空白視窗
+    # stt.py 會把 Voice venv 的 CUDA 12 DLL 加進 PATH；同一程序先聽寫再啟動 Ming 時，它的 torch 會載到舊 cuDNN（SUBLIBRARY_VERSION_MISMATCH）
+    env = {**os.environ, "PATH": os.pathsep.join(p for p in os.environ.get("PATH", "").split(os.pathsep) if "site-packages" not in p.lower())}
+    proc = subprocess.Popen([str(PY), "-X", "utf8", str(COMFY_DIR / "main.py"), "--listen", "127.0.0.1", "--port", PORT, "--disable-auto-launch",
                       "--preview-method", "none", "--cache-none", "--fast", "fp16_accumulation", "--reserve-vram", "1.5"],
-                     cwd=str(COMFY_DIR), stdout=log, stderr=log, stdin=subprocess.DEVNULL, **flags)
+                     cwd=str(COMFY_DIR), env=env, stdout=log, stderr=log, stdin=subprocess.DEVNULL, **flags)
     for i in range(90):
         time.sleep(2)
         try:
-            api("/system_stats", timeout=4); print(f"[ming] ComfyUI 啟動完成（{(i + 1) * 2} 秒）", flush=True); return
+            api("/system_stats", timeout=4); print(f"[ming] ComfyUI 啟動完成（{(i + 1) * 2} 秒）", flush=True); return proc
         except Exception:
             pass
+    stop_comfy(proc)
     sys.exit(f"[ming] ComfyUI 三分鐘內沒起來，看 {MING / 'comfy.log'}")
+
+
+def stop_comfy(proc):
+    if proc is None:
+        return
+    if os.name == "nt":  # /T：venv 的 python.exe 是啟動器，真正的 python 是它的子程序
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True)
+    else:
+        proc.kill()
+    print("[ming] 已關閉這次啟動的 ComfyUI", flush=True)
 
 
 def gen_one(text, ref_name, ref_text, seed, dst):
@@ -104,21 +118,24 @@ def main():
     spec_path = Path(sys.argv[1]).resolve(); spec = json.loads(spec_path.read_text(encoding="utf-8-sig")); base = spec_path.parent
     out = (base / spec.get("out_dir", "voice")).resolve(); (out / "cand").mkdir(parents=True, exist_ok=True); (out / "cand_trunc").mkdir(exist_ok=True)
     t2s, lex = make_t2s(), load_lexicon(base)
-    ensure_comfy(); t0 = time.time(); n = 0
-    for j in spec["jobs"]:
-        ref = Path(j["ref_audio"]) if Path(j["ref_audio"]).is_absolute() else (base / j["ref_audio"]).resolve()
-        ref_name = f"ming_{md5(str(ref).encode()).hexdigest()[:10]}{ref.suffix}"
-        shutil.copy(ref, COMFY_DIR / "input" / ref_name)
-        text, ref_text = prep(j["text"], t2s, lex), prep(j["ref_text"], t2s, lex)
-        n += generate(j, text, ref_name, ref_text, out, range(1, int(j.get("seeds", spec.get("seeds", 8))) + 1))
-        if not list((out / "cand").glob(f"{j['name']}_s*.wav")):
-            print(f"[ming] {j['name']} 全部被截斷 → 句尾改「……」多抽", flush=True)
-            n += generate(j, text.rstrip("。！？!?，,. ") + "……", ref_name, ref_text, out, range(101, 101 + int(spec.get("extra_seeds", 4))))
-        print(f"[ming] {j['name']} 完成（{time.time() - t0:.0f} 秒）：{text}", flush=True)
+    proc = ensure_comfy(); t0 = time.time(); n = 0
     try:
-        api("/free", {"unload_models": True, "free_memory": True})
-    except Exception:
-        pass
+        for j in spec["jobs"]:
+            ref = Path(j["ref_audio"]) if Path(j["ref_audio"]).is_absolute() else (base / j["ref_audio"]).resolve()
+            ref_name = f"ming_{md5(str(ref).encode()).hexdigest()[:10]}{ref.suffix}"
+            shutil.copy(ref, COMFY_DIR / "input" / ref_name)
+            text, ref_text = prep(j["text"], t2s, lex), prep(j["ref_text"], t2s, lex)
+            n += generate(j, text, ref_name, ref_text, out, range(1, int(j.get("seeds", spec.get("seeds", 8))) + 1))
+            if not list((out / "cand").glob(f"{j['name']}_s*.wav")):
+                print(f"[ming] {j['name']} 全部被截斷 → 句尾改「……」多抽", flush=True)
+                n += generate(j, text.rstrip("。！？!?，,. ") + "……", ref_name, ref_text, out, range(101, 101 + int(spec.get("extra_seeds", 4))))
+            print(f"[ming] {j['name']} 完成（{time.time() - t0:.0f} 秒）：{text}", flush=True)
+        try:
+            api("/free", {"unload_models": True, "free_memory": True})
+        except Exception:
+            pass
+    finally:
+        stop_comfy(proc)
     print(f"[done] 新生成 {n} 支，共 {time.time() - t0:.0f} 秒", flush=True)
 
 

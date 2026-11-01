@@ -7,6 +7,7 @@ import argparse, json, os, shutil, time, urllib.request
 from pathlib import Path
 
 from comfy_paths import output_dir
+from song_lyrics import song_lyrics
 
 HOST = os.environ.get("COMFY_HOST", "http://127.0.0.1:8188")
 CK ={"int8": "yue2_3b_int8_convrot.safetensors", "bf16": "yue2_3b_bf16.safetensors"}
@@ -49,7 +50,7 @@ ap.add_argument("--abc"); ap.add_argument("--style", required=True); ap.add_argu
 ap.add_argument("--out", required=True, help="輸出資料夾")
 a = ap.parse_args()
 style = Path(a.style).read_text(encoding="utf-8").strip()
-lyrics = Path(a.lyrics).read_text(encoding="utf-8").strip()
+lyrics = song_lyrics(Path(a.lyrics).read_text(encoding="utf-8").strip())
 abc = Path(a.abc).read_text(encoding="utf-8") if a.abc else None
 od = Path(a.out); od.mkdir(parents=True, exist_ok=True)
 (od / "config.json").write_text(json.dumps(vars(a), ensure_ascii=False, indent=1), encoding="utf-8")

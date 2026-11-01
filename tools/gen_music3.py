@@ -9,6 +9,7 @@ from pathlib import Path
 HOST = os.environ.get("COMFY_HOST", "http://127.0.0.1:8188")
 COMFY_DIR = Path(os.environ.get("COMFY_DIR", r"C:\AI\H3\ComfyUI-0.36.0"))
 import comfy_paths  # noqa: E402  input/output dirs (Comfy Desktop keeps them outside COMFY_DIR)
+from song_lyrics import song_lyrics  # noqa: E402
 DIT = os.environ.get("MUSIC3_DIT", "minimax_music3_dit_int8_convrot.safetensors")  # Comfy Desktop template ships minimax_music3_dit_fp16.safetensors
 TE = "minimax_music3_text_encoder_pruned_int8_convrot.safetensors"
 VAE = "minimax_music3_dav.safetensors"
@@ -49,6 +50,7 @@ def main():
     a = ap.parse_args()
     caption = Path(a.caption_file).read_text(encoding="utf-8").strip() if a.caption_file else (a.caption or "")
     lyrics = Path(a.lyrics_file).read_text(encoding="utf-8").strip() if a.lyrics_file else (a.lyrics or "[Intro]\n[Instrumental]\n[Outro]")
+    lyrics = song_lyrics(lyrics)
     g = build(caption, lyrics, a.seed, a.seconds, a.steps, a.cfg, a.tiled); g["20"]["inputs"]["filename_prefix"] = a.prefix
     pid = _req("/prompt", {"prompt": g})["prompt_id"]; print("[queued]", pid, flush=True); t0 = time.time()
     while True:

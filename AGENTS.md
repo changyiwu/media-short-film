@@ -44,6 +44,12 @@
   - [x] 移除選用配音引擎 BreezyVoice／Breeze TTS 2；讀音替換表從 media-video-specs 移植成兩專案共用的 `tts-lexicon.md`
   - [x] 旁白與 `fixed` 台詞預設引擎改 Ming-3.0-TTS（`voice_engine`，參考音設計維持 VoxCPM2）
 
+- [ ] 階段七：饒舌對決（`pipeline/template_battle/`、`rap-battle` 技能）
+  - [x] 範本與技能移植，〈微積分之戰〉跑到歌曲比較
+  - [x] 歌詞送模型前繁轉簡（`tools/song_lyrics.py`）、歌曲聽寫改 Qwen3-ASR
+  - [ ] 比較 Qwen3-ForcedAligner 與 stable-ts，決定 `make_battle.py` 用哪個對齊
+  - [ ] 定案模型與歌，跑完 `songs dj audio` 與後續階段
+
 ## 資料夾結構
 ```
 README.md / AGENT_SETUP.md     專案說明、給 agent 的安裝手冊
@@ -54,12 +60,12 @@ tts-lexicon.md                 讀音替換表（多音字、英文詞 → TTS �
 docs/                          總覽、端到端流程、規則與踩坑、自審清單、安裝、角色與首幀、換角重製、硬體說明
 tools/                         全域工具（各腳本直接用這裡，不再複製到 C:\AI\tools）
 output/                         自己的片與角色資產（.gitignore，不進 repo；規則見 output/AGENTS.md）
-pipeline/                      template_local（新片範本）、demo_local（安裝驗證）
+pipeline/                      template_local（新片範本）、template_battle（饒舌對決範本）、demo_local（安裝驗證）
 setup/                         模型下載清單、套件清單、smoke_test、硬體偵測、16GB 模擬測試
 cloud/                         H3 送 Google Colab 跑
 sfx/                           Freesound CC0 音效
 templates/                     片尾範本、法陣素材、AGENTS_TEMPLATE.md（做片入口範本）、發布資訊範本.md（YouTube／FB／IG／Threads；五個媒體專案各一份、內容逐位元組相同，正本在 media-youtube-publish 的 `skills/youtube-long/references/`，改正本再整份覆蓋，不在本專案就地改）
-.agents/skills/                專案層級技能：short-film（做片全流程：開新片、訪談、編劇、預演、製作、自審；不裝全域，見〈技能路由〉）
+.agents/skills/                專案層級技能：short-film（做片全流程：開新片、訪談、編劇、預演、製作、自審）、rap-battle（饒舌對決）；不裝全域，見〈技能路由〉
 configs/profile.cmd            桌機（16GB VRAM＋64GB RAM）環境變數
 configs/profile_rtxspark.cmd   RTX Spark 筆電（Windows on Arm＋64GB 統一記憶體）環境變數
 setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套件清單
@@ -84,8 +90,9 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 多音字、英文詞念錯：加進 repo 根目錄的讀音替換表 `tts-lexicon.md`（Markdown 表格，格式寫在檔頭）；只對某支片的放片子資料夾的同名檔，只有某句的寫 `film.json` 該句的 `"tts"`（同音字）。不要改字幕或劇本原文。
 - 送進 TTS 的文字一律經 `tools/tts_lexicon.py`（`voxcpm_batch`、`ming_batch`、`gen_voice`、`voice_pick`、`recast` 已接），新寫的配音工具也要接；改 `tts-lexicon.md` 的格式時，media-video-specs 各範本的 `generate_narration.py` 要一起改。
 - 讀音替換表**四個 repo 各一份、內容逐位元組相同**（media-video-specs、media-short-film、media-voice-clone、agent-speak/speak/；四個都公開，不能假設使用者每個都下載，各自要單獨可用）：**改表時四份一起改**，用 `tools/tts_lexicon.py --check` 檢查、`--sync` 把各份條目合併寫回四份（遇到同一個原文改寫不同、或表頭說明不一樣時不寫入）；同層時 `tts_lexicon.py` 會合併讀取，本 repo 的優先。只有某個引擎會念錯的條目四份照樣都加，說明欄註明引擎。
+- 送進歌曲模型的歌詞一律經 `tools/song_lyrics.py`（繁轉簡＋讀音替換表；`yue_song`、`ace_song`、`gen_music3` 已接），新寫的歌曲工具也要接；原始歌詞檔與字幕維持繁體。
 - 語音環境照 `AGENT_SETUP.md` §2b 自建（位置用 `AI_ROOT`／`PY_VOICE` 設定），不要拿其他專案的 venv 共用（例如 `media-voice-clone`）。
-- 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。
+- 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。歌曲與饒舌的聽寫改走 `load_song_asr()`（Qwen3-ASR），強制對齊仍用 Whisper（stable-ts）。
 - 工具要呼叫 venv 裡套件的命令列（例如 edge-tts）時，一律用 `[sys.executable, "-m", <模組>]`，不要靠 PATH 找執行檔：PATH 上可能是系統 Python 的舊版。
 - 工具一律直接跑 repo 的 `tools/`（入口腳本預設就找它，`make_*.cmd` 用自己所在的資料夾），不要再複製到 `C:\AI\tools`；要改位置才設 `AI_TOOLS`。新寫的腳本找工具也要用相對 repo 的路徑，不要寫死 `C:\AI\tools`。
 
@@ -105,6 +112,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 自己的片一律放 `output/<類型>/<片名>/`（類型例：數學故事、換角重製、原創短劇、測試），用 `tools/new_film.py <類型> <片名>`（`short-film` 技能）從 `pipeline/template_local/` 建立，不要手動複製；`repo_dir` 是 `../../..`（`new_film.py` 會填）；`output/` 已列入 `.gitignore`，只走雲端硬碟、沒有 GitHub 備份。
 - 《臭豆腐》與〈測試_H3灰模動作參考〉是搬來的舊作，不是用 `make_film.py`／`h3_shot.py` 做的，結構不照範本（成品在 `media/`）；重現《臭豆腐》用它自己的 `build_seg.py`，舊產生器 `ref2va.py` 封存在該片的 `legacy/`，不要搬進 `tools/`，新片一律用 `tools/h3_shot.py`。
 - 頻道與角色的做片規則在 `output/AGENTS.md`（`output/CLAUDE.md` 橋接），只屬於某類影片的規則在 `output/<類型>/AGENTS.md`，角色資產在 `output/角色/`（各類型共用）；不要把這些寫進本檔或 `pipeline/`。
+- 饒舌對決放 `output/饒舌對決/<片名>/`，用 `tools/new_film.py 饒舌對決 <片名>` 建立（`pipeline/template_battle/`），流程照 `rap-battle` 技能。
 - 照參考影片換主角（保留動作、背景、聲音）照 `docs/08_換角重製.md`：片子資料夾寫 `recast.json`，用 `tools/recast.py`（首幀、配音、各鏡 spec、H3、剪接）；不要走 `make_film.py` 的 h3 階段（它不會把 `control` 傳給 H3）。
 - 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `work/cut/film_1080p.mp4` 移到片子資料夾（`output/<類型>/<片名>/`）最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `.agents/skills/short-film/references/review.md`）。
 - 片尾是選用、預設不加：`film.json` 的 `ending.enabled` 為 true（或設 `ENDING=1`）才做片尾、接進成片。
@@ -118,6 +126,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 | 情境 | 讀取 |
 |------|------|
 | 開新片、需求訪談、寫劇本與鏡表、改台詞、審劇本、拆鏡頭、預演與布置圖、填 `film.json`、跑 `make_film.py`、自審成片、成片定案 | `.agents/skills/short-film/SKILL.md` |
+| 饒舌對決、rap battle、人物用 rap 對嗆、寫對決歌詞、跑 `make_battle.py` | `.agents/skills/rap-battle/SKILL.md` |
 
 ### 安全與隱私
 - **不放個資與金鑰**：不 commit 真人照片、克隆聲音／參考音、API 金鑰（`.env`）、模型權重、成片影片。本 repo 為**公開** repo。

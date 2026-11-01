@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 
 MODEL_CACHE = Path(os.environ.get("AI_ROOT", r"C:\AI")) / "Voice" / "models" / "whisper"  # AI_ROOT = install root (default C:\AI)
+QWEN_ASR = MODEL_CACHE.parent / "Qwen3-ASR-1.7B-hf"
 DEFAULT_PROMPT = "繁體中文，教學、AI 影片製作、ComfyUI、MiniMax H3、Blender。"
 
 
@@ -91,6 +92,24 @@ def load_asr(model="large-v3", device="cuda", compute_type="float16", local_file
                 raise
             print(f"[asr] faster-whisper unavailable ({e}); falling back to openai-whisper", file=sys.stderr, flush=True)
     return _OpenAIWhisper(model, device)
+
+
+def load_song_asr(device="cuda"):
+    """Song/rap dictation with Qwen3-ASR 1.7B: returns hear(audio, sr) -> text (no timestamps; Whisper stays for speech and forced alignment)."""
+    if not (QWEN_ASR / "model.safetensors").exists():
+        raise SystemExit(f"找不到 Qwen3-ASR 權重：{QWEN_ASR}（照 setup/downloads_qwen_asr.json 下載）")
+    import librosa
+    import torch
+    from transformers import AutoProcessor, Qwen3ASRForConditionalGeneration
+    proc = AutoProcessor.from_pretrained(QWEN_ASR)
+    model = Qwen3ASRForConditionalGeneration.from_pretrained(QWEN_ASR, dtype=torch.bfloat16, device_map=device)
+
+    def hear(audio, sr):
+        x = librosa.resample(audio, orig_sr=sr, target_sr=16000) if sr != 16000 else audio
+        inp = proc.apply_transcription_request(audio=[x], language="zh").to(model.device, model.dtype)
+        ids = model.generate(**inp, max_new_tokens=1024, do_sample=False)
+        return proc.decode(ids[0][inp.input_ids.shape[1]:], return_format="transcription_only")
+    return hear
 
 
 def fmt_ts(seconds: float, comma: bool = False) -> str:

@@ -27,6 +27,7 @@
 | VoxCPM2（權重與程式碼） | Apache-2.0 | 可以 | 嚴禁冒充他人、詐騙、假訊息；強烈建議標示 AI 生成 | https://huggingface.co/openbmb/VoxCPM2 |
 | **Ming-3.0-TTS 0.5B**（inclusionAI 螞蟻集團；drbaph 的 ComfyUI 單檔轉檔）＋ComfyUI-Ming-3-tts 節點（Saganaki22） | MIT（程式、權重、轉檔、節點） | 可以 | 保留授權；參考音須有權利 | https://huggingface.co/inclusionAI 、https://huggingface.co/drbaph/Ming-3.0-tts-ComfyUI 、https://github.com/Saganaki22/ComfyUI-Ming-3-tts |
 | Whisper large-v3（openai）／faster-whisper-large-v3（Systran 轉檔） | Apache-2.0／MIT | 可以 | 保留授權 | https://huggingface.co/Systran/faster-whisper-large-v3 |
+| Qwen3-ASR 1.7B（Qwen 通義千問；transformers 格式 `-hf`） | Apache-2.0 | 可以 | 保留授權 | https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf |
 | BS-RoFormer `model_bs_roformer_ep_317_sdr_12.9755`（viperx 訓練） | **未標示授權** | 不明 | 只附下載連結，不轉散布，自行評估 | https://github.com/ZFTurbo/Music-Source-Separation-Training/blob/main/docs/pretrained_models.md |
 | FlashVSR v1.1 | Apache-2.0（含 Wan2.1 VAE，Apache-2.0） | 可以 | 保留授權 | https://huggingface.co/JunhaoZhuang/FlashVSR-v1.1 |
 | 動作 LoRA：JOKER141 Combat-Base-V2、GunFu、Motion-Continuity-Repair；RunningHubAI speed-slider-1.1 | **未標示授權**（等同保留所有權利）；同時是 H3 衍生作品 | 不明 | 只附連結、不轉散布；至少須遵守 H3 授權 | https://huggingface.co/JOKER141 、https://huggingface.co/RunningHubAI/rh-h3-speed-slider-1.1-lora |

@@ -1,8 +1,8 @@
 """挑歌（YuE2 唱詞歌）：量每首拍速，只留目標 BPM（YuE2 約一半會掉到 89 或跳 152），
-再用 BS-RoFormer 分人聲 → 歌詞強制對齊 → 逐句聽寫，依字對到的比例排序（整首直接聽寫會幻覺，不要用）。
-rap 的聽寫天生偏低（人工確認全對的 Suno 歌也只量到 0.63–0.70），最後一定要人聽。
+再用 BS-RoFormer 分人聲 → 歌詞強制對齊（Whisper）→ 逐句聽寫（Qwen3-ASR），依字對到的比例排序。
+聽寫只是初篩，最後一定要人聽。
 用法：<Voice venv>/python pick_song.py <輸出資料夾> <歌詞.txt> [--bpm 143.6]（歌詞可含 [Verse] 等段落標籤）→ <資料夾>/pick.json
-需要：Voice venv 的 faster-whisper（Windows on Arm 改走 openai-whisper）、stable-ts、opencc、librosa、audio-separator（模型 model_bs_roformer_ep_317_sdr_12.9755.ckpt）。"""
+需要：Voice venv 的 faster-whisper（Windows on Arm 改走 openai-whisper）、stable-ts、opencc、librosa、audio-separator（模型 model_bs_roformer_ep_317_sdr_12.9755.ckpt）、Qwen3-ASR 權重（setup/downloads_qwen_asr.json）。"""
 import re, os, sys, difflib, json
 from pathlib import Path
 import numpy as np, soundfile as sf, librosa
@@ -18,6 +18,7 @@ try:  # 強制對齊要 stable-ts 包過的模型，所以不走 stt.load_asr()�
     m = stable_whisper.load_faster_whisper("large-v3", device="cuda", compute_type="float16", download_root=str(stt.MODEL_CACHE))
 except ImportError:
     m = stable_whisper.load_model("large-v3", device="cuda", download_root=str(stt.MODEL_CACHE / "openai"))
+hear = stt.load_song_asr()
 sep = d / "sep"; sep.mkdir(exist_ok=True); rep = {}; separator = None
 for f in sorted(d.glob("*.flac")):
     y, sr = librosa.load(str(f), sr=22050, mono=True)
@@ -34,11 +35,9 @@ for f in sorted(d.glob("*.flac")):
     a, vsr = sf.read(str(voc), dtype="float32", always_2d=True); a = a.mean(1)
     res = m.align(str(voc), "\n".join(lines), language="zh", original_split=True); oks = []
     for l, s in zip(lines, res.segments):
-        sf.write(d / "_tmp.wav", a[max(0, int((s.start - .3) * vsr)):int((s.end + .3) * vsr)], vsr)
-        t = cc.convert("".join(x.text for x in m.transcribe(str(d / "_tmp.wav"), language="zh", vad=False, condition_on_previous_text=False, verbose=None).segments))
+        t = cc.convert(hear(a[max(0, int((s.start - .3) * vsr)):int((s.end + .3) * vsr)], vsr))
         oks.append(sum(b.size for b in difflib.SequenceMatcher(None, norm(l), norm(t), autojunk=False).get_matching_blocks()) / max(1, len(norm(l))))
     rep[f.name] = {"bpm": round(bpm, 1), "char_ok": round(float(np.mean(oks)), 2), "lines_ok": int(sum(o >= .7 for o in oks)), "lines": len(oks)}
     print(f.name, rep[f.name], flush=True)
-(d / "_tmp.wav").unlink(missing_ok=True)
 (d / "pick.json").write_text(json.dumps(dict(sorted(rep.items(), key=lambda kv: -kv[1]["char_ok"])), ensure_ascii=False, indent=1), encoding="utf-8")
 print("排序結果寫在", d / "pick.json")

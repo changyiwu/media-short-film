@@ -21,6 +21,8 @@ REPO = Path(__file__).resolve().parent.parent
 TEMPLATE = REPO / "pipeline" / "template_local"
 FILMS = REPO / "output"
 COPY = ["film.json", "make_film.py", "review.py"]
+BATTLE_KIND = "饒舌對決"  # 這個類型用 pipeline/template_battle/，流程見 rap-battle 技能
+BATTLE_COPY = ["battle.json", "make_battle.py", "battle_gfx.py"]
 REQ_TEMPLATE = """# {name} 需求確認（{today}）
 
 ## 創作簡報
@@ -95,6 +97,19 @@ def main():
         created += [f"output/{kind}/AGENTS.md（類型規則，請寫上這類片的規則）", f"output/{kind}/CLAUDE.md"]
 
     dst.mkdir(parents=True)
+    if kind == BATTLE_KIND:
+        for f in BATTLE_COPY:
+            shutil.copy2(REPO / "pipeline" / "template_battle" / f, dst / f)
+        text = (dst / "battle.json").read_text(encoding="utf-8")
+        text, n = re.subn(r'^(\s*"title":\s*)".*?"', lambda m: m.group(1) + json.dumps(name, ensure_ascii=False), text, count=1, flags=re.M)
+        if n != 1:
+            sys.exit("battle.json 找不到 title 欄位，範本格式可能改了")
+        (dst / "battle.json").write_text(text, encoding="utf-8")
+        (dst / "製作紀錄.md").write_text(f"# {name}：製作紀錄\n\n## {date.today().isoformat()} 開新片\n\n- 從 pipeline/template_battle/ 建立。\n", encoding="utf-8")
+        print(f"建立 output/{kind}/{name}/：{'、'.join(BATTLE_COPY)}、製作紀錄.md")
+        print("battle.json 目前還是範例〈微積分之戰〉，要換成自己的；流程見 .agents/skills/rap-battle/SKILL.md。")
+        return
+
     for f in COPY:
         shutil.copy2(TEMPLATE / f, dst / f)
 

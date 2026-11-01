@@ -1,0 +1,93 @@
+[
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf/resolve/bcd2b5b7f32b480ab5790554cfa8347f246a14f3/chat_template.jinja",
+  "sha256": "f50e6b694fbf4a683206e37869990d68333fe95d285730f084c838a34b0d98c2",
+  "size": 1434,
+  "destination": "C:/AI/Voice/models/Qwen3-ASR-1.7B-hf/chat_template.jinja",
+  "name": "Qwen3-ASR-1.7B-hf/chat_template.jinja"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf/resolve/bcd2b5b7f32b480ab5790554cfa8347f246a14f3/config.json",
+  "sha256": "117ac8e63e2af7cae3665e5a632d6eb03f5f384915519ceb6403c15ec6533f63",
+  "size": 2399,
+  "destination": "C:/AI/Voice/models/Qwen3-ASR-1.7B-hf/config.json",
+  "name": "Qwen3-ASR-1.7B-hf/config.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf/resolve/bcd2b5b7f32b480ab5790554cfa8347f246a14f3/generation_config.json",
+  "sha256": "9939fc9388b79bd70757f938b87381e817173d6a6158f5af6506c0b73e775c3c",
+  "size": 165,
+  "destination": "C:/AI/Voice/models/Qwen3-ASR-1.7B-hf/generation_config.json",
+  "name": "Qwen3-ASR-1.7B-hf/generation_config.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf/resolve/bcd2b5b7f32b480ab5790554cfa8347f246a14f3/processor_config.json",
+  "sha256": "bc0b230081b44e629dd5b9045b78495615c1831b4b9f4cffe97bd37e82a6156a",
+  "size": 487,
+  "destination": "C:/AI/Voice/models/Qwen3-ASR-1.7B-hf/processor_config.json",
+  "name": "Qwen3-ASR-1.7B-hf/processor_config.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf/resolve/bcd2b5b7f32b480ab5790554cfa8347f246a14f3/tokenizer.json",
+  "sha256": "fe1fad59be22a41ee293363fcf95fdedbc7c93f3b49270b1d2e18bd1399a7a05",
+  "size": 11429653,
+  "destination": "C:/AI/Voice/models/Qwen3-ASR-1.7B-hf/tokenizer.json",
+  "name": "Qwen3-ASR-1.7B-hf/tokenizer.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf/resolve/bcd2b5b7f32b480ab5790554cfa8347f246a14f3/tokenizer_config.json",
+  "sha256": "945e980986de2ca7768f3326bfdbb4fbea3406f972b8ae0be233089f2b253c11",
+  "size": 998,
+  "destination": "C:/AI/Voice/models/Qwen3-ASR-1.7B-hf/tokenizer_config.json",
+  "name": "Qwen3-ASR-1.7B-hf/tokenizer_config.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf/resolve/bcd2b5b7f32b480ab5790554cfa8347f246a14f3/model.safetensors",
+  "sha256": "2db53c7d81bd9b8cbc6a074e89be2c968a0d373fb4ee68bb1b1e14f7042dfee1",
+  "size": 4076193080,
+  "destination": "C:/AI/Voice/models/Qwen3-ASR-1.7B-hf/model.safetensors",
+  "name": "Qwen3-ASR-1.7B-hf/model.safetensors"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf/resolve/c07281df297b9905d24a508279258cccf987a064/chat_template.jinja",
+  "sha256": "59b5ae119bda7c00089bba5f49af775791ea67c7aeb7d2b828cddda9463121bf",
+  "size": 551,
+  "destination": "C:/AI/Voice/models/Qwen3-ForcedAligner-0.6B-hf/chat_template.jinja",
+  "name": "Qwen3-ForcedAligner-0.6B-hf/chat_template.jinja"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf/resolve/c07281df297b9905d24a508279258cccf987a064/config.json",
+  "sha256": "82ac390b36a8f80c5a0c4e202367debd149e5d8c30abe4cf5eed439101b1c5ce",
+  "size": 248029,
+  "destination": "C:/AI/Voice/models/Qwen3-ForcedAligner-0.6B-hf/config.json",
+  "name": "Qwen3-ForcedAligner-0.6B-hf/config.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf/resolve/c07281df297b9905d24a508279258cccf987a064/processor_config.json",
+  "sha256": "bc0b230081b44e629dd5b9045b78495615c1831b4b9f4cffe97bd37e82a6156a",
+  "size": 487,
+  "destination": "C:/AI/Voice/models/Qwen3-ForcedAligner-0.6B-hf/processor_config.json",
+  "name": "Qwen3-ForcedAligner-0.6B-hf/processor_config.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf/resolve/c07281df297b9905d24a508279258cccf987a064/tokenizer.json",
+  "sha256": "cadfb9cbd9ff8f4e309075ec6a71b063295ff796afb4b5dbc0fd2873fbb301f2",
+  "size": 11429842,
+  "destination": "C:/AI/Voice/models/Qwen3-ForcedAligner-0.6B-hf/tokenizer.json",
+  "name": "Qwen3-ForcedAligner-0.6B-hf/tokenizer.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf/resolve/c07281df297b9905d24a508279258cccf987a064/tokenizer_config.json",
+  "sha256": "945e980986de2ca7768f3326bfdbb4fbea3406f972b8ae0be233089f2b253c11",
+  "size": 998,
+  "destination": "C:/AI/Voice/models/Qwen3-ForcedAligner-0.6B-hf/tokenizer_config.json",
+  "name": "Qwen3-ForcedAligner-0.6B-hf/tokenizer_config.json"
+ },
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf/resolve/c07281df297b9905d24a508279258cccf987a064/model.safetensors",
+  "sha256": "00568245ceca5af1991d28562a75fe1ddc9bfeb041c27fda66947ea05c47fb86",
+  "size": 1835545960,
+  "destination": "C:/AI/Voice/models/Qwen3-ForcedAligner-0.6B-hf/model.safetensors",
+  "name": "Qwen3-ForcedAligner-0.6B-hf/model.safetensors"
+ }
+]
