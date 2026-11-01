@@ -19,7 +19,7 @@ def req(path, data=None):
         return json.loads(f.read().decode())
 
 
-def graph(ck, style, lyrics, seed, cot, abc, secs, prefix):
+def graph(ck, style, lyrics, seed, cot, abc, secs, prefix, temp=1.0, cfg=None):
     g = {"1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": CK[ck]}},
          "3": {"class_type": "EmptyYuE2LatentAudio", "inputs": {"seconds": ["2", 1], "batch_size": 1}},
          "4": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["2", 0]}},
@@ -28,7 +28,9 @@ def graph(ck, style, lyrics, seed, cot, abc, secs, prefix):
          "6": {"class_type": "VAEDecodeAudio", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
          "7": {"class_type": "SaveAudio", "inputs": {"audio": ["6", 0], "filename_prefix": prefix}}}
     gm = {"clip": ["1", 1], "style": style, "lyrics": lyrics, "seed": seed, "mode": cot if cot != "off" else "full", "max_duration": float(secs),
-          "temperature": 1.0, "top_p": 0.95, "top_k": 100, "repetition_penalty": 1.2}
+          "temperature": temp, "top_p": 0.95, "top_k": 100, "repetition_penalty": 1.2}
+    if cfg is not None:
+        gm["cfg_scale"] = cfg
     if cot == "off":
         gm["abc"] = ""; gm["cfg_scale"] = 1.01
     elif abc:
@@ -47,6 +49,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("name"); ap.add_argument("who")
 ap.add_argument("--ckpt", default="int8"); ap.add_argument("--cot", default="melody"); ap.add_argument("--seeds", default="1,2,3,4,5,6,7,8,9,10,11,12")
 ap.add_argument("--abc"); ap.add_argument("--style", required=True); ap.add_argument("--lyrics", required=True); ap.add_argument("--secs", type=float, default=150)
+ap.add_argument("--temp", type=float, default=1.0); ap.add_argument("--cfg", type=float, help="歌詞與風格的引導強度；不給＝1.0（關閉）")
 ap.add_argument("--out", required=True, help="輸出資料夾")
 a = ap.parse_args()
 style = Path(a.style).read_text(encoding="utf-8").strip()
@@ -58,7 +61,7 @@ for seed in [int(s) for s in a.seeds.split(",")]:
     dest = od / f"{a.who}_s{seed}.flac"
     if dest.exists():
         continue
-    pid = req("/prompt", {"prompt": graph(a.ckpt, style, lyrics, seed, a.cot, abc, a.secs, f"audio/YuE2/{a.name}_{a.who}_{seed}")})["prompt_id"]
+    pid = req("/prompt", {"prompt": graph(a.ckpt, style, lyrics, seed, a.cot, abc, a.secs, f"audio/YuE2/{a.name}_{a.who}_{seed}", a.temp, a.cfg)})["prompt_id"]
     t0 = time.time()
     while True:
         time.sleep(2); h = req(f"/history/{pid}")

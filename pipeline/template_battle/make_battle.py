@@ -359,9 +359,12 @@ def audio():
         clips[key] = v / (np.sqrt(np.mean(v ** 2)) + 1e-9) * ref_rms * 1.3
     b_first = B["rows"][0]["start"]
     need = (len(clips["switch"]) / SR + 1.2 + 1.0) if "switch" in clips else 0
-    if need > b_first:                                        # B 的前奏太短塞不下換場口白 → 多停整數小節（觀眾聲墊著）
+    lead = None
+    if need > b_first:                                        # B 的前奏太短塞不下換場口白 → 多停整數小節，用 B 的伴奏墊著（A 收尾後的 1 小節空拍不動）
         extra = math.ceil((need - b_first) / barA); pause += extra * barA
-        print(f"B 前奏 {b_first:.1f} 秒塞不下換場口白 → 多停 {extra} 小節", flush=True)
+        i0 = int(B["one"] * SR); lead = B["inst"][i0:i0 + int(extra * barA * SR)].copy()
+        x = int(0.02 * SR); lead[:x] *= np.linspace(0, 1, x)[:, None]; lead[-x:] *= np.linspace(1, 0, x)[:, None]
+        print(f"B 前奏 {b_first:.1f} 秒塞不下換場口白 → 多 {extra} 小節 B 伴奏", flush=True)
     D1_AT = 1.0
     open_len = len(clips["open"]) / SR if "open" in clips else 0
     PRE = round(max(0.0, D1_AT + open_len + 0.5 - (A["rows"][0]["start"] - 0.3)), 2) if open_len else 0.0
@@ -376,7 +379,10 @@ def audio():
     g = float(ga / gb)                                        # 兩人饒舌段一樣大聲
     t_a = PRE
     t_b = t_a + (len(a_part) + int(pause * SR)) / SR
-    music = np.concatenate([np.zeros((int(PRE * SR), 2), np.float32), a_part, np.zeros((int(pause * SR), 2), np.float32), b_part * g])
+    gap = np.zeros((int(pause * SR), 2), np.float32)
+    if lead is not None:
+        n = min(len(lead), len(gap)); gap[-n:] = lead[-n:] * g
+    music = np.concatenate([np.zeros((int(PRE * SR), 2), np.float32), a_part, gap, b_part * g])
     music_end = len(music) / SR
     mix = np.concatenate([music, np.zeros((int(14 * SR), 2), np.float32)])
     voc = np.zeros_like(mix)

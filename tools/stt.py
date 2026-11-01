@@ -132,6 +132,21 @@ def _spread_zero(words):
     return words
 
 
+def _snap_head(words):
+    """Intro ad-libs stretch the first line's opening characters back over them (seen 14 s early): a jump over 1 s in its first half means it really starts after that.
+    First line only: it sets the downbeat, and on later lines the same jump can be a held note."""
+    k = 0
+    for i in range(len(words) // 2):
+        if words[i]["e"] - words[i]["s"] > 1 or words[i + 1]["s"] - words[i]["e"] > 1:
+            k = i + 1
+    if k:
+        step = sorted(x["e"] - x["s"] for x in words)[len(words) // 2]
+        t = words[k]["s"]
+        for x in reversed(words[:k]):
+            x["e"] = round(t, 3); t = max(t - step, 0); x["s"] = round(t, 3)
+    return words
+
+
 def load_song_aligner(device="cuda"):
     """Song/rap forced alignment with Qwen3-ForcedAligner: returns align(audio, sr, lines) -> one {start, end, words: [{w, s, e}]} per lyric line."""
     if not (QWEN_ALIGNER / "model.safetensors").exists():
@@ -155,6 +170,8 @@ def load_song_aligner(device="cuda"):
         rows = []; i = 0
         for c in counts:
             words = _spread_zero([{"w": t["text"], "s": float(t["start_time"]), "e": float(t["end_time"])} for t in items[i:i + c]])
+            if i == 0:
+                words = _snap_head(words)
             rows.append({"start": words[0]["s"], "end": words[-1]["e"], "words": words}); i += c
         return rows
     return align
