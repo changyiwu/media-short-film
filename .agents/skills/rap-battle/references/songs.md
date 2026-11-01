@@ -45,7 +45,7 @@ make_battle.py yue                           # songtext → 每人 YuE2 抽 YUE_
 
 ## 檢查（`make_battle.py songs` 自動做）
 
-- BS-RoFormer 分人聲 → 歌詞強制對齊（Whisper）→ **逐句**聽寫（Qwen3-ASR）、BPM、最後一個字唱完的時間。
+- BS-RoFormer 分人聲 → 歌詞強制對齊（Qwen3-ForcedAligner）→ **逐句**聽寫（Qwen3-ASR）、BPM、最後一個字唱完的時間。
 - 歌曲聽寫用 `stt.load_song_asr()`，不要用 Whisper：它在前奏和有配樂的段落會幻覺出「混音 李宗盛」之類的字，還會漏聽整句。
 - 看低分句（< 0.5）是唱錯還是只是聽寫不準；Qwen3-ASR 也會把怪詞改成常見說法，**最後一定要人聽**。
 - 對齊出來的段數跟歌詞句數不同＝歌詞跟送去生歌的不一樣，先修。

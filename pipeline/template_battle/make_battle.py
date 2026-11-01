@@ -1,5 +1,5 @@
 """饒舌對決範本（橫式 1920x1080、24 fps）：讀 battle.json，從兩首歌一路做到成片＋自審。做新的一場只改 battle.json。
-Voice venv 執行（librosa、stable-ts 在這個環境；生圖、H3、放大會自己叫 H3 venv）。ComfyUI 要先開（tools/start_comfy.cmd）：
+Voice venv 執行（librosa、transformers 在這個環境；生圖、H3、放大會自己叫 H3 venv）。ComfyUI 要先開（tools/start_comfy.cmd）：
   <Voice venv>/python make_battle.py [stage ...] [--battle 別的設定.json] [--ver 1]
 stage（不給＝全部依序；songtext、yue 不在預設順序裡）：
   songtext  把歌詞、風格寫成 Suno／YuE2 可直接貼的文字檔（work/songtext/）→ 去生歌，挑好的放 song/A.mp3、song/B.mp3
@@ -223,23 +223,19 @@ def last_word_end(voc, word_end):
 
 @stage("songs")
 def songs():
-    """兩首歌：分人聲 → 歌詞強制對齊（stable-ts）→ 逐句聽寫分數（Qwen3-ASR）、BPM、最後一個字唱完的時間。
+    """兩首歌：分人聲 → 歌詞強制對齊（Qwen3-ForcedAligner）→ 逐句聽寫分數（Qwen3-ASR）、BPM、最後一個字唱完的時間。
     聽寫只是初篩，低分句要人聽是唱錯還是聽寫不準。"""
     import difflib
     import librosa
     import numpy as np
     import soundfile as sf
-    sys.path.insert(0, str(T)); import stt; stt._add_cuda_dll_dirs()   # noqa: E401
+    sys.path.insert(0, str(T)); import stt   # noqa: E401
     import opencc
-    import stable_whisper
     free_comfy()
     d = OUT / "song"; d.mkdir(exist_ok=True)
     cc = opencc.OpenCC("s2twp")
     norm = lambda s: re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", cc.convert(s)).upper()
-    try:  # 強制對齊要 stable-ts 包過的模型，所以不走 stt.load_asr()；備援邏輯相同
-        m = stable_whisper.load_faster_whisper("large-v3", device="cuda", compute_type="float16", download_root=str(stt.MODEL_CACHE))
-    except ImportError:
-        m = stable_whisper.load_model("large-v3", device="cuda", download_root=str(stt.MODEL_CACHE / "openai"))
+    align = stt.load_song_aligner()
     hear = stt.load_song_asr()
     rep = {}
     for k, r in R.items():
@@ -248,15 +244,11 @@ def songs():
             raise SystemExit(f"找不到 {k} 的歌：{src}（先跑 songtext、生歌，挑好的放到這個路徑）")
         voc, ins = sep_stems(src, d / "sep")
         lines = lines_of(k)
-        res = m.align(str(voc), "\n".join(re.sub(r"[：，、。！？「」『』（）—…]", " ", x["sing"]) for x in lines), language="zh", original_split=True)
-        if len(res.segments) != len(lines):
-            raise SystemExit(f"{k}：對齊出 {len(res.segments)} 段、歌詞有 {len(lines)} 句（歌詞要跟送去生歌的一字不差）")
         a, sr = sf.read(str(voc), dtype="float32", always_2d=True); a = a.mean(1)
         rows = []
-        for ln, s in zip(lines, res.segments):
-            t = cc.convert(hear(a[int(max(0, s.start - 0.1) * sr):int((s.end + 0.15) * sr)], sr))
-            rows.append({"section": ln["section"], "text": ln["sing"], "start": round(s.start, 3), "end": round(s.end, 3),
-                         "words": [{"w": w.word, "s": round(w.start, 3), "e": round(w.end, 3)} for w in s.words],
+        for ln, s in zip(lines, align(a, sr, [re.sub(r"[：，、。！？「」『』（）—…]", " ", x["sing"]) for x in lines])):
+            t = cc.convert(hear(a[int(max(0, s["start"] - 0.1) * sr):int((s["end"] + 0.15) * sr)], sr))
+            rows.append({"section": ln["section"], "text": ln["sing"], "start": s["start"], "end": s["end"], "words": s["words"],
                          "asr": t, "ok": round(difflib.SequenceMatcher(None, norm(ln["sing"]), norm(t)).ratio(), 2)})
         lw = r.get("last_word_end") or last_word_end(voc, rows[-1]["words"][-1]["e"] if rows[-1]["words"] else rows[-1]["end"])
         y, s2 = librosa.load(str(src), sr=22050); bpm = float(np.atleast_1d(librosa.beat.beat_track(y=y, sr=s2)[0])[0])

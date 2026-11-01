@@ -18,6 +18,7 @@ from pathlib import Path
 
 MODEL_CACHE = Path(os.environ.get("AI_ROOT", r"C:\AI")) / "Voice" / "models" / "whisper"  # AI_ROOT = install root (default C:\AI)
 QWEN_ASR = MODEL_CACHE.parent / "Qwen3-ASR-1.7B-hf"
+QWEN_ALIGNER = MODEL_CACHE.parent / "Qwen3-ForcedAligner-0.6B-hf"
 DEFAULT_PROMPT = "繁體中文，教學、AI 影片製作、ComfyUI、MiniMax H3、Blender。"
 
 
@@ -95,7 +96,7 @@ def load_asr(model="large-v3", device="cuda", compute_type="float16", local_file
 
 
 def load_song_asr(device="cuda"):
-    """Song/rap dictation with Qwen3-ASR 1.7B: returns hear(audio, sr) -> text (no timestamps; Whisper stays for speech and forced alignment)."""
+    """Song/rap dictation with Qwen3-ASR 1.7B: returns hear(audio, sr) -> text (no timestamps; alignment is load_song_aligner, speech stays on Whisper)."""
     if not (QWEN_ASR / "model.safetensors").exists():
         raise SystemExit(f"找不到 Qwen3-ASR 權重：{QWEN_ASR}（照 setup/downloads_qwen_asr.json 下載）")
     import librosa
@@ -110,6 +111,53 @@ def load_song_asr(device="cuda"):
         ids = model.generate(**inp, max_new_tokens=1024, do_sample=False)
         return proc.decode(ids[0][inp.input_ids.shape[1]:], return_format="transcription_only")
     return hear
+
+
+def _spread_zero(words):
+    """The aligner gives some characters zero length (its grid is 80 ms): share the next timed word's span with them, or the previous one's at line end."""
+    i = 0
+    while i < len(words):
+        if words[i]["e"] > words[i]["s"]:
+            i += 1
+            continue
+        j = i
+        while j < len(words) and words[j]["e"] <= words[j]["s"]:
+            j += 1
+        a, b = (i, j + 1) if j < len(words) else (max(i - 1, 0), j)
+        s, e = words[a]["s"], words[b - 1]["e"]
+        for k in range(a, b):
+            words[k]["s"] = round(s + (e - s) * (k - a) / (b - a), 3)
+            words[k]["e"] = round(s + (e - s) * (k - a + 1) / (b - a), 3)
+        i = j
+    return words
+
+
+def load_song_aligner(device="cuda"):
+    """Song/rap forced alignment with Qwen3-ForcedAligner: returns align(audio, sr, lines) -> one {start, end, words: [{w, s, e}]} per lyric line."""
+    if not (QWEN_ALIGNER / "model.safetensors").exists():
+        raise SystemExit(f"找不到 Qwen3-ForcedAligner 權重：{QWEN_ALIGNER}（照 setup/downloads_qwen_asr.json 下載）")
+    import librosa
+    import torch
+    from transformers import AutoProcessor, Qwen3ASRForTokenClassification
+    proc = AutoProcessor.from_pretrained(QWEN_ALIGNER)
+    model = Qwen3ASRForTokenClassification.from_pretrained(QWEN_ALIGNER, dtype=torch.bfloat16, device_map=device)
+
+    def align(audio, sr, lines):
+        x = librosa.resample(audio, orig_sr=sr, target_sr=16000) if sr != 16000 else audio
+        counts = [len(proc.split_words_for_alignment(l, "zh")) for l in lines]
+        if 0 in counts:
+            raise SystemExit(f"第 {counts.index(0) + 1} 句歌詞沒有可對齊的字")
+        inp, wl = proc.prepare_forced_aligner_inputs(audio=[x], transcript=" ".join(lines), language="zh", return_tensors="pt", padding=True)
+        inp = inp.to(model.device, model.dtype)
+        with torch.inference_mode():
+            logits = model(**inp).logits
+        items = proc.decode_forced_alignment(logits, inp["input_ids"], wl, model.config.timestamp_token_id)[0]
+        rows = []; i = 0
+        for c in counts:
+            words = _spread_zero([{"w": t["text"], "s": float(t["start_time"]), "e": float(t["end_time"])} for t in items[i:i + c]])
+            rows.append({"start": words[0]["s"], "end": words[-1]["e"], "words": words}); i += c
+        return rows
+    return align
 
 
 def fmt_ts(seconds: float, comma: bool = False) -> str:

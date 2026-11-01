@@ -47,7 +47,7 @@
 - [ ] 階段七：饒舌對決（`pipeline/template_battle/`、`rap-battle` 技能）
   - [x] 範本與技能移植，〈微積分之戰〉跑到歌曲比較
   - [x] 歌詞送模型前繁轉簡（`tools/song_lyrics.py`）、歌曲聽寫改 Qwen3-ASR
-  - [ ] 比較 Qwen3-ForcedAligner 與 stable-ts，決定 `make_battle.py` 用哪個對齊
+  - [x] 比較 Qwen3-ForcedAligner 與 stable-ts，`make_battle.py`、`pick_song.py` 改用 Qwen（`stt.load_song_aligner()`）
   - [ ] 定案模型與歌，跑完 `songs dj audio` 與後續階段
 
 ## 資料夾結構
@@ -92,7 +92,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 讀音替換表**四個 repo 各一份、內容逐位元組相同**（media-video-specs、media-short-film、media-voice-clone、agent-speak/speak/；四個都公開，不能假設使用者每個都下載，各自要單獨可用）：**改表時四份一起改**，用 `tools/tts_lexicon.py --check` 檢查、`--sync` 把各份條目合併寫回四份（遇到同一個原文改寫不同、或表頭說明不一樣時不寫入）；同層時 `tts_lexicon.py` 會合併讀取，本 repo 的優先。只有某個引擎會念錯的條目四份照樣都加，說明欄註明引擎。
 - 送進歌曲模型的歌詞一律經 `tools/song_lyrics.py`（繁轉簡＋讀音替換表；`yue_song`、`ace_song`、`gen_music3` 已接），新寫的歌曲工具也要接；原始歌詞檔與字幕維持繁體。
 - 語音環境照 `AGENT_SETUP.md` §2b 自建（位置用 `AI_ROOT`／`PY_VOICE` 設定），不要拿其他專案的 venv 共用（例如 `media-voice-clone`）。
-- 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。歌曲與饒舌的聽寫改走 `load_song_asr()`（Qwen3-ASR），強制對齊仍用 Whisper（stable-ts）。
+- 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。歌曲與饒舌的聽寫改走 `load_song_asr()`（Qwen3-ASR），強制對齊走 `load_song_aligner()`（Qwen3-ForcedAligner）。
 - 工具要呼叫 venv 裡套件的命令列（例如 edge-tts）時，一律用 `[sys.executable, "-m", <模組>]`，不要靠 PATH 找執行檔：PATH 上可能是系統 Python 的舊版。
 - 工具一律直接跑 repo 的 `tools/`（入口腳本預設就找它，`make_*.cmd` 用自己所在的資料夾），不要再複製到 `C:\AI\tools`；要改位置才設 `AI_TOOLS`。新寫的腳本找工具也要用相對 repo 的路徑，不要寫死 `C:\AI\tools`。
 
