@@ -48,7 +48,8 @@
   - [x] 範本與技能移植，〈微積分之戰〉跑到歌曲比較
   - [x] 歌詞送模型前繁轉簡（`tools/song_lyrics.py`）、歌曲聽寫改 Qwen3-ASR
   - [x] 比較 Qwen3-ForcedAligner 與 stable-ts，`make_battle.py`、`pick_song.py` 改用 Qwen（`stt.load_song_aligner()`）
-  - [ ] 定案模型與歌，跑完 `songs dj audio` 與後續階段
+  - [x] 〈微積分之戰〉定案 YuE2 歌，跑完 `songs dj audio`（影像階段不做：測試片，題材已有人做過）
+  - [ ] 選新主題跑完整流程（`chars` 之後的階段還沒實跑）
 
 ## 資料夾結構
 ```
@@ -92,7 +93,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 讀音替換表**四個 repo 各一份、內容逐位元組相同**（media-video-specs、media-short-film、media-voice-clone、agent-speak/speak/；四個都公開，不能假設使用者每個都下載，各自要單獨可用）：**改表時四份一起改**，用 `tools/tts_lexicon.py --check` 檢查、`--sync` 把各份條目合併寫回四份（遇到同一個原文改寫不同、或表頭說明不一樣時不寫入）；同層時 `tts_lexicon.py` 會合併讀取，本 repo 的優先。只有某個引擎會念錯的條目四份照樣都加，說明欄註明引擎。
 - 送進歌曲模型的歌詞一律經 `tools/song_lyrics.py`（繁轉簡＋讀音替換表；`yue_song`、`ace_song`、`gen_music3` 已接），新寫的歌曲工具也要接；原始歌詞檔與字幕維持繁體。
 - 語音環境照 `AGENT_SETUP.md` §2b 自建（位置用 `AI_ROOT`／`PY_VOICE` 設定），不要拿其他專案的 venv 共用（例如 `media-voice-clone`）。
-- 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。歌曲與饒舌的聽寫改走 `load_song_asr()`（Qwen3-ASR），強制對齊走 `load_song_aligner()`（Qwen3-ForcedAligner）。
+- 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。歌曲與饒舌的聽寫改走 `load_song_asr()`（Qwen3-ASR），強制對齊走 `load_song_aligner()`（Qwen3-ForcedAligner）；`transformers` 要用 `-hf` 版權重。
 - 工具要呼叫 venv 裡套件的命令列（例如 edge-tts）時，一律用 `[sys.executable, "-m", <模組>]`，不要靠 PATH 找執行檔：PATH 上可能是系統 Python 的舊版。
 - 工具一律直接跑 repo 的 `tools/`（入口腳本預設就找它，`make_*.cmd` 用自己所在的資料夾），不要再複製到 `C:\AI\tools`；要改位置才設 `AI_TOOLS`。新寫的腳本找工具也要用相對 repo 的路徑，不要寫死 `C:\AI\tools`。
 
@@ -110,6 +111,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 
 ### 做片
 - 自己的片一律放 `output/<類型>/<片名>/`（類型例：數學故事、換角重製、原創短劇、測試），用 `tools/new_film.py <類型> <片名>`（`short-film` 技能）從 `pipeline/template_local/` 建立，不要手動複製；`repo_dir` 是 `../../..`（`new_film.py` 會填）；`output/` 已列入 `.gitignore`，只走雲端硬碟、沒有 GitHub 備份。
+- 已做好的片各有自己的 `make_film.py`／`review.py`／`make_battle.py` 副本，範本更新不會自動帶到舊片。
 - 《臭豆腐》與〈測試_H3灰模動作參考〉是搬來的舊作，不是用 `make_film.py`／`h3_shot.py` 做的，結構不照範本（成品在 `media/`）；重現《臭豆腐》用它自己的 `build_seg.py`，舊產生器 `ref2va.py` 封存在該片的 `legacy/`，不要搬進 `tools/`，新片一律用 `tools/h3_shot.py`。
 - 頻道與角色的做片規則在 `output/AGENTS.md`（`output/CLAUDE.md` 橋接），只屬於某類影片的規則在 `output/<類型>/AGENTS.md`，角色資產在 `output/角色/`（各類型共用）；不要把這些寫進本檔或 `pipeline/`。
 - 饒舌對決放 `output/饒舌對決/<片名>/`，用 `tools/new_film.py 饒舌對決 <片名>` 建立（`pipeline/template_battle/`），流程照 `rap-battle` 技能。

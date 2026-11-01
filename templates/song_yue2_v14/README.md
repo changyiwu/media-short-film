@@ -30,12 +30,14 @@ python tools/yue_song.py <名稱> <角色> --style templates/song_yue2_v14/style
 ```
 - 先開 ComfyUI（`tools/start_comfy.cmd`）。在 5090 上每首約 12–30 秒，12 首約 5 分鐘；RTX 5060 Ti 16GB 每首 16–38 秒，也約 5 分鐘。
 - 2026-11-01 在 5060 Ti、ComfyUI 0.43.2 用牛頓歌詞抽 12 seed：只有 2 首量到 143.6（另 6 首 89.1、3 首 152、1 首 172.3），比上游「約一半」差，抽 12 首可能只剩一兩首，不夠就多抽。
-- `pick_song.py` 會跳過拍速不對的歌，其餘依逐句聽寫排序，寫進 `pick.json`。
+- `pick_song.py` 會跳過拍速不對的歌，其餘依逐句聽寫排序，寫進 `pick.json`。分數抓不到整段重複，前幾名要看片長和有沒有同一句唱十幾秒。
 - **不要整首直接聽寫**：rap 會讓聽寫幻覺出「中文字幕志願者」之類的字。
 - rap 的聽寫分數天生偏低，人工確認全對的 Suno 歌也只量到 0.63–0.70。**最後一定要人聽。**
 
 ## 做變體時改哪裡
 - **換曲風**：只換取樣樂器、鼓型（boom bap／trap／drill）和氣氛詞。Chinese、rap、DJ scratching、連珠炮 flow 要留在前段。
+- **要更貼歌詞**：`yue_song.py` 加 `--cfg 1.3 --temp 0.85`。2026-11-01 在 5060 Ti 相同 seed 比較 10 首，歌詞相符度平均高 0.07–0.09；風格文字寫 `every word intelligible` 這類詞幫助不大。
+- **西式編曲**：拿掉 `dark harpsichord sample`，改 `American hip hop`、`electric guitar riff, brass stabs`，並保留 `aggressive rapid-fire rap flow, staccato punchy delivery`。`90s`、funk、soul、jazzy 這組標籤會把拍速拖到約 90 BPM（24 首全掉）。
 - **換聲音**：只改「male rapper, … voice」那一組。兩人對決時，每人用不同聲音描述，**各生一首**。同一首歌裡要求兩種聲音，出來會是同一個人。
 - **換速度**：改風格最後的 BPM，`pick_song.py` 加 `--bpm`，填 librosa 實際量到的值。
 - **做不到的**：刷碟聲不一定每首都有，因為 ABC 譜寫不進去，需要的話後製補。攻擊性和韻律感仍比 Suno 弱。

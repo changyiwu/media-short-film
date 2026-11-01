@@ -40,7 +40,7 @@ Suno 不吃藝人名字，要寫成特徵。範例見 `pipeline/template_battle/
 make_battle.py yue                           # songtext → 每人 YuE2 抽 YUE_SEEDS 首（預設 10）→ 只留目標 BPM、逐句聽寫排序 → 第一名放 song/
 ```
 - 目標 BPM 讀 `yue_style` 裡的「144 BPM」（或填 `rappers.<A|B>.yue_bpm`）；約一半會跑掉，全掉就多抽（`YUE_SEEDS=11,12,…,20`）。
-- 第一名只是聽寫初篩，**人聽過 `work/yue/<A|B>/` 的候選再定**；換歌就把那首轉檔覆蓋 `song/A.mp3`，再跑 `songs`。
+- 第一名只是聽寫初篩，**人聽過 `work/yue/<A|B>/` 的候選再定**；換歌就把那首轉檔覆蓋 `song/A.mp3`，刪掉 `work/song/sep/` 裡同名的分軌（分軌依檔名快取，不刪會沿用舊歌），再跑 `songs`。
 - YuE2 沒有器樂前奏、刷碟不一定有：A 停在拍上→B 的接法照樣能用，但前奏很短時 DJ 口白會把音樂往後推（範本自動處理）。
 
 ## 檢查（`make_battle.py songs` 自動做）
