@@ -50,6 +50,7 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 | 完整一支短片（從點子開始） | 照全片流程，一步一步做，每個人工關卡停下來給使用者看；寫劇本時照 `references/script/workflow.md` 開頭的**階段關卡**，每階段列自我檢查、等使用者說「通過」 |
 | 單點創作（只要題材、結構、某一場、台詞、反轉） | `references/script/workflow.md` 的對應階段，**只交付指定的成果**，不重做整支 |
 | 想梗、加反轉、原創短劇的題材階段 | `references/script/drama-hooks.md`（四種差、20 個模式、節奏公式；**講史實的片不要套**） |
+| 開頭不夠抓人、觀眾進不了戲 | `references/script/audience-entry.md`（入戲表、衝突要快答案要慢、前 3 秒靜音測試） |
 | 寫劇本或要格式 | `references/script/format.md` |
 | 拆鏡頭（劇本已存在） | `references/script/segmentation.md` |
 | 審劇本、改劇本 | `references/script/checklists.md`；要判斷格式再讀 `format.md` |
