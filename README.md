@@ -2,7 +2,7 @@
 
 > **來源**：本專案改作自 [mathruffian-dot/shanshiba-workflow-16gvram-64gram](https://github.com/mathruffian-dot/shanshiba-workflow-16gvram-64gram)，原作者「山獅霸的多重宇宙」（<https://github.com/mathruffian-dot>）。文件以 CC BY-NC 4.0、程式碼以 MIT 授權，修改內容與完整來源標示見 [NOTICE.md](NOTICE.md)。
 
-製作 1–3 分鐘、16:9、24fps 原創短片的完整工作流：劇本由 AI agent（Claude Code）協作；**角色與首幀預設用 OpenAI 生圖（Image 2.5 API 優先、Codex CLI 次之），本機 Qwen-Image 為備選**（失敗就停下，要用本機得整支片指定 `IMAGE_BACKEND=local`）；影片、配音、配樂用本機模型生成，挑音、後製、自審全部腳本化；人只在劇本、首幀、成片三個關卡驗收。
+製作 1–3 分鐘、16:9、24fps 原創短片的完整工作流：劇本由 AI agent（Claude Code）協作；**角色與首幀預設用 OpenAI 生圖（Codex CLI 優先、Image 2.5 API 次之），本機 Qwen-Image 為備選**（失敗就停下，要用本機得整支片指定 `IMAGE_BACKEND=local`）；影片、配音、配樂用本機模型生成，挑音、後製、自審全部腳本化；人只在劇本、首幀、成片三個關卡驗收。
 
 > 本 repo 不含任何人物照片、克隆聲音、API 金鑰、角色定妝照與模型權重。
 
@@ -125,7 +125,7 @@ configs/profile.cmd         這個硬體版本的環境變數
 | 配音參考音 | 屬於個人聲音，不散布 | 自己錄或用 VoxCPM2 設計 |
 | 模型權重 | 檔案大、各有授權、可照清單重現（詳見 [docs/06 §1](docs/06_安裝.md)） | 照 [AGENT_SETUP.md](AGENT_SETUP.md) 第 3 節下載（約 150GB） |
 | 成片影片 | 檔案大 | — |
-| OpenAI 金鑰 | **生圖預設用 Image 2.5 API**（要金鑰）；沒有金鑰時改走已用 ChatGPT 登入的 Codex CLI（扣訂閱額度），兩者都不行就停下，要用本機 Qwen 得設 `IMAGE_BACKEND=local` | 自己設環境變數 `OPENAI_API_KEY`（或 `OPENAI_KEY_FILE`、`~/.openai.env`），見 `docs/06_安裝.md` §6 |
+| OpenAI 金鑰 | **生圖預設用已用 ChatGPT 登入的 Codex CLI**（扣訂閱額度）；Codex 不能用時改走 Image 2.5 API（要金鑰），兩者都不行就停下，要用本機 Qwen 得設 `IMAGE_BACKEND=local` | 自己設環境變數 `OPENAI_API_KEY`（或 `OPENAI_KEY_FILE`、`~/.openai.env`），見 `docs/06_安裝.md` §6 |
 | Google AI 方案／Colab 運算單元（選用） | 本機跑不動 H3 時才需要 | 見 [cloud/README.md](cloud/README.md) |
 
 （音效有附：`sfx/` 裡 58 個 Freesound CC0 音效。）

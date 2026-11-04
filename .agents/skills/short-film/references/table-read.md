@@ -11,7 +11,7 @@
 ```
 
 - `--target`：`需求確認.md` 的目標片長。
-- 要草圖再加 `--storyboard`：每 16 鏡一張 4×4 鉛筆草圖（`gen_image.py` 的生圖後端，預設 Image 2.5 API → Codex，**會花一次生圖費用**，先跟使用者說）。草圖已存在就沿用；改了 `frame` 要重畫，刪 `work/preview/storyboard_*.png`。
+- 要草圖再加 `--storyboard`：每 16 鏡一張 4×4 鉛筆草圖（`gen_image.py` 的生圖後端，預設 Codex → Image 2.5 API，**會花一次生圖額度或費用**，先跟使用者說）。草圖已存在就沿用；改了 `frame` 要重畫，刪 `work/preview/storyboard_*.png`。
   - 草圖不附定妝圖、只看構圖順序，交給使用者時說明「這是看節奏用的草圖，不是首幀」。
   - 草圖不進成片，不記到 `work/image_backends.json`（片尾名單不列）。
 - 產出：`讀本試映.mp4`（1280×720、靜音，每鏡停留＝估計的成片鏡長、下方字幕）、`讀本_timeline.json`（每鏡 `dur` 成片鏡長、`clip` H3 生成長度、`chars` 台詞字數）。

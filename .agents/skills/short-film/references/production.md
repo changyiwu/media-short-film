@@ -8,7 +8,7 @@
 - [ ] 生成前試映（`table-read.md`）使用者已說「通過」；`h3_shot.py` 的 `action` 字數警告看過
 - [ ] 本機環境已裝好（`<repo>/AGENT_SETUP.md`）；顯卡跑不動 H3（顯存 < 15GB 或記憶體 < 30GB）時 h3／amb 會自動送 Colab（見 `<repo>/cloud/README.md`）
 - [ ] ComfyUI 在線、queue 沒有別人的工作、顯存沒被 TTS／LLM 佔用；H3 不和別的 GPU 工作同時跑
-- [ ] 跟使用者報過每一段的預估時間與費用（預設走 Image 2.5 API 會花錢；沒金鑰時改走 Codex CLI 扣 ChatGPT 訂閱、每張約 1 分半）
+- [ ] 跟使用者報過每一段的預估時間與費用（預設走 Codex CLI 扣 ChatGPT 訂閱、每張約 1 分半；Codex 不能用時改走 Image 2.5 API 會花錢）
 
 ## 三段、三個人工關卡
 
@@ -22,7 +22,7 @@
 - 最難的一鏡先單獨跑（`set ONLY=<鏡號>`），過了再整批。
 - 不滿意只重做那幾鏡：刪該鏡產出、在 `seeds` 換數字、`set ONLY=…` 重跑；認可過的鏡頭不重拍。
 - 中斷後直接重跑同一段，已存在的檔案會跳過。
-- `make_film.py` 生圖預設 Image 2.5 API 優先、Codex CLI 次之，不用另外呼叫 `draw`；看 log 的 `[backend]` 確認實際用哪個，規則見 repo 的 `AGENTS.md`〈生圖〉。
+- `make_film.py` 生圖預設 Codex CLI 優先、Image 2.5 API 次之，不用另外呼叫 `draw`；看 log 的 `[backend]` 確認實際用哪個，規則見 repo 的 `AGENTS.md`〈生圖〉。
 
 ## 收件與紀錄
 

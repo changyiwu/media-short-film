@@ -1,5 +1,5 @@
 """Image generation through the Codex CLI's built-in image tool (ChatGPT subscription, no OpenAI API key).
-gen_image.py's default backend (auto) uses this only when no OpenAI API key is found (the API is known to be Image 2.5).
+gen_image.py's default backend (auto) tries this first; the Image 2.5 API is used only when Codex is not usable here.
 
 Finding codex.exe (same order as the global draw skill, route C; the version folder changes on every update):
   env CODEX_EXE -> Windows Codex App (Get-AppxPackage OpenAI.Codex) -> ~/.codex/.sandbox-bin/codex.exe -> codex on PATH.

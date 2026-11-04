@@ -1,6 +1,6 @@
 # template_local：全本地多鏡短片範本（做新片從這裡開始）
 
-一個設定檔 `film.json` 寫完整支片（角色、場景、每一鏡、台詞、配樂、片尾），`make_film.py` 從角色定妝照一路做到成片和自審。生圖預設用 OpenAI 生圖（Image 2.5 API 金鑰優先、沒有金鑰才用 Codex CLI，失敗就停下，要用本機 Qwen 得整支片設 `IMAGE_BACKEND=local`），角色定妝是轉面圖＋表情表＋臉部近照、首幀依景別每個角色附 1–3 張（千問備選為單張半身）；配音用 VoxCPM2（送進 TTS 前套 repo 根目錄的讀音替換表 `tts-lexicon.md`）；其餘全部本機模型。片尾名單會依實際用到的生圖後端自動寫（記在 `work/image_backends.json`）。
+一個設定檔 `film.json` 寫完整支片（角色、場景、每一鏡、台詞、配樂、片尾），`make_film.py` 從角色定妝照一路做到成片和自審。生圖預設用 OpenAI 生圖（Codex CLI 優先、Codex 不能用才用 Image 2.5 API 金鑰，失敗就停下，要用本機 Qwen 得整支片設 `IMAGE_BACKEND=local`），角色定妝是轉面圖＋表情表＋臉部近照、首幀依景別每個角色附 1–3 張（千問備選為單張半身）；配音用 VoxCPM2（送進 TTS 前套 repo 根目錄的讀音替換表 `tts-lexicon.md`）；其餘全部本機模型。片尾名單會依實際用到的生圖後端自動寫（記在 `work/image_backends.json`）。
 
 範例 `film.json` 是〈被狗吃掉的作業〉：7 鏡、正片約 28 秒（片尾選用、預設不加；打開時再加 9.5 秒），開新片時整份換成自己的劇本。
 

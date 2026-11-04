@@ -1,10 +1,10 @@
-"""Image generation. Default = OpenAI image models: Image 2.5 API first, Codex CLI second; local ComfyUI (Qwen) is opt-in.
+"""Image generation. Default = OpenAI image models: Codex CLI first, Image 2.5 API second; local ComfyUI (Qwen) is opt-in.
 
 Backend (--backend or env IMAGE_BACKEND):
-  auto (default)   2026-10-15: img25 if an API key is found (the model is known to be Image 2.5), otherwise Codex CLI if
-                   usable here (codex.exe found, logged in with ChatGPT, image_generation on; its model version is not
-                   disclosed), otherwise STOP. The choice is made per run BEFORE generating: an API/Codex call that fails
-                   STOPS - no retry on the other one (a film can still mix both if the key appears/disappears between
+  auto (default)   2026-11-04: Codex CLI if usable here (codex.exe found, logged in with ChatGPT, image_generation on;
+                   ChatGPT subscription, its model version is not disclosed), otherwise img25 if an API key is found,
+                   otherwise STOP. The choice is made per run BEFORE generating: a Codex/API call that fails
+                   STOPS - no retry on the other one (a film can still mix both if Codex becomes usable/unusable between
                    images; make_film.py credits whatever was really used)
                    Qwen is never picked automatically: it looks different and needs different character refs.
   codex            Codex CLI built-in image tool on the ChatGPT subscription (tools/codex_image.py, no API key).
@@ -292,7 +292,7 @@ def main():
     ap.add_argument("--out", default=None, help="optional folder to copy the finished image into")
     ap.add_argument("--lora", action="append", default=None, help="LoRA file[:strength], repeatable (e.g. afu_qwen21.safetensors:1.0)")
     ap.add_argument("--backend", choices=("auto", "codex", "img25", "local"), default=os.environ.get("IMAGE_BACKEND", "auto"),
-                    help="auto = Image 2.5 API if a key is found, else Codex CLI (default); img25; codex; local = ComfyUI")
+                    help="auto = Codex CLI if usable, else Image 2.5 API if a key is found (default); codex; img25; local = ComfyUI")
     a = ap.parse_args()
 
     name = "qwen21-unc" if a.uncensored else a.model
@@ -317,15 +317,15 @@ def main():
     local_only = bool(a.lora) or a.uncensored or name.startswith("krea") or name.endswith("-unc")
     cx = None
     if a.backend == "auto" and not local_only:
-        if has_openai_key():
+        cx, why = codex_available()
+        if cx:
+            a.backend = "codex"
+        elif has_openai_key():
+            print(f"[auto] Codex CLI not usable ({why}) -> Image 2.5 API", flush=True)
             a.backend = "img25"
         else:
-            cx, why = codex_available()
-            if not cx:
-                raise SystemExit(f"[auto] no OpenAI image backend: no API key (OPENAI_API_KEY / OPENAI_KEY_FILE / "
-                                 f"~/.openai.env) and Codex CLI not usable ({why}). Or rerun the whole film with IMAGE_BACKEND=local")
-            print("[auto] no OpenAI API key -> Codex CLI (ChatGPT subscription)", flush=True)
-            a.backend = "codex"
+            raise SystemExit(f"[auto] no OpenAI image backend: Codex CLI not usable ({why}) and no API key (OPENAI_API_KEY / "
+                             f"OPENAI_KEY_FILE / ~/.openai.env). Or rerun the whole film with IMAGE_BACKEND=local")
     elif a.backend == "codex" and not local_only:
         cx, why = codex_available()
         if why:

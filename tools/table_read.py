@@ -4,7 +4,7 @@
 
 用法（H3 venv，要 numpy、Pillow、ffmpeg）：
   "%PY_H3%" tools\\table_read.py <片子資料夾> [--storyboard] [--target 秒] [--film 別的.json]
-  --storyboard  另生 16 宮格鉛筆草圖（每 16 鏡一張 4×4，gen_image.py 的 IMAGE_BACKEND，預設 Image 2.5 API → Codex，失敗就停）；
+  --storyboard  另生 16 宮格鉛筆草圖（每 16 鏡一張 4×4，gen_image.py 的 IMAGE_BACKEND，預設 Codex → Image 2.5 API，失敗就停）；
                 不給就只有字幕。草圖已存在就沿用，要重畫刪掉 work/preview/storyboard_*.png。草圖只看故事順序與構圖、不附定妝圖、
                 不進成片，所以不記到 work/image_backends.json（片尾名單不列它）。
   --target      目標片長（秒，需求確認的長度），報告會比對。

@@ -170,11 +170,11 @@ def newest(d, ext=".png"):
 
 
 IMG_LOG = OUT / "image_backends.json"
-IMG_BACKEND = os.environ.get("IMAGE_BACKEND", "auto")   # auto（預設：Image 2.5 API 優先、Codex CLI 次之，失敗就停）｜codex｜img25｜local（千問備選）；一支片固定一個
+IMG_BACKEND = os.environ.get("IMAGE_BACKEND", "auto")   # auto（預設：Codex CLI 優先、Image 2.5 API 次之，失敗就停）｜codex｜img25｜local（千問備選）；一支片固定一個
 
 
 def gen_img(cmd):
-    """跑一次 gen_image.py（預設 Image 2.5 API 優先、Codex CLI 次之，失敗就停、不自動改用千問），記下實際用的後端，片尾名單照實際寫。"""
+    """跑一次 gen_image.py（預設 Codex CLI 優先、Image 2.5 API 次之，失敗就停、不自動改用千問），記下實際用的後端，片尾名單照實際寫。"""
     r = run(cmd)
     used = next((b for b in ("img25", "codex") if f"[backend] {b}" in r.stdout), "local")
     log = json.loads(IMG_LOG.read_text(encoding="utf-8")) if IMG_LOG.exists() else {}
@@ -185,7 +185,7 @@ def gen_img(cmd):
 
 def image_credit():
     """片尾的生圖工具名：依 work/image_backends.json 實際用到的後端。"""
-    log = json.loads(IMG_LOG.read_text(encoding="utf-8")) if IMG_LOG.exists() else {"img25": 1}
+    log = json.loads(IMG_LOG.read_text(encoding="utf-8")) if IMG_LOG.exists() else {"codex": 1}
     names = ((["OpenAI Image 2.5"] if log.get("img25") else []) + (["OpenAI 生圖（Codex）"] if log.get("codex") else [])
              + (["Qwen-Image 2.1／Edit 2511"] if log.get("local") else []))
     return "／".join(names)
@@ -332,7 +332,7 @@ def masters():
 
 @stage("frames")
 def frames():
-    """首幀：OpenAI 生圖（預設 Image 2.5 API 優先、Codex 次之）附「每個角色 1–3 張定妝（shot 的 sheets，預設轉面圖＋表情表）＋場景裁切（最後一張）」；
+    """首幀：OpenAI 生圖（預設 Codex 優先、Image 2.5 API 次之）附「每個角色 1–3 張定妝（shot 的 sheets，預設轉面圖＋表情表）＋場景裁切（最後一張）」；
     IMAGE_BACKEND=local 時 Qwen-Image-Edit 附「角色單張半身＋場景裁切」。每鏡都照抄角色完整外觀描述，否則會掉眼鏡、換髮型。"""
     for s in SHOTS:
         dst = OUT / "first" / f"{s['id']}.png"

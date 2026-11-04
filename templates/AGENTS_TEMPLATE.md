@@ -40,7 +40,7 @@ output/
 
 ## 預設做法
 
-- 定妝：預設 OpenAI 生圖（Image 2.5 API 優先、Codex CLI 次之）一次生轉面圖＋表情表＋臉部近照三張，首幀依景別每個角色附 1–3 張（每鏡 `sheets`）；失敗就停下，不自動改用千問。千問備選要整支片設 `IMAGE_BACKEND=local`，改用單張半身照。
+- 定妝：預設 OpenAI 生圖（Codex CLI 優先、Image 2.5 API 次之）一次生轉面圖＋表情表＋臉部近照三張，首幀依景別每個角色附 1–3 張（每鏡 `sheets`）；失敗就停下，不自動改用千問。千問備選要整支片設 `IMAGE_BACKEND=local`，改用單張半身照。
 - 首幀：`gen_image.py --model qwen-edit --ref <定妝>`。預設送 OpenAI 生圖（Image 2.5 或 Codex，`--model` 這時不作用）；`IMAGE_BACKEND=local` 時 `--model qwen-edit` 讓它用 Qwen-Image-Edit 2511，而不是會把參考圖照抄成正面姿勢的 Qwen-Image 2.1。**每一鏡提示詞都照抄角色完整外觀描述**；做法見 `../docs/07_角色與首幀.md`。
 - 影片：本機 H3，只給首幀；需要時加尾幀。`"draft": true`（DMAD 4 步）是定稿。
 - 片尾：預設不加（`ending.enabled: false`）；使用者要才打開。沒片尾時，AI 生成標示寫在貼文。

@@ -19,7 +19,7 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 | 長度 | 單支 1–3 分鐘，**獨立成篇**，沒有連續劇集數 |
 | 鏡頭 | **每鏡 4–12 秒**（超過 12 秒 H3 容易自己切鏡、漂移）；一鏡最多一句台詞、一個人說話 |
 | 影片 | 本機 MiniMax H3，只給首幀；顯卡跑不動時 `make_film.py` 自動送 Colab |
-| 生圖 | OpenAI 生圖（`gen_image.py` 預設：Image 2.5 API 優先、Codex CLI 次之，失敗就停、不自動改用千問）；本機 Qwen 為備選（整支片 `IMAGE_BACKEND=local`） |
+| 生圖 | OpenAI 生圖（`gen_image.py` 預設：Codex CLI 優先、Image 2.5 API 次之，失敗就停、不自動改用千問）；本機 Qwen 為備選（整支片 `IMAGE_BACKEND=local`） |
 | 定妝 | 轉面圖＋表情表＋臉部近照三張（Image 2.5），首幀依景別每個角色附 1–3 張；千問備選用單張半身 |
 | 配音 | 畫面內台詞**預設 H3 拿角色參考音自己念**（`voice_mode: "h3_ref"`，念錯換 seed，抽不出來那句改 `fixed`）；角色與旁白參考音用 VoxCPM2 設計，旁白與 `fixed` 的台詞預設用 Ming-3.0-TTS（`voice_engine`），念錯的詞加進 repo 根目錄的 `tts-lexicon.md`（只對 VoxCPM2 有效） |
 
