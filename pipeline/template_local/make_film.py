@@ -726,13 +726,15 @@ def music():
     # 14 個 [Instrumental]：少於 14 會太短；加 Verse 會冒人聲。實測多寫段數（20 段）也不保證變長（56～103 秒），
     # 反而開始唱歌（人聲殘留 0.0002 → 0.23～0.91，2026-10-19）→ 段數固定，長度不夠改用 extend_music 接長
     (md / "lyr.txt").write_text("[Intro]\n" + "[Instrumental]\n" * 14 + "[Outro]\n[Instrumental]\n", encoding="utf-8")
-    for sd_ in m.get("seeds", [7, 23, 51]):
+    # 4 首：3 首常常只有 1 首、甚至 0 首人聲殘留夠低（〈劉徽〉1/3、〈丟番圖〉第一輪 0/3），整輪重跑比多抽一首更花時間
+    for sd_ in m.get("seeds", [7, 23, 51, 89]):
         sd = md / f"s{sd_}"; sd.mkdir(exist_ok=True)
         if not list(sd.glob("*.flac")):
+            # --tiled：整段解碼長配樂會讓 ComfyUI 直接退出（2026-10-26〈劉徽〉105 秒重現兩次，分段解碼 165 秒正常）
             run([PYH3, T / "gen_music3.py", "--caption-file", md / "cap.txt", "--lyrics-file", md / "lyr.txt", "--seconds", secs, "--seed", sd_,
-                 "--prefix", f"audio/MM3/film_{sd_}", "--out", sd])
+                 "--prefix", f"audio/MM3/film_{sd_}", "--out", sd, "--tiled"])
     free_comfy(); rows = []
-    for sd_ in m.get("seeds", [7, 23, 51]):
+    for sd_ in m.get("seeds", [7, 23, 51, 89]):
         sd = md / f"s{sd_}"; src = next(sd.glob("*.flac"))
         if not list(sd.glob("*Instrumental*.wav")):
             run([SEP, src, "--model_filename", "model_bs_roformer_ep_317_sdr_12.9755.ckpt", "--model_file_dir", AI_ROOT / "Voice" / "models" / "separator",

@@ -100,7 +100,7 @@
  "seeds": {"frame_S1": 5303, "h3_S2": 778},
  "music": {
   "caption": "Genre: light playful school comedy underscore, purely instrumental film score, sneaky and mischievous mood, a little suspenseful, then a warm gentle resolve. BPM 96, key D major.\nVocal: NONE. No singing, no humming, no choir.\nArrangement: pizzicato strings, bassoon, marimba, glockenspiel, soft upright bass, light brushed snare.",
-  "seeds": [7, 23, 51]
+  "seeds": [7, 23, 51, 89]
  },
  "mix": {"say_lead": 0.2, "default_tail": 0.55, "music_under_lines": 0.35, "music_bed_rms": 0.006, "target_lufs": -15.0, "amb_gain": 0.4, "music_level": true, "voice_lufs": -20},
  "ending": {
