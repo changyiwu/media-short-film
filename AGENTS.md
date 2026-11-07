@@ -63,7 +63,7 @@ docs/                          總覽、端到端流程、規則與踩坑、自�
 tools/                         全域工具（各腳本直接用這裡，不再複製到 C:\AI\tools）
 output/                         自己的片與角色資產（.gitignore，不進 repo；規則見 output/AGENTS.md）
 pipeline/                      template_local（新片範本）、template_battle（饒舌對決範本）、demo_local（安裝驗證）
-setup/                         模型下載清單、套件清單、smoke_test、硬體偵測、16GB 模擬測試
+setup/                         模型下載清單、套件清單、check_env（只讀環境核對）、smoke_test、硬體偵測、16GB 模擬測試
 cloud/                         H3 送 Google Colab 跑
 sfx/                           Freesound CC0 音效
 templates/                     片尾範本、法陣素材、AGENTS_TEMPLATE.md（做片入口範本）、發布資訊範本.md（YouTube／FB／IG／Threads；五個媒體專案各一份、內容逐位元組相同，正本在 media-youtube-publish 的 `skills/youtube-long/references/`，改正本再整份覆蓋，不在本專案就地改）
@@ -103,7 +103,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 桌機用 Comfy Desktop 的 ComfyUI（`configs\profile.cmd` 自動偵測），連接、背景啟動、模型位置照全域技能 `comfyui`；不要另外在 `%AI_ROOT%\H3` 裝一份。
 - Windows 的 ffmpeg 開中文路徑報 `Illegal byte sequence` 時，把 `cwd` 切進該資料夾、只給檔名。
 - 工具讀寫 ComfyUI 的 input／output 一律經 `tools/comfy_paths.py`，不要寫死 `COMFY_DIR\input`／`output`（Desktop 放在 `ComfyUI-Shared`）。
-- 跑本專案前先關掉 Desktop 視窗，由 `tools\start_comfy.cmd` 在背景啟動，才會帶上 `--reserve-vram 1.5`。Desktop 自動更新後先跑 `smoke_test.py`，補裝的套件或 FlashVSR 節點不見了就照 `AGENT_SETUP.md` §2a 重裝。
+- 跑本專案前先關掉 Desktop 視窗，由 `tools\start_comfy.cmd` 在背景啟動，才會帶上 `--reserve-vram 1.5`。Desktop 自動更新後先跑 `setup/check_env.py`（只讀）再跑 `smoke_test.py`，補裝的套件或 FlashVSR 節點不見了就照 `AGENT_SETUP.md` §2a 重裝。
 
 ### 兩台硬體
 - 桌機：RTX 5060 Ti 16GB＋64GB RAM，用 `configs\profile.cmd`。筆電：RTX Spark（Windows on Arm、64GB 統一記憶體），用 `configs\profile_rtxspark.cmd`。

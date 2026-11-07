@@ -73,7 +73,7 @@ mkdir C:\AI\Voice
 
 確認：`"%PY_H3%" -c "import torch, nvvfx, gguf;print(torch.__version__, torch.cuda.is_available())"` → `True`。
 
-⚠️ **Desktop 會自動更新 ComfyUI**（有時連 `.venv` 一起換）。更新後先重跑一次 `smoke_test.py`；套件、節點或 `%COMFY_DIR%\models\FlashVSR-v1.1` 不見了，就重做上面 1、2，再重跑 `downloads_flashvsr.json`（已驗證的檔案會自動跳過）。
+⚠️ **Desktop 會自動更新 ComfyUI**（有時連 `.venv` 一起換）。更新後先跑 `python setup\check_env.py`（只讀核對，幾十秒），再重跑一次 `smoke_test.py`；套件、節點或 `%COMFY_DIR%\models\FlashVSR-v1.1` 不見了，就重做上面 1、2，再重跑 `downloads_flashvsr.json`（已驗證的檔案會自動跳過）。
 
 ### 2a′.（沒有 Comfy Desktop 時）自己安裝 C:\AI\H3
 
@@ -171,6 +171,12 @@ C:\AI\H3\venv\Scripts\python.exe <repo>\tools\dmad_lora_convert.py C:\AI\H3\Comf
 （只需要 `lora_critic` 這一顆；`full_critic` 實測構圖會漂，不用。）
 
 ## 4. 啟動與自我驗證
+
+先跑只讀核對（任何 Python 都行，會自己呼叫 `profile.cmd`，筆電自動改用 `profile_rtxspark.cmd`）：
+```
+python <repo>\setup\check_env.py
+```
+逐項列出 H3 環境（Desktop 只比 §2a 補裝的 7 個套件）、語音環境、Ming、自訂節點、工具會載入的模型與每份 `downloads*.json`（只比大小）是否符合，最後一段寫結論；必要項目有不符合時結束碼為 1。全部符合再跑下面的 smoke test。
 
 在**同一個 cmd 視窗**依序執行（`profile.cmd` 設定的環境變數只在這個視窗有效）：
 ```

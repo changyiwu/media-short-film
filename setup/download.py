@@ -25,9 +25,6 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-arg = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'downloads.json'
-manifest = arg if arg.exists() else ROOT / arg
-items = json.loads(manifest.read_text(encoding='utf-8-sig'))
 SMALL = 8 * 1024 * 1024       # files up to this size: one request
 SEGMENTS = 16                 # long ranged streams per large file
 READ = 4 * 1024 * 1024
@@ -191,16 +188,24 @@ def download(item):
     return 'downloaded'
 
 
-counts = {'present': 0, 'downloaded': 0, 'failed': 0}
-with cf.ThreadPoolExecutor(max_workers=4) as pool:
-    futs = {pool.submit(download, item): item for item in items}
-    for f in cf.as_completed(futs):
-        try:
-            counts[f.result()] += 1
-        except Exception as e:
-            counts['failed'] += 1
-            print(f"FAILED {futs[f]['name']}: {e}", flush=True)
-print(f"{manifest.name}: {len(items)} files — downloaded {counts['downloaded']}, already present {counts['present']}, failed {counts['failed']}", flush=True)
-if counts['failed'] or counts['downloaded'] + counts['present'] != len(items):
-    sys.exit(1)
-print('ALL DOWNLOADS VERIFIED', flush=True)
+def main():
+    arg = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'downloads.json'
+    manifest = arg if arg.exists() else ROOT / arg
+    items = json.loads(manifest.read_text(encoding='utf-8-sig'))
+    counts = {'present': 0, 'downloaded': 0, 'failed': 0}
+    with cf.ThreadPoolExecutor(max_workers=4) as pool:
+        futs = {pool.submit(download, item): item for item in items}
+        for f in cf.as_completed(futs):
+            try:
+                counts[f.result()] += 1
+            except Exception as e:
+                counts['failed'] += 1
+                print(f"FAILED {futs[f]['name']}: {e}", flush=True)
+    print(f"{manifest.name}: {len(items)} files — downloaded {counts['downloaded']}, already present {counts['present']}, failed {counts['failed']}", flush=True)
+    if counts['failed'] or counts['downloaded'] + counts['present'] != len(items):
+        sys.exit(1)
+    print('ALL DOWNLOADS VERIFIED', flush=True)
+
+
+if __name__ == '__main__':   # importable: setup/check_env.py reuses destination()
+    main()
