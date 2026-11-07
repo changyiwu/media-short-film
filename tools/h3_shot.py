@@ -20,6 +20,7 @@ Shot spec (JSON; relative paths resolve against the JSON file's folder):
   "style": "a realistic live-action Taiwanese film shot on 35mm, natural window light, subtle believable acting",
   "setting": "a Taiwanese elementary school classroom",
   "first_frame": "kf.png",          # <Picture 1>; pinned at frame 0 (strongly recommended - project default)
+  # "first_clip": "prev_tail22.mp4",  # optional: a 17n+5-frame clip pinned at frames 0.. instead of the single first frame (h3_edit.py recipes use the whole source clip)
   "camera_video": {"file": "blender_S01.mp4"},   # optional <Video 1>: Blender previs camera/layout guide (short-film skill, previs step)
   # or {"file": "wm.mp4", "kind": "motion", "people": 1, "follow": "..."}: gray-mannequin motion reference from make_whitemodel.py
   "last_frame": "end.png",          # optional; pinned at the last frame (only for long continuous actions / fixed end states)
@@ -259,7 +260,10 @@ def build_prompt(spec):
 def lint(prompt, duration=None):
     """Return (errors, warnings) against the official Ref2VA format."""
     E, W = [], []
-    heads = [(m.group(1), m.group(2), m.start()) for m in re.finditer(r"^([a-z_]+)(:?)[ \t]*$", prompt, re.M) if m.group(1) in SECTIONS]
+    ctrl = sorted({hex(ord(c)) for c in prompt if ord(c) < 32 and c not in "\n\r\t"})
+    if ctrl:  # upstream 2026-11-06: a bad regex replacement left \x01\x02 in 23 lines; H3 babbled instead of reading them
+        E.append(f"control characters in prompt: {ctrl}")
+    heads =[(m.group(1), m.group(2), m.start()) for m in re.finditer(r"^([a-z_]+)(:?)[ \t]*$", prompt, re.M) if m.group(1) in SECTIONS]
     names = [h[0] for h in heads]
     if names != SECTIONS:
         E.append(f"sections must be exactly {SECTIONS} in order; found {names}")
@@ -441,7 +445,12 @@ def build_graph(spec, prompt, base, tag):
             n = str(32 + k)
             g[n] = {"class_type": "LoadAudio", "inputs": {"audio": stage(base / v["file"], f"{tag}_voice{k}.wav" if k else f"{tag}_voice.wav")}}
             g["6"]["inputs"][f"ref_audios.ref_audio_{k}"] = [n, 0]
-    if spec.get("first_frame"):
+    if spec.get("first_clip"):  # upstream 6648a82: a 17n+5-frame clip anchored at frame 0 (h3_edit.py recipes: the whole source clip as guide)
+        g["44"] = {"class_type": "LoadVideo", "inputs": {"file": stage(base / spec["first_clip"], f"{tag}_firstclip.mp4")}}
+        g["45"] = {"class_type": "GetVideoComponents", "inputs": {"video": ["44", 0]}}
+        g["40"] = {"class_type": "MiniMaxH3AddGuide", "inputs": {"positive": cond, "latent": latent, "vae": ["3", 0], "image": ["45", 0], "frame_idx": 0}}
+        cond = ["40", 0]
+    elif spec.get("first_frame"):
         g["40"] = {"class_type": "MiniMaxH3AddGuide", "inputs": {"positive": cond, "latent": latent, "vae": ["3", 0], "image": ["5", 0], "frame_idx": 0}}
         cond = ["40", 0]
     if audio.get("fixed"):

@@ -32,6 +32,8 @@
 | BS-RoFormer `model_bs_roformer_ep_317_sdr_12.9755`（viperx 訓練） | **未標示授權** | 不明 | 只附下載連結，不轉散布，自行評估 | https://github.com/ZFTurbo/Music-Source-Separation-Training/blob/main/docs/pretrained_models.md |
 | FlashVSR v1.1 | Apache-2.0（含 Wan2.1 VAE，Apache-2.0） | 可以 | 保留授權 | https://huggingface.co/JunhaoZhuang/FlashVSR-v1.1 |
 | 動作 LoRA：JOKER141 Combat-Base-V2、GunFu、Motion-Continuity-Repair；RunningHubAI speed-slider-1.1 | **未標示授權**（等同保留所有權利）；同時是 H3 衍生作品 | 不明 | 只附連結、不轉散布；至少須遵守 H3 授權 | https://huggingface.co/JOKER141 、https://huggingface.co/RunningHubAI/rh-h3-speed-slider-1.1-lora |
+| 換角色 LoRA：Alissonerdx `minimax_h3_character_swap_v1.1_ref2va_fro`（`tools/h3_edit.py` 的 `"recipe": "body_swap"`，2026-11-07 從上游移植） | BFS Character Swap License | 可以（影片、電影可直接用；年營收超過 100 萬美元的組織要標示 Alissonerdx 與 BFS Character Swap LoRA；不可做成 API／SaaS 服務）；同時是 H3 衍生作品 | 只附下載清單 `setup/downloads_swap.json` | https://huggingface.co/Alissonerdx/Minimax-H3-ComfyUI/blob/main/LICENSE_CHARACTER_SWAP.md |
+| 換頭 LoRA：Alissonerdx `minimax_h3_head_swap_v1.0_r32`（`"recipe": "head_swap"`） | **未標示授權**（repo 的 LICENSES.md 只涵蓋換角色與動作遷移）；H3 衍生作品 | 不明 | 只附下載連結、不轉散布 | https://huggingface.co/Alissonerdx/Minimax-H3-ComfyUI |
 | SDPose（Comfy-Org 打包）、RT-DETRv4 | MIT／Apache-2.0（SD 底模授權未查） | 大致可以 | 保留授權 | https://huggingface.co/Comfy-Org/SDPose |
 | YuE2（選用） | CC BY-NC 4.0 | 不可以 | 署名、非商業 | https://huggingface.co/m-a-p |
 | OpenAI Image 2.5 API（選用，雲端） | OpenAI Services Agreement | 可以 | 產出歸客戶（第 4.1 條）；另須遵守 Usage Policies | https://cdn.openai.com/osa/openai-services-agreement.pdf |
