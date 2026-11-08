@@ -25,7 +25,7 @@
 7. `make_film.py amb edl music ending cut review`
 8. **人工關卡 3**：看 `work/review/` 的自審結果，最後**一定要人看完整的** `work/cut/film_1080p.mp4`。
    - 只改剪接（`cut_in`、`tail`）：跑 `edl cut review`。
-   - 換配樂：改 `music.seeds`，刪 `work/music`，跑 `music cut review`。
+   - 換配樂：改 `music.seeds`，刪 `work/music`，跑 `music cut review`。`music` 停下說「沒有一首人聲殘留 ≤ 0.01」：caption 裡的 recorder、reed flute 換成 soft wooden flute（或弦樂、撥弦），再換 seed 重抽。
 
 不給 stage 就是全部依序跑。每一步已經存在的檔案都會跳過，所以中斷後重跑會從斷點接著做。
 

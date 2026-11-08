@@ -752,11 +752,17 @@ def music():
         pick = dict(file=str(extend_music(f, e["total"] + 4, OUT / "post" / "music_extended.wav")), vocal_ratio=ratio, extended_from=str(f))
         print(f"music：乾淨的都不夠長，把 {Path(f).parent.name}（{d:.1f} 秒）交叉淡入接長到 {e['total'] + 4:.0f} 秒，請聽接點", flush=True)
     else:
+        # 全部有人聲就停下，不默默拿最不髒的那首往下剪：2026-11-08〈笛卡兒的坐標〉第一輪 4 首都在唱（0.07～0.84），
+        # 分離後的人聲軌有接近 0 dB 的段落，器樂軌會留洞；caption 的 recorder 換 soft wooden flute、換 seed 後才乾淨
+        if os.environ.get("MUSIC_ALLOW_VOCAL") != "1":
+            raise SystemExit(f"music：沒有一首人聲殘留 ≤ {MUSIC_CLEAN}（最低 {min(rows)[0]:.4f}）。先把 music.caption 裡吹氣的管樂器"
+                             "（recorder、reed flute、pan flute）換成 soft wooden flute 或弦樂、撥弦，換 music.seeds，"
+                             "把 work/music 移到 舊版/ 再跑 music；真的要用有人聲的那首才設 MUSIC_ALLOW_VOCAL=1")
         long_any = [r for r in rows if r[1] >= e["total"]]
         if not long_any:
             raise SystemExit("沒有一首配樂夠長：把 music.seeds 換掉再跑 music")
         ratio, d, f = min(long_any); pick = dict(file=str(f), vocal_ratio=ratio)
-        print(f"music：沒有一首人聲殘留 ≤ {MUSIC_CLEAN}，先用 {Path(f).parent.name}（{ratio:.4f}）；成片要聽有沒有歌聲，或換 music.seeds", flush=True)
+        print(f"music：MUSIC_ALLOW_VOCAL=1，用有人聲殘留的 {Path(f).parent.name}（{ratio:.4f}）；成片要聽有沒有歌聲", flush=True)
     (OUT / "post" / "music_pick.json").write_text(json.dumps(pick, ensure_ascii=False), encoding="utf-8")
 
 

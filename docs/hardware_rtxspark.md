@@ -45,7 +45,7 @@
 | 項目 | 值 | 理由 |
 |---|---|---|
 | ComfyUI | 有 Comfy Desktop 就用它（`COMFY_DIR`、`PY_H3` 指向 Desktop 的 `ComfyUI` 與 `.venv`，模型在 `ComfyUI-Shared\models`），偵測方式與 `profile.cmd` 相同；沒有才用 `C:\AI\H3`，或 `set DESKTOP_COMFY=none` 強制不用 | Desktop 在 RTX Spark 上裝的是 `beta-win-nvidia-arm64` 版，自帶 ARM64 Python 3.13 與 NVIDIA 預覽版 torch，不用自己建 H3 環境 |
-| 模型 | 跟 16GB 版完全一樣（H3 剪枝 int8、Heretic int8 文字編碼器、fp16 影片 VAE、DMAD 4 步）；用 Desktop 時文字編碼器同桌機換成 Desktop 範本的 NVFP4（`H3_CLIP`） | 上游驗證過的組合，結果可對照 |
+| 模型 | 跟 16GB 版完全一樣（H3 剪枝 int8、Heretic int8 文字編碼器、fp16 影片 VAE、DMAD 4 步）；用 Desktop 時同桌機：`ComfyUI-Shared` 有 Heretic int8 就用它，沒有才退回 Desktop 範本的 NVFP4（`H3_CLIP`；先跑 `setup\downloads_uncensored.json`） | 上游驗證過的組合，結果可對照 |
 | ComfyUI 參數 | `--reserve-vram 6 --disable-pinned-memory --disable-async-offload` | 統一記憶體不需要釘選記憶體與非同步搬移（只會重複佔用）；保留 6GB 給 Windows |
 | 放大 | `UPSCALE=lanczos`，第一次上機 6b 通過後改 `rtxvsr`；FlashVSR 見下方〈放大：FlashVSR〉 | nvidia-vfx 0.2.0.0 有 ARM64 版，但 RTX Spark 上還沒實測 |
 | 單鏡長度 | ≤12 秒 | 同主設定 |

@@ -88,7 +88,7 @@
 |---|---|
 | 設定檔 | `call configs\profile.cmd` |
 | H3 主模型 | 剪枝 int8（`minimax_h3_ref2va_pruned_int8_convrot`） |
-| 文字編碼器 | Heretic int8（`qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot`） |
+| 文字編碼器 | Heretic int8（`qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot`）。Comfy Desktop 只附 NVFP4：要先跑 `setup\downloads_uncensored.json`（約 26.4GB）下載 INT8，`profile.cmd` 偵測到檔案才用 INT8，沒有就退回 NVFP4（2026-11-08 起；之前 Desktop 一律用 NVFP4） |
 | 影片 VAE | fp16 |
 | ComfyUI 啟動參數 | 加 `--reserve-vram 1.5`（VAE 解碼當機再加 `--disable-pinned-memory --disable-async-offload`） |
 | 步數 | DMAD 4 步（spec 寫 `"draft": true`） |
