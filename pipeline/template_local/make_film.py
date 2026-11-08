@@ -747,8 +747,8 @@ def music():
     long_clean = [r for r in clean if r[1] >= e["total"]]
     if long_clean:                                   # 乾淨又夠長：挑最乾淨的
         ratio, d, f = min(long_clean); pick = dict(file=str(f), vocal_ratio=ratio)
-    elif clean:                                      # 乾淨的都不夠長：最乾淨的那首接長
-        ratio, d, f = min(clean)
+    elif clean:                                      # 乾淨的都不夠長：挑最長的那首接長（接得越少接點越少；都已經夠乾淨，不用比誰更乾淨）
+        ratio, d, f = max(clean, key=lambda r: r[1])  # 2026-11-07〈丟番圖〉挑最乾淨的會選到 59 秒的 s173，要接一倍長，改用 111 秒的 s5
         pick = dict(file=str(extend_music(f, e["total"] + 4, OUT / "post" / "music_extended.wav")), vocal_ratio=ratio, extended_from=str(f))
         print(f"music：乾淨的都不夠長，把 {Path(f).parent.name}（{d:.1f} 秒）交叉淡入接長到 {e['total'] + 4:.0f} 秒，請聽接點", flush=True)
     else:

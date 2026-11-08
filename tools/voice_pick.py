@@ -39,9 +39,21 @@ def int_zh(n):
     return "".join(DIG[int(c)] for c in str(n))
 
 
-def norm(s):
+def int_zh_full(n):
+    """1000\uff5e9999 \u7684\u300c\u5343\u300d\u8b80\u6cd5\uff081800\u2192\u4e00\u5343\u516b\u767e\u30011050\u2192\u4e00\u5343\u96f6\u4e94\u5341\uff09\uff1bint_zh \u5c0d\u56db\u4f4d\u6578\u9010\u5b57\u5ff5\uff08\u5e74\u4efd 1637\u2192\u4e00\u516d\u4e09\u4e03\uff09\u3002"""
+    if not 1000 <= n < 10000:
+        return int_zh(n)
+    q, r = divmod(n, 1000); s = DIG[q] + "\u5343"
+    if r == 0:
+        return s
+    if r < 100:
+        return s + "\u96f6" + ("\u4e00" + int_zh(r) if 10 <= r < 20 else int_zh(r))
+    return s + int_zh(r)
+
+
+def norm(s, full=False):
     s = re.sub(r"\[:[^\]]*\]", "", s)
-    s = re.sub(r"\d+", lambda m: int_zh(int(m.group())), s)
+    s = re.sub(r"\d+", lambda m: (int_zh_full if full else int_zh)(int(m.group())), s)
     return re.sub(r"[^\u4e00-\u9fffA-Za-z]", "", s).upper()
 
 
@@ -64,8 +76,12 @@ def py_same(a, b):
 
 
 def judge(r, plain, rd, cand_path):
-    r["asr_ok"] = py_same(norm(r["asr"]), norm(plain))
-    r["sim"] = round(difflib.SequenceMatcher(None, norm(r["asr"]), norm(plain)).ratio(), 3)
+    # 聽寫把四位數寫成阿拉伯數字時不知道原本是年份（一六三七）還是數量（一千八百），兩種讀法都試，取對得上的
+    # （2026-11-07〈丟番圖〉旁白「一千八百」被聽成 1800，8 個候選全被擋下）
+    want = norm(plain)
+    heard = {norm(r["asr"]), norm(r["asr"], full=True)}
+    r["asr_ok"] = any(py_same(h, want) for h in heard)
+    r["sim"] = round(max(difflib.SequenceMatcher(None, h, want).ratio() for h in heard), 3)
     r["len_ratio"] = round(dur(cand_path) / rd, 2)
     r["len_ok"] = 0.5 <= r["len_ratio"] <= 2.5
     return r
