@@ -17,6 +17,8 @@ Shot spec (JSON; relative paths resolve against the JSON file's folder):
 {
   "duration": 3.75,                 # seconds of the clip (H3: 4-15 s recommended; frames = smallest 17n+5 >= duration*24)
   "size": [1344, 768], "seed": 42, "steps": 14, "easycache": false,
+  # optional: "scheduler": "beta" (BasicScheduler, default "simple"); "sampler": "euler" (default res_multistep);
+  #           "lora": {"name": "xxx.safetensors", "strength": 1.0} without "draft" (e.g. official minimax_h3_ref2v_turbo_4step + "steps": 4)
   "style": "a realistic live-action Taiwanese film shot on 35mm, natural window light, subtle believable acting",
   "setting": "a Taiwanese elementary school classroom",
   "first_frame": "kf.png",          # <Picture 1>; pinned at frame 0 (strongly recommended - project default)
@@ -364,7 +366,8 @@ def build_graph(spec, prompt, base, tag):
               "width": w, "height": h, "length": length, "ref_image_size": "match"}},
         "7": {"class_type": "RandomNoise", "inputs": {"noise_seed": spec.get("seed", 42)}},
         "8": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "res_multistep"}},
-        "9": {"class_type": "BasicScheduler", "inputs": {"model": ["1", 0], "scheduler": "simple", "steps": spec.get("steps", 14), "denoise": 1.0}},
+        # scheduler: optional, default "simple" (official r2v template note: "beta"/"normal" may beat simple for reference-heavy prompts)
+        "9": {"class_type": "BasicScheduler", "inputs": {"model": ["1", 0], "scheduler": spec.get("scheduler", "simple"), "steps": spec.get("steps", 14), "denoise": 1.0}},
         "12": {"class_type": "VAEDecode", "inputs": {"samples": ["11", 0], "vae": ["3", 0]}},
         "15": {"class_type": "SaveVideo", "inputs": {"video": ["14", 0], "filename_prefix": f"h3_shot/{tag}", "format": "mp4", "codec": "h264"}},
         "16": {"class_type": "SaveImage", "inputs": {"images": ["12", 0], "filename_prefix": f"h3_shot_png/{tag}/f"}},
