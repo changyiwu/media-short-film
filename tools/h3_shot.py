@@ -67,6 +67,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -337,8 +338,11 @@ def lint(prompt, duration=None):
 def req(path, data=None, timeout=60):
     r = urllib.request.Request(HOST + path, data=json.dumps(data).encode() if data is not None else None,
                                headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(r, timeout=timeout) as f:
-        return json.loads(f.read().decode())
+    try:
+        with urllib.request.urlopen(r, timeout=timeout) as f:
+            return json.loads(f.read().decode())
+    except urllib.error.HTTPError as e:              # ComfyUI 驗證失敗（400）時，原因在回應內容裡：哪個節點、哪個輸入不對
+        raise SystemExit(f"ComfyUI {path} HTTP {e.code}: {e.read().decode(errors='replace')[:3000]}")
 
 
 def stage(src, name):
