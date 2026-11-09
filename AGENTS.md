@@ -109,6 +109,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 桌機：RTX 5060 Ti 16GB＋64GB RAM，用 `configs\profile.cmd`。筆電：RTX Spark（Windows on Arm、64GB 統一記憶體），用 `configs\profile_rtxspark.cmd`。
 - 第二台桌機 PC-YI-FY 與桌機同規格（RTX 5060 Ti 16GB＋64GB RAM、Comfy Desktop），也用 `configs\profile.cmd`。
 - 改 `setup/env/requirements_*.txt` 後要跑 `python setup/spark_check.py --wheels --emit` 重產 ARM64 清單，並看 diff 有沒有不合理的版本跳動。
+- RTX Spark 的語音／Ming venv 換 NVIDIA win_arm64 nightly（20261107 起）後，site-packages 要有 `torch-lib-path.pth`（把 `torch\lib` 加進 PATH，寫法同 media-voice-clone 的 `install.ps1`），否則 cuDNN 一用到卷積就直接退出；換版後驗證要跑一次 cuDNN 卷積，不能只測矩陣乘法。
 - 判斷套件有沒有 ARM64 版不要只看 PyPI：NVIDIA 的套件（如 `nvidia-vfx`）在 PyPI 只放 wheel-stub 空殼，真正的 wheel 在 pypi.nvidia.com；也要核對 wheel 的 Python 版本（cpXY／abi3）。
 
 ### 做片
