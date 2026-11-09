@@ -371,6 +371,8 @@ def frames():
     expect = [f"{s['id']}={len(s['refs'])}" for s in SHOTS if s["id"] not in INSERTS and s.get("refs")]   # 空景不查
     if expect:
         r = run([PYV, T / "face_count.py", OUT / "first", *expect], check=False)        # 只是提醒，偵測失敗不擋流程
+        if r.returncode != 0 and "No module named 'cv2'" in (r.stderr or ""):          # RTX Spark：語音環境裝不了 opencv（沒有 win_arm64 wheel），
+            r = run([PYH3, T / "face_count.py", OUT / "first", *expect], check=False)   # Comfy Desktop 的 .venv 有 ARM64 版，改用它
         print(r.stdout[-1500:] if r.returncode == 0 else f"⚠ 首幀臉數檢查失敗（{r.returncode}），改人工看：\n{r.stderr[-800:]}", flush=True)
     print("→ 人工檢查 work/first/_sheet.jpg：臉、服裝、多手多腳、背景有沒有字、窗戶方向", flush=True)
 

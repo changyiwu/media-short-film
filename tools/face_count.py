@@ -1,5 +1,5 @@
 """首幀臉數檢查：臉比角色多就提醒（可能多畫了人，也可能是劇情本來就有旁人，要人看）。make_film.py 的 frames 階段會自動呼叫。
-用法（Voice venv，要 opencv-python-headless）：
+用法（Voice venv，要 opencv-python-headless；RTX Spark 的語音環境裝不了 opencv，make_film.py 會改用 Comfy Desktop 的 .venv，裡面有 ARM64 版）：
   "%PY_VOICE%" face_count.py <首幀資料夾> S1=1 S2=2 ...      每個 <鏡號>=<角色數>，看 <鏡號>.png
 只算臉高 ≥ 畫面高 8% 的臉（背景遠處的小臉不算）。臉偵測用 YuNet（約 230 KB，第一次自動下載到 AI_ROOT/models）。
 做法改寫自上游 pipeline/template_battle/make_battle.py 的 frames 與 battle_gfx.py 的 faces。"""
