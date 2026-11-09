@@ -77,7 +77,17 @@ def align(wav16, base):
 
 
 def f0_track(path):
-    import parselmouth
+    """Praat 自相關 F0（10 ms 一格，65–500 Hz，無聲＝0）。parselmouth 裝不起來時（2026-11-09 RTX Spark：沒有 win_arm64 wheel、
+    原始碼要 CMake＋C++ 編譯器）改用 librosa.pyin，同樣的格距與音域；兩者數值不完全相同，門檻是用 Praat 校準的。"""
+    try:
+        import parselmouth
+    except ImportError:
+        import librosa, soundfile as sf
+        x, sr = sf.read(str(path), dtype="float32"); x = x.mean(axis=1) if x.ndim > 1 else x
+        hop = int(sr * 0.01)
+        f, voiced, _ = librosa.pyin(x, fmin=65, fmax=500, sr=sr, frame_length=hop * 4, hop_length=hop)
+        f = np.where(voiced, np.nan_to_num(f), 0.0)
+        return librosa.frames_to_time(np.arange(len(f)), sr=sr, hop_length=hop), f
     snd = parselmouth.Sound(str(path))
     p = snd.to_pitch_ac(time_step=0.01, pitch_floor=65, pitch_ceiling=500)
     f = p.selected_array["frequency"]; t = p.xs()

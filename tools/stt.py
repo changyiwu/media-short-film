@@ -3,7 +3,9 @@
 Prereqs: faster-whisper installed in C:/AI/Voice/venv; models cached in C:/AI/Voice/models/whisper.
 Fallback (2026-10-14): when faster-whisper / ctranslate2 cannot be imported (e.g. Windows on Arm, no ARM64 wheel),
 load_asr() switches to openai-whisper (pure PyTorch; slower; downloads its own large-v3 .pt to models/whisper/openai on first use).
-Force a backend with ASR_BACKEND=faster|openai. voice_pick.py and review.py use load_asr() too.
+If openai-whisper cannot be imported either (2026-11-09 RTX Spark: its tiktoken has no win_arm64 wheel and needs Rust), it switches to
+Qwen3-ASR (transformers; weights from setup/downloads_qwen_asr.json): one segment per <=30 s chunk, text may come out simplified.
+Force a backend with ASR_BACKEND=faster|openai|qwen. voice_pick.py and review.py use load_asr() too.
 
 Usage (cmd, after call <repo>\\configs\\profile.cmd):
   "%PY_VOICE%" <repo>\\tools\\stt.py --audio in.wav --outdir out [--model large-v3] [--language zh|auto]
@@ -78,9 +80,49 @@ class _OpenAIWhisper:
         return segs, SimpleNamespace(language=r.get("language", language), language_probability=None, duration=dur)
 
 
+class _QwenASR:
+    """Qwen3-ASR 1.7B behind the faster-whisper interface (2026-11-09, RTX Spark: openai-whisper needs tiktoken, which needs Rust to build).
+    One segment per chunk of at most CHUNK seconds (no VAD, no per-sentence split); word_timestamps=True fills .words per character
+    with Qwen3-ForcedAligner. initial_prompt, beam_size and vad_* are ignored. Output may be simplified Chinese: callers convert."""
+    backend = "qwen"
+    CHUNK = 30.0
+
+    def __init__(self, device):
+        self.hear = load_song_asr(device)
+        self.device = device
+        self._align = None
+
+    def transcribe(self, audio, language=None, word_timestamps=False, **_ignored):
+        from types import SimpleNamespace
+        import numpy as np
+        import soundfile as sf
+        x, sr = sf.read(str(audio), dtype="float32")
+        x = x.mean(axis=1) if x.ndim > 1 else x
+        dur = len(x) / sr
+        n = max(1, int(np.ceil(dur / self.CHUNK))) if dur > 2 * self.CHUNK else 1
+        segs = []
+        for i in range(n):
+            a, b = dur * i / n, dur * (i + 1) / n
+            part = x[int(a * sr):int(b * sr)]
+            text = self.hear(part, sr).strip()
+            seg = SimpleNamespace(start=a, end=b, text=text, words=[])
+            if word_timestamps and text:
+                if self._align is None:
+                    self._align = load_song_aligner(self.device)
+                ws = [w for row in self._align(part, sr, [text]) for w in row["words"]]
+                seg.words = [SimpleNamespace(word=w["w"], start=a + w["s"], end=a + w["e"]) for w in ws]
+                if ws:
+                    seg.start, seg.end = a + ws[0]["s"], a + ws[-1]["e"]
+            segs.append(seg)
+        return segs, SimpleNamespace(language=language or "zh", language_probability=None, duration=dur)
+
+
 def load_asr(model="large-v3", device="cuda", compute_type="float16", local_files_only=False):
-    """faster-whisper if importable (default), else openai-whisper. ASR_BACKEND=faster|openai forces one. Result has .backend."""
+    """faster-whisper if importable (default), else openai-whisper, else Qwen3-ASR. ASR_BACKEND=faster|openai|qwen forces one.
+    Result has .backend. The Qwen backend ignores model/compute_type (it always uses Qwen3-ASR-1.7B-hf)."""
     want = os.environ.get("ASR_BACKEND", "auto")
+    if want == "qwen":
+        return _QwenASR(device)
     if want != "openai":
         try:
             _add_cuda_dll_dirs()
@@ -92,7 +134,13 @@ def load_asr(model="large-v3", device="cuda", compute_type="float16", local_file
             if want == "faster":
                 raise
             print(f"[asr] faster-whisper unavailable ({e}); falling back to openai-whisper", file=sys.stderr, flush=True)
-    return _OpenAIWhisper(model, device)
+    try:
+        return _OpenAIWhisper(model, device)
+    except ImportError as e:
+        if want == "openai":
+            raise
+        print(f"[asr] openai-whisper unavailable ({e}); falling back to Qwen3-ASR", file=sys.stderr, flush=True)
+    return _QwenASR(device)
 
 
 def load_song_asr(device="cuda"):

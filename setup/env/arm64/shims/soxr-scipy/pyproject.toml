@@ -1,0 +1,16 @@
+# 只給 Windows on ARM（RTX Spark）的語音環境用：soxr 沒有任何 win_arm64 wheel，原始碼要 C 編譯器。
+# transformers 只要 librosa 在就無條件 import soxr（audio_utils.py），Qwen3-ASR 因此載不起來；
+# 它用到的只有 soxr.resample，這裡用 scipy.signal.resample_poly 代替（品質接近 soxr 的 HQ，速度較慢）。
+[build-system]
+requires = ["setuptools>=61,<81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "soxr-scipy"
+version = "0.1.0"
+description = "Stand-in for soxr.resample (scipy resample_poly) where soxr has no wheel"
+requires-python = ">=3.10"
+dependencies = ["numpy", "scipy"]
+
+[tool.setuptools]
+packages = ["soxr"]
