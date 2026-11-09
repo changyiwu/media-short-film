@@ -144,7 +144,10 @@ def main():
         cands = sorted((out / "cand").glob(f"{name}_s*.wav"), key=lambda p: int(p.stem.rsplit("_s", 1)[1]))
         if not cands:
             print("[miss]", name); continue
-        if name in picks and len(picks[name]["cands"]) == len(cands) and (out / f"{name}.wav").exists():
+        picked = out / f"{name}.wav"
+        # 候選比挑好的檔新＝候選重生過（刪掉重做、改了 tts），舊的挑選不能沿用
+        fresh = picked.exists() and all(c.stat().st_mtime <= picked.stat().st_mtime for c in cands)
+        if name in picks and len(picks[name]["cands"]) == len(cands) and fresh:
             rows = measure(out, picks[name]["cands"])
             if RERANK:
                 rows = [judge(r, plain, dur(refdir / f"{name}.mp3"), out / "cand" / r["file"]) for r in rows]
