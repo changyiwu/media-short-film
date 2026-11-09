@@ -97,7 +97,7 @@ ARM64 套件狀況：
 | 角色與首幀 | OpenAI Image 2.5（本專案預設，雲端，不受 ARM64 影響）；備選本機 Qwen-Image |
 | 配樂（Music 3） | 筆電（ComfyUI 跑得起來的話） |
 | H3 影片 | 筆電先試；不行改 `set H3_BACKEND=colab` |
-| 角色參考音＋台詞配音 | 筆電本機 VoxCPM2（2026-11-09 可用，但約 10 倍即時、偏慢）；聽寫走 Qwen3-ASR，聲調比對用 librosa.pyin（見〈實機結果〉第 7 步） |
+| 角色參考音＋台詞配音 | 筆電本機 VoxCPM2（2026-11-09 可用，但約 10 倍即時、偏慢）；聽寫走 Qwen3-ASR，聲調比對用 librosa.pyin（見〈實機結果〉第 7 步）；旁白與 `fixed` 台詞用本機 Ming（約 35 秒一支） |
 | 聽寫校對（挑配音、自審） | 筆電本機：faster-whisper 裝不起來時 `stt.py` 自動改用 openai-whisper（較慢，第一次另下載約 3GB 權重）；不行再改 Colab 或桌機 |
 | 放大 | 筆電：先用 ffmpeg lanczos；RTX VSR（nvidia-vfx 0.2.0.0 ARM64 版）驗證通過後改用它 |
 
@@ -165,7 +165,8 @@ ARM64 套件狀況：
 | 4. H3 環境 | 2026-10-28 | ✅ Desktop v0.42.1 `beta-win-nvidia-arm64`，torch `2.15.0.dev20260902+cu134`；補裝 nvidia-vfx、gguf、accelerate、numba 0.68、llvmlite 0.50、diffusers 都能 import，未裝 triton。清單裡要現場編譯的 blake3、cryptography、kornia_rs Desktop 已內建。網路慢時大檔（nvidia-vfx 523MB）會斷線，重試加 `UV_HTTP_RETRIES=10` |
 | 5. 相容性總檢查 | 2026-10-28 | ✅ `torch.cuda` true、capability 12.1、`gpu_total_gb` 46.0；ffmpeg 9.0.2 是 x64 版（winget `Gyan.FFmpeg`，模擬執行，可用但較慢；BtbN 的 winarm64 版被 Smart App Control 擋，見下方〈Smart App Control〉）；wheel 掃描與 2026-10-14 相同（H3 97／109、語音 126／146） |
 | H3 文字編碼器 INT8 | 2026-11-09 | ✅ `downloads_uncensored.json` 下載完、SHA256 通過（26.4GB，約 13 MB/s）；`profile_rtxspark.cmd` 自動選到 INT8。H3 實際載入還沒跑 |
-| 7. 語音環境 | 2026-11-09 | ✅ 可用（SAC 已由使用者關閉）。`C:\AI\Voice\venv` 用 uv 管理的 Python 3.13 ARM64，套件照 media-voice-clone 的 `requirements-win-arm64.txt`（NVIDIA torch `2.16.0.dev20261027+cu134`、librosa 0.9.2），`voxcpm==2.0.3 --no-deps`，另裝 scikit-learn（關 SAC 後可用）、pypinyin、matplotlib、edge-tts、accelerate。VoxCPM2 權重從 `~/.cache/huggingface` 同版（32279eff）複製。聲音設計 4 支約 6 秒的句子 329 秒、峰值顯存 5.3GB（**約 10 倍即時，比 voice-clone 的 1.7 倍慢很多，原因未查**）。❌ openai-whisper（tiktoken 要 Rust）、praat-parselmouth（要 CMake＋C++ 編譯器）裝不起來 → 聽寫改走 Qwen3-ASR（`stt.load_asr()` 第三層備援；transformers 一 import 就要 soxr，裝 `setup\env\arm64\shims\soxr-scipy` 代替），4 支候選聽寫全對、每句 2–4 秒、載入 20 秒；聲調比對的 F0 改用 `librosa.pyin`（`pron_check.f0_track` 備援，MMS_FA 對齊正常），s7 32 字有 12 字判 unsure，**門檻未對 Praat 校準** |
+| 7. 語音環境 | 2026-11-09 | ✅ 可用（SAC 已由使用者關閉）。`C:\AI\Voice\venv` 用 uv 管理的 Python 3.13 ARM64，套件照 media-voice-clone 的 `requirements-win-arm64.txt`（NVIDIA torch `2.16.0.dev20261027+cu134`、librosa 0.9.2），`voxcpm==2.0.3 --no-deps`，另裝 scikit-learn（關 SAC 後可用）、pypinyin、matplotlib、edge-tts、accelerate。VoxCPM2 權重從 `~/.cache/huggingface` 同版（32279eff）複製。聲音設計 4 支約 6 秒的句子 329 秒、峰值顯存 5.3GB（約 10 倍即時，但當時背景正在下載並驗證 26GB 的 INT8 編碼器；**閒置時重測**：聲音設計 6.2 秒 20 秒、RTF 3.2，克隆短句 3.8 秒 18 秒、RTF 4.6）。❌ openai-whisper（tiktoken 要 Rust）、praat-parselmouth（要 CMake＋C++ 編譯器）裝不起來 → 聽寫改走 Qwen3-ASR（`stt.load_asr()` 第三層備援；transformers 一 import 就要 soxr，裝 `setup\env\arm64\shims\soxr-scipy` 代替），4 支候選聽寫全對、每句 2–4 秒、載入 20 秒；聲調比對的 F0 改用 `librosa.pyin`（`pron_check.f0_track` 備援，MMS_FA 對齊正常），s7 32 字有 12 字判 unsure，**門檻未對 Praat 校準** |
+| Ming-3.0-TTS | 2026-11-09 | ✅ 照 `AGENT_SETUP.md` §2d 獨立裝在 `C:\AI\Ming`（ComfyUI v0.43.2＋節點 1e97248），venv 用 Python 3.13 ARM64、torch／torchaudio／torchvision 用 NVIDIA 20261027 那批 win_arm64 nightly；ComfyUI 與節點的 requirements 全部裝得起來（onnxruntime 有 win_arm64）。`ming_batch.py` 實測：ComfyUI 啟動 64 秒，一句 6.4 秒旁白 2 支候選 69 秒（約 35 秒一支、RTF 4～6，桌機約 8 秒）。**慢在 CPU 端送 GPU 指令的固定開銷**：大矩陣 bf16 有 80 TFLOPS（算力正常），但每個小運算約 28～40 微秒（一般 x64 桌機約 5～10 微秒）；Ming 與 VoxCPM2 都是逐步自回歸生成，每一步是幾百個小運算，GPU 大多在等，所以慢約 4 倍。ARM64 沒有 triton，`torch.compile`／CUDA graph 這類減少指令次數的加速用不到。背景有大量下載、雜湊時會再慢一倍以上，配音時不要同時下載 |
 
 ## Smart App Control（SAC）會擋 ARM64 執行檔與套件
 

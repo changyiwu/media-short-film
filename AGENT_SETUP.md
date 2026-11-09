@@ -124,7 +124,7 @@ $M/venv/Scripts/python.exe setup/download.py setup/downloads_ming.json
 ```
 
 - 模型 3.0GB。2026-10-31 在 RTX 5060 Ti 實測，一支約 8 秒。路徑不同設 `MING_DIR`、埠不同設 `MING_COMFY_PORT`（`downloads_ming.json` 的 `destination` 也要改）。
-- RTX Spark 筆電、Colab 未測：片子先設 `"voice_engine": "voxcpm2"`。
+- RTX Spark 筆電（2026-11-09 實測可用，約 35 秒一支）：venv 改用 `uv venv --python-preference only-managed --python cpython-3.13-windows-aarch64-none`，torch／torchaudio／torchvision 改裝 NVIDIA [pytorch-windows-ci](https://github.com/NVIDIA/pytorch-windows-ci/releases) 的 win_arm64 nightly（同 `docs/hardware_rtxspark.md` 第 7 步那一批），再用 `-c` 把這三個版本鎖住裝兩份 requirements；其餘步驟相同。Colab 未測：片子先設 `"voice_engine": "voxcpm2"`。
 
 ## 3. 下載模型（全部鎖定版本、逐檔驗證雜湊、可續傳）
 
