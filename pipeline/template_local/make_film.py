@@ -514,7 +514,7 @@ def shot_secs(s, picks):
 def h3_spec(s, secs, dialogue):
     h = CFG["h3"]
     # 每鏡 h3_steps（選填）：不寫或 4＝DMAD 4 步（預設）；其他數字＝不掛 LoRA、res_multistep 跑那麼多步。
-    # 說話的近景、特寫、跳躍等快動作寫 14（docs/03 §4：4 步牙齒是一條糊白帶、快動作暴色塊）
+    # 臉朝鏡頭的說話鏡（特寫、近景、中景）、跳躍等快動作寫 14（docs/03 §4：4 步牙齒是一條糊白帶、快動作暴色塊）
     n = int(s.get("h3_steps") or 4)
     return dict(duration=round(secs - 0.02, 3), size=[1344, 768], seed=seed("h3_" + s["id"], h.get("default_seed", 20261007)), steps=14 if n == 4 else n, draft=n == 4,
                 style=h["style"], setting=s.get("setting", h["setting"]), first_frame=str(OUT / "first" / f"{s['id']}.png"),
