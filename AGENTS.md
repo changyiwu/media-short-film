@@ -21,7 +21,7 @@
   - [x] 桌機 `smoke_test.py` 12 步全部 OK（秒數見 `docs/hardware.md`）
   - [x] 桌機 `run_demo.py`（約 27 分鐘，成片待人工看過）
   - [ ] VoxCPM2 預設配音流程（`voxcpm_batch.py`＋挑音）實機驗證：台灣腔、聽寫通過率、速度
-- [ ] 階段三之二：RTX Spark 筆電上機驗證（照 `docs/hardware_rtxspark.md`「第一次上機」，結果回填該文件）
+- [x] 階段三之二：RTX Spark 筆電上機驗證（照 `docs/hardware_rtxspark.md`「第一次上機」，結果回填該文件；`run_demo.py` 因缺 Qwen-Image-Edit 未跑）
 - [x] 階段四：建立第一個角色（`output/角色/`），用 `short-film` 技能（`tools/new_film.py`）做第一支片
   - [x] 角色「狗狗」（`output/角色/狗狗/`）＋第一支片〈狗熊哆嗦毛_狗狗版〉（換角重製，`docs/08`）
 - [ ] 階段五：換角重製工具化與其他版本

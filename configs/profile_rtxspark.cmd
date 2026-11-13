@@ -1,5 +1,5 @@
 @echo off
-rem RTX Spark laptop (Windows on Arm, 64GB unified memory shared by CPU and GPU). NOT TESTED YET - see docs\hardware_rtxspark.md
+rem RTX Spark laptop (Windows on Arm, 64GB unified memory shared by CPU and GPU). First-run checks done 2026-11-13 - see docs\hardware_rtxspark.md
 rem Same models as the 16GB VRAM versions. Unified memory: pinned host memory and async offload only duplicate data in the same pool, so turn them off.
 rem --reserve-vram 6 leaves room for Windows and the desktop in the shared pool. If H3 runs out of memory, raise it or add --lowvram.
 set PYTHONDONTWRITEBYTECODE=1
@@ -26,10 +26,9 @@ if exist "%DESKTOP_COMFY%\.venv\Scripts\python.exe" (
   echo [profile] Comfy Desktop: %DESKTOP_COMFY%
 )
 if not defined PY_H3 set PY_H3=C:\AI\H3\venv\Scripts\python.exe
-rem nvidia-vfx 0.2.0.0 has a win_arm64 wheel (pypi.nvidia.com), but RTX VSR on RTX Spark is untested: keep lanczos until
-rem docs\hardware_rtxspark.md first-run step 6b passes, then change this to UPSCALE=rtxvsr (or set UPSCALE=flashvsr)
-set UPSCALE=lanczos
+rem RTX VSR (nvidia-vfx 0.2.0.0 win_arm64) passed first-run step 6b on 2026-11-13; set UPSCALE=lanczos to fall back
+set UPSCALE=rtxvsr
 rem Voice environments live outside the repo. Installed somewhere else? set AI_ROOT (install root) or PY_VOICE before calling this.
 if not defined AI_ROOT set "AI_ROOT=C:\AI"
 if not defined PY_VOICE set "PY_VOICE=%AI_ROOT%\Voice\venv\Scripts\python.exe"
-echo [profile] RTX Spark (Windows on Arm, unified memory, UNTESTED): ComfyUI %COMFY_EXTRA_ARGS%, UPSCALE=%UPSCALE%. Close other big apps.
+echo [profile] RTX Spark (Windows on Arm, unified memory): ComfyUI %COMFY_EXTRA_ARGS%, UPSCALE=%UPSCALE%. Close other big apps.

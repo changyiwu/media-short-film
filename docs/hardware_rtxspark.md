@@ -1,6 +1,6 @@
 # 硬體說明：RTX Spark 筆電（Windows on Arm＋64GB 統一記憶體）
 
-> **狀態：第一次上機進行中（2026-10-28，第 1–5 步完成，結果見〈實機結果〉）。** 本文件原本是依上游 16GB 版的實測數據、NVIDIA 公開資訊與 PyPI 套件掃描推出來的計畫；照「第一次上機」逐步驗證，結果回填本文件。
+> **狀態：第一次上機完成（2026-10-28 起、2026-11-13 跑完 smoke test，結果見〈實機結果〉）。** `run_demo.py` 沒在筆電跑：它的首幀要 Qwen-Image-Edit 2511（約 30GB，只有本機備選生圖用），其餘元件 smoke test 都跑過。FlashVSR 照計畫留在桌機。 本文件原本是依上游 16GB 版的實測數據、NVIDIA 公開資訊與 PyPI 套件掃描推出來的計畫；照「第一次上機」逐步驗證，結果回填本文件。
 > 本專案的其他內容（流程、規則、腳本）不變；這份只處理「同一套工作流怎麼在 RTX Spark 上跑」。
 
 ## 跟桌機版差在哪
@@ -47,7 +47,7 @@
 | ComfyUI | 有 Comfy Desktop 就用它（`COMFY_DIR`、`PY_H3` 指向 Desktop 的 `ComfyUI` 與 `.venv`，模型在 `ComfyUI-Shared\models`），偵測方式與 `profile.cmd` 相同；沒有才用 `C:\AI\H3`，或 `set DESKTOP_COMFY=none` 強制不用 | Desktop 在 RTX Spark 上裝的是 `beta-win-nvidia-arm64` 版，自帶 ARM64 Python 3.13 與 NVIDIA 預覽版 torch，不用自己建 H3 環境 |
 | 模型 | 跟 16GB 版完全一樣（H3 剪枝 int8、Heretic int8 文字編碼器、fp16 影片 VAE、DMAD 4 步）；用 Desktop 時同桌機：`ComfyUI-Shared` 有 Heretic int8 就用它，沒有才退回 Desktop 範本的 NVFP4（`H3_CLIP`；先跑 `setup\downloads_uncensored.json`） | 上游驗證過的組合，結果可對照 |
 | ComfyUI 參數 | `--reserve-vram 6 --disable-pinned-memory --disable-async-offload` | 統一記憶體不需要釘選記憶體與非同步搬移（只會重複佔用）；保留 6GB 給 Windows |
-| 放大 | `UPSCALE=lanczos`，第一次上機 6b 通過後改 `rtxvsr`；FlashVSR 見下方〈放大：FlashVSR〉 | nvidia-vfx 0.2.0.0 有 ARM64 版，但 RTX Spark 上還沒實測 |
+| 放大 | `UPSCALE=rtxvsr`（2026-11-13 第一次上機 6b 通過後從 `lanczos` 改過來）；FlashVSR 見下方〈放大：FlashVSR〉 | nvidia-vfx 0.2.0.0 ARM64 版實測可用 |
 | 單鏡長度 | ≤12 秒 | 同主設定 |
 | 一次一件 GPU 工作 | 必須 | 同主設定，而且 CPU 程式也在搶同一池記憶體 |
 
@@ -63,8 +63,8 @@ H3 還是記憶體不足時，依序試：`--reserve-vram` 調到 8–10 → 加
 
 | 放大方式 | 筆電 | 說明 |
 |---|---|---|
-| lanczos（ffmpeg） | ✅ 一定能 | 畫質最普通，目前預設 |
-| RTX VSR | 🟡 很有機會 | nvidia-vfx 0.2.0.0 有官方 ARM64 版，第一次上機 6b 驗證 |
+| lanczos（ffmpeg） | ✅ 一定能 | 畫質最普通，RTX VSR 出問題時的退路 |
+| RTX VSR | ✅ 可用（目前預設） | nvidia-vfx 0.2.0.0 官方 ARM64 版，2026-11-13 第一次上機 6b 通過 |
 | FlashVSR | 🟠 不確定 | 要 Triton，且要能在預覽版 CUDA 上編譯 |
 
 ## 語音：VoxCPM2（本專案的配音引擎）
@@ -99,7 +99,7 @@ ARM64 套件狀況：
 | H3 影片 | 筆電先試；不行改 `set H3_BACKEND=colab` |
 | 角色參考音＋台詞配音 | 筆電本機 VoxCPM2（2026-11-09 可用，但約 10 倍即時、偏慢）；聽寫走 Qwen3-ASR，聲調比對用 librosa.pyin（見〈實機結果〉第 7 步）；旁白與 `fixed` 台詞用本機 Ming（約 35 秒一支） |
 | 聽寫校對（挑配音、自審） | 筆電本機：faster-whisper 裝不起來時 `stt.py` 自動改用 openai-whisper（較慢，第一次另下載約 3GB 權重）；不行再改 Colab 或桌機 |
-| 放大 | 筆電：先用 ffmpeg lanczos；RTX VSR（nvidia-vfx 0.2.0.0 ARM64 版）驗證通過後改用它 |
+| 放大 | 筆電 RTX VSR（nvidia-vfx 0.2.0.0 ARM64 版，2026-11-13 驗證通過）；全景、舞蹈鏡的 FlashVSR 在桌機跑 |
 
 > 專案放在 Google 雲端硬碟，桌機（RTX 5060 Ti 16GB＋64GB）和筆電看得到同一份檔案：配音這類筆電跑不了的步驟，也可以直接在桌機做。
 
@@ -170,6 +170,8 @@ ARM64 套件狀況：
 | 首幀數臉（`face_count.py`） | 2026-11-09 | ⚠ opencv-python-headless 沒有 win_arm64 wheel（5.0.0.93 只有 win32／win_amd64，裝了會去編譯 numpy 而失敗），語音環境沒有 cv2；Comfy Desktop 的 `.venv` 自帶 ARM64 版 opencv 4.14，`make_film.py` 的 frames 在語音環境缺 cv2 時改用 `PY_H3` 跑，〈統計圖表之父〉5 張首幀實測正常 |
 | H3（第一次） | 2026-11-09 | ✅ 可跑。這台原本沒有 H3 模型：`downloads.json`（去掉 NVFP4 文字編碼器）＋`downloads_dmad.json` 約 29.6GB，再轉 DMAD。〈統計圖表之父〉S5（9.5 秒、DMAD 4 步、INT8 文字編碼器、`h3_ref` 參考音）ComfyUI 執行 742 秒（含第一次載入模型），桌機同類鏡頭每鏡約 6 分鐘（含載入與聽寫），約 2 倍。記憶體峰值：系統 RAM 30.6／32.3GB、GPU 專用 30.8／31.2GB、認可量 78GB（超出實體記憶體的靠分頁檔）。畫面正常，H3 念的台詞聽寫一字不差。聽寫台詞要 audio-separator：語音環境先裝 NVIDIA 那批 win_arm64 torchvision，再 `--no-deps` 裝 audio-separator 0.47.0 與相依（鎖 librosa 0.9.2；diffq-fixed、samplerate 裝不起來）；BS-RoFormer 模型從 GitHub 下載時連續 504，還沒驗證分離 |
 | torch 換 20261107 預覽版 | 2026-11-09 | ✅ `C:\AI\Voice\venv`、`C:\AI\Ming\venv` 的 torch／torchaudio／torchvision 換成 NVIDIA `woa-nightly-20261107` 那批（`2.16.0.dev20261107+cu134`、`2.11.0.dev20261107`、`0.30.0.dev20261107`，`--no-deps`），`cuda` 可用，voxcpm、audio_separator、transformers 都能 import。**這批不再預先載入 `torch\lib` 的 DLL，cuDNN 一用到卷積就印「Cannot load symbol cudnnGetVersion」直接退出**（矩陣乘法測不出來）：照 media-voice-clone 的 `install.ps1`，在 venv 的 site-packages 放 `torch-lib-path.pth`（啟動時把 `torch\lib` 加進 PATH），兩個環境卷積實測正常（cuDNN 92600）。小運算送指令開銷 27～29 微秒（跟 20261027 差不多），大矩陣 bf16 86～88 TFLOPS：**換版不會讓配音變快**。Comfy Desktop 的 `.venv` 沒動（仍是 Desktop 自帶的 2.15）。另有正式版 `torch 2.14.0+cu134`（pypi.nvidia.com）可選 |
+| 6b. RTX VSR 放大 | 2026-11-13 | ✅ 通過。Desktop `.venv` 的 nvidia-vfx 0.2.0.0（`import nvvfx` 正常），驅動 621.14。〈統計圖表之父〉S5（1344×768、243 格、10 秒）放大到 1080p ULTRA：VSR 本身 35 秒（含讀寫共 44 秒），torch 顯存峰值 0.08GB，比較圖畫面正常、比 lanczos 銳利、沒有破圖。`profile_rtxspark.cmd` 改成 `UPSCALE=rtxvsr` |
+| 8. smoke test | 2026-11-13 | ✅ `smoke_test.py --quick` 11 步全部 OK（FlashVSR 照計畫不跑）。先下載 `downloads_music3.json`＋`downloads_qwen_image.json`（約 29GB，10 MB/s 左右）。秒數（第一次跑、含載入）：VoxCPM2 設計 36、念台詞 3 候選 38、自動挑音 23、聽寫 41（Qwen3-ASR）、聲調比對 13、Qwen-Image 首幀 343、附參考圖 362、Music 3 113、H3（4.4 秒）310、BS-RoFormer 35、RTX VSR 15；約桌機的 1.3 倍（生圖）～1.8 倍（H3），分離、放大比桌機快。**注意**：`setup/output/` 走雲端硬碟、桌機的舊檔還在，配音三步會跳過已存在的檔案（第一次看到挑音只花 0.6 秒）；上面配音秒數是另開空資料夾重跑的，3 候選聽寫全對、挑到台灣腔 0.8。H3 放大後畫面正常 |
 | BS-RoFormer 分離 | 2026-11-13 | ✅ 可用。模型讓 audio-separator 自己下載（`Separator.load_model`，639MB，約 2 分鐘，這次沒遇到 504）到 `C:\AI\Voice\models\separator`。修了兩個問題才分得對：① librosa 0.9.2 沒有 `get_duration(path=)`，audio-separator 0.47 寫檔時直接 `TypeError` → 改裝清單上的 librosa 1.0.0（`--no-deps`；soxr 由 `soxr-scipy` 代用殼頂著，resample、pyin 實測正常）；② **rotary-embedding-torch 0.9.2 會讓模型輸出全零**（人聲軌靜音、伴奏軌等於原音，GPU 與 CPU 結果相同、不報錯）→ 降回清單上的 0.6.5（`--no-deps`）。30 秒旁白＋配樂混音 GPU 21 秒，人聲 RMS 0.072（原音 0.072）、伴奏 0.005。裝 audio-separator 相依時要照清單鎖版本，不要讓它抓最新版 |
 
 ## Smart App Control（SAC）會擋 ARM64 執行檔與套件
