@@ -334,6 +334,61 @@ def audio():
         g = min(1.0, np.sqrt(np.mean(q["mix"][w0:cut] ** 2)) / (np.sqrt(np.mean(q["inst"][w0:cut] ** 2)) + 1e-9))
         m[:cut - x] = q["inst"][:cut - x] * g
         m[cut - x:cut] = q["inst"][cut - x:cut] * g * np.linspace(1, 0, x)[:, None] + q["mix"][cut - x:cut] * np.linspace(0, 1, x)[:, None]
+        # （上游 1d4e456、82e6f7a、b436b75）伴奏分軌在 Suno 喊話處會整段挖空（〈Bravo 之戰〉v1 2:00 空掉 1.5 秒、−65 dB；〈瑜亮之戰〉1:56、0:08）：
+        # 原曲那裡有聲音、伴奏分軌沒聲音的格子，用前一小節（不行再前兩小節）同拍位的伴奏補，前後 20 ms 交叉
+        from scipy.signal import butter, sosfilt
+        hop = int(0.05 * SR); bar = int(4 * q["period"] * SR); xf = int(0.02 * SR)
+        hp = butter(2, 300, "hp", fs=SR, output="sos")
+        env = lambda a: np.sqrt(np.convolve(sosfilt(hp, a[:cut - x].mean(1)) ** 2, np.ones(hop) / hop, "same"))[::hop]
+        ei, em = env(m), env(q["mix"])
+        hole = (ei < np.median(ei) * 0.12) & (em > np.median(em) * 0.3)
+        i = 0; runs = []
+        while i < len(hole):
+            if hole[i]:
+                j = i
+                while j < len(hole) and hole[j]:
+                    j += 1
+                runs.append((i, j)); i = j
+            else:
+                i += 1
+        spans = []
+        for i, j in runs:                                     # 洞的邊緣能量是漸變的，門檻抓不到，前後多補一點；重疊的洞併成一個（v3 一個洞補了 5 次）
+            a0, a1 = max(0, i * hop - 5 * hop), min(cut - x, j * hop + 3 * hop)
+            if spans and a0 <= spans[-1][1]:
+                spans[-1][1] = max(spans[-1][1], a1)
+            else:
+                spans.append([a0, a1])
+        # 〈Bravo 之戰〉v4 使用者：2:00「還是要跳」→ 不再只補洞的那 1.7 秒（洞的頭尾在小節中間，換來源的地方正好在音符上），
+        # 改成從洞前的小節線換到洞後的小節線（整小節換，交叉淡化在小節線前 40 ms 做完，下拍的重音都是完整的）
+        one = int(round(q["one"] * SR)); xf = int(0.04 * SR)
+        lines_ = [one - k_ * bar for k_ in range(0, 64) if one - k_ * bar >= 0]
+        whole = []
+        for a0, a1 in spans:
+            b0 = max([l_ for l_ in lines_ if l_ <= a0] or [a0]); b1 = min([l_ for l_ in lines_ if l_ >= a1] or [a1])
+            if b1 > cut - x:                                  # 洞後的小節線超過前奏 → 只換到前奏結束前
+                b1 = a1
+            whole.append([max(0, b0 - xf), b1])
+        spans = whole
+        e_m = env(m)
+        chroma = lambda a: librosa.feature.chroma_stft(y=a.mean(1), sr=SR, hop_length=2048).mean(1) if len(a) > 4096 else np.zeros(12)
+        for a0, a1 in spans:
+            # 補的來源不再固定「前一小節」（和弦常不一樣，〈Bravo 之戰〉v3 2:00 聽起來跳接）：前後各一小節的和弦最像的那個小節數
+            ctx = lambda s: np.concatenate([chroma(m[max(0, s - bar):s]), chroma(m[s + a1 - a0:min(cut - x, s + a1 - a0 + bar)])])
+            ok = [kb for kb in (1, 2, 3, 4, 6, 8) if a0 - kb * bar >= 0 and e_m[(a0 - kb * bar) // hop:(a0 - kb * bar + a1 - a0) // hop].min(initial=1e9) >= np.median(ei) * 0.3]
+            if not ok:
+                print(f"⚠ {k} 前奏伴奏破洞 {a0 / SR:.2f}–{a1 / SR:.2f} 秒補不到，要人聽", flush=True); continue
+            def bands(a):                                    # 低／中／高頻音量（dB）：前奏前段常常只有大鍵琴、沒有鼓，和弦像也不能拿來補
+                S_ = np.abs(librosa.stft(a.mean(1), n_fft=2048, hop_length=1024)) ** 2; f_ = librosa.fft_frequencies(sr=SR, n_fft=2048)
+                return np.array([10 * np.log10(S_[(f_ >= lo_) & (f_ < hi_)].mean() + 1e-12) for lo_, hi_ in ((20, 150), (150, 2000), (5000, 11000))])
+            near = lambda s: np.concatenate([m[max(0, s - bar):s], m[s + a1 - a0:min(cut - x, s + a1 - a0 + bar)]])
+            here, here_b = ctx(a0), bands(near(a0))
+            sc = {kb: float(np.corrcoef(here, ctx(a0 - kb * bar))[0, 1]) - 0.05 * float(np.mean(np.abs(bands(m[a0 - kb * bar:a0 - kb * bar + a1 - a0]) - here_b)))
+                  for kb in ok}
+            kb = max(sc, key=sc.get); s0 = a0 - kb * bar
+            w = np.ones((a1 - a0, 1), np.float32); w[:xf] = np.sin(np.linspace(0, np.pi / 2, xf))[:, None]; w[-xf:] = np.cos(np.linspace(0, np.pi / 2, xf))[:, None]
+            m[a0:a1] = m[a0:a1] * (1 - w) + m[s0:s0 + a1 - a0] * w
+            print(f"{k} 前奏伴奏破洞 {a0 / SR:.2f}–{a1 / SR:.2f} 秒（歌曲時間）用前 {kb} 小節補（和弦相似－音色差 {sc[kb]:.2f}；"
+                  + "、".join(f"{q_}:{v:.2f}" for q_, v in sc.items()) + "）", flush=True)
         # YuE2 前奏常有比饒舌段響很多的鼓擊：限在饒舌段峰值的 7 成，否則全片峰值正規化會把整首壓小
         w = int(0.02 * SR); env = maximum_filter1d(np.abs(m[:cut]).max(1), w)
         m[:cut] *= uniform_filter1d(np.minimum(1.0, 0.7 * np.abs(q["mix"][cut:]).max() / (env + 1e-9)), w)[:, None]
@@ -923,14 +978,15 @@ def cut():
     sh_(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", vid])
     total = end_still[1]
 
-    mix = OUT / "audio" / "mix.wav"; ln = post / "mix_ln.wav"          # 兩段式 −16 LUFS
-    r = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(mix), "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"],
+    mix = OUT / "audio" / "mix.wav"; ln = post / "mix_ln.wav"          # 固定增益拉到 −16 LUFS
+    # 不用 loudnorm：linear=true 在峰值放不下時會自己退回動態模式（像自動增益），段落被壓低、音量忽大忽小，量整片響度卻看起來正常
+    # （上游 7b4f3f7 自審清單）。這裡量整片 → 算一個固定增益、存 32 位浮點（不削波），峰值交給下面加觀眾聲後的限幅。
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(mix), "-af", "ebur128", "-f", "null", "-"],
                        capture_output=True, text=True, encoding="utf-8", errors="replace").stderr
-    js = json.loads(r[r.rindex("{"):r.rindex("}") + 1])
-    sh_(["ffmpeg", "-y", "-v", "error", "-i", mix, "-af",
-         f"loudnorm=I=-16:TP=-1.5:LRA=11:measured_I={js['input_i']}:measured_TP={js['input_tp']}:measured_LRA={js['input_lra']}:"
-         f"measured_thresh={js['input_thresh']}:offset={js['target_offset']}:linear=true,apad=whole_dur={total:.3f}",
-         "-ar", str(SR), "-ac", "2", "-t", f"{total:.3f}", ln])
+    got = re.findall(r"I:\s*(-?[\d.]+) LUFS", r)
+    g0 = -16.0 - float(got[-1]) if got else 0.0
+    sh_(["ffmpeg", "-y", "-v", "error", "-i", mix, "-af", f"volume={g0:.2f}dB,apad=whole_dur={total:.3f}",
+         "-ar", str(SR), "-ac", "2", "-t", f"{total:.3f}", "-c:a", "pcm_f32le", ln])
     m, _ = sf.read(str(ln), dtype="float32", always_2d=True); m = m[:int(total * SR)]
     ev = gfx.build_events(CFG, timeline())
     m = m + crowd_audio(total, ev["attacks"], end_still)[:len(m)]
@@ -1034,6 +1090,14 @@ def review():
     print(f"接觸表 {(len(tiles) + 11) // 12} 張 → {rv}", flush=True)
     print(f"響度 {lufs[-1] if lufs else '?'} LUFS、真峰值 {tp[-1] if tp else '?'} dBTP（目標 −16、≤ −1）", flush=True)
     print("可能自己切鏡／構圖漂走（走位多的鏡會誤報，要人看）：", {k: v for k, v in cc.items()} or "無", flush=True)
+    dj_wav = OUT / "audio" / "dj.wav"
+    if dj_wav.exists():                                       # DJ 口白句尾被砍（上游 b7189aa，〈Bravo 之戰〉v5「DJ 講話的尾句都斷掉」）
+        import soundfile as sf
+        sys.path.insert(0, str(HERE)); from dj_tail_check import hard_cuts   # noqa: E401
+        yd, srd = sf.read(str(dj_wav), dtype="float32", always_2d=True)
+        bad = hard_cuts(yd.mean(1), srd)
+        (OUT / "review" / "dj_tail.json").write_text(json.dumps(bad, ensure_ascii=False, indent=1), encoding="utf-8")
+        print("DJ 句尾被砍／停頓後的碎片（成片秒數；插停頓用 dj_pause.py，切點照 dj_tail_check.tail_end）：", bad or "無", flush=True)
     print("→ 人工關卡 3：照 agent/skills/rap-battle/references/review-checklist.md 一張張看接觸表，最後一定要人看完整成片", flush=True)
 
 

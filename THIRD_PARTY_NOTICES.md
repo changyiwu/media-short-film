@@ -29,6 +29,7 @@
 | Whisper large-v3（openai）／faster-whisper-large-v3（Systran 轉檔） | Apache-2.0／MIT | 可以 | 保留授權 | https://huggingface.co/Systran/faster-whisper-large-v3 |
 | Qwen3-ASR 1.7B（Qwen 通義千問；transformers 格式 `-hf`） | Apache-2.0 | 可以 | 保留授權 | https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf |
 | Qwen3-ForcedAligner 0.6B（Qwen 通義千問；transformers 格式 `-hf`） | Apache-2.0 | 可以 | 保留授權 | https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf |
+| **MMS_FA 強制對齊模型**（torchaudio `pipelines.MMS_FA`，Meta MMS；第一次執行自動下載。`tools/pron_check.py` 聲調審核、`tools/vc_swap.py` 換字找位置用，只算時間、不產生聲音；2026-11-13 從上游補登） | **CC-BY-NC 4.0** | **不可以**（非商用） | 標示出處；要營利請改用可商用的對齊器 | https://pytorch.org/audio/stable/generated/torchaudio.pipelines.MMS_FA.html |
 | BS-RoFormer `model_bs_roformer_ep_317_sdr_12.9755`（viperx 訓練） | **未標示授權** | 不明 | 只附下載連結，不轉散布，自行評估 | https://github.com/ZFTurbo/Music-Source-Separation-Training/blob/main/docs/pretrained_models.md |
 | FlashVSR v1.1 | Apache-2.0（含 Wan2.1 VAE，Apache-2.0） | 可以 | 保留授權 | https://huggingface.co/JunhaoZhuang/FlashVSR-v1.1 |
 | 動作 LoRA：JOKER141 Combat-Base-V2、GunFu、Motion-Continuity-Repair；RunningHubAI speed-slider-1.1 | **未標示授權**（等同保留所有權利）；同時是 H3 衍生作品 | 不明 | 只附連結、不轉散布；至少須遵守 H3 授權 | https://huggingface.co/JOKER141 、https://huggingface.co/RunningHubAI/rh-h3-speed-slider-1.1-lora |

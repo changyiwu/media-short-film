@@ -13,7 +13,7 @@ jobs.json（相對路徑以 jobs.json 所在資料夾為準）：
 
 送進模型前的文字處理（字幕仍用原文）：
 - 讀音替換表（repo 根目錄的 tts-lexicon.md，jobs.json 所在資料夾往上找到的同名表會覆蓋；tools/tts_lexicon.py）。
-- 繁轉簡（繁體字讀音較不穩，原專案實測）。
+- 繁轉簡（繁體字讀音較不穩，原專案實測）；轉完把念 zhe／zháo／zhuó 的「著」改「着」（fix_zhe）。
 - VoxCPM2 不支援注音標記：「連假[:ㄐㄧㄚ4]」的標記會被拿掉並印警告；念不準的詞加進 tts-lexicon.md，只有這一句的就改同音字（寫在 film.json 該句的 "tts"）。
 - 阿拉伯整數轉國字；刪節號、破折號改逗號。單字台詞常念成亂音，請寫成兩三個字。"""
 import json
@@ -51,13 +51,25 @@ def make_t2s():
     raise RuntimeError("opencc 無法載入 t2s 設定")
 
 
+# OpenCC t2s 會把「活著、看著、睡著、著急、穿著」的「著」原樣留下，可是簡體的「著」只念 zhù（著作），Ming 會把「活著」念成「活住」
+# （上游 82e6f7a，〈Bravo 之戰〉DJ）。簡體裡 zhe／zháo／zhuó 都寫「着」，只有下面這些念 zhù 的詞寫「著」。
+# 放在繁轉簡之後：只影響餵簡體的路線（Ming、VoxCPM2、歌曲模型），不放進四個 repo 共用的 tts-lexicon.md。
+ZHU_WORDS = ("著作", "著名", "著称", "著述", "著录", "著者", "著书", "著有", "名著", "原著", "巨著", "专著", "论著", "编著", "合著",
+             "译著", "遗著", "新著", "拙著", "大著", "土著", "显著", "卓著", "昭著", "彰著", "撰著")
+
+
+def fix_zhe(s):
+    keep = {i for w in ZHU_WORDS for m in re.finditer(w, s) for i in range(m.start(), m.end())}
+    return "".join("着" if c == "著" and i not in keep else c for i, c in enumerate(s))
+
+
 def prep(text, t2s, lex):
     text = speakable(text, lex)
     if "[:" in text:
         print(f"[warn] VoxCPM2 不支援注音標記，已拿掉：{text}（念錯請改同音字）", flush=True)
         text = re.sub(r"\[:[^\]]*\]", "", text)
     text = re.sub(r"\d+", lambda m: int_zh(int(m.group())), text)
-    return t2s(text.replace("……", "，").replace("——", "，").replace("～", "！").strip())
+    return fix_zhe(t2s(text.replace("……", "，").replace("——", "，").replace("～", "！").strip()))
 
 
 def main():

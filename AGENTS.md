@@ -86,7 +86,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 走 Codex 的圖由 `make_film.py` 記成 `codex`，片尾寫「OpenAI 生圖（Codex）」；不要再手動用 `draw` 代 `make_film.py` 生圖（不會記到 `work/image_backends.json`，片尾名稱會錯）。
 
 ### 配音
-- 畫面內的角色台詞預設由 H3 拿角色參考音自己念（`film.json` 的 `voice_mode: "h3_ref"`，2026-10-24 起；`h3` 結尾 `tools/h3_line_harvest.py` 聽寫比對）；要一字不差的片或句子設 `"fixed"` 改用 VoxCPM2 固定音軌。
+- 畫面內的角色台詞預設由 H3 拿角色參考音自己念（`film.json` 的 `voice_mode: "h3_ref"`，2026-10-24 起；`h3` 結尾 `tools/h3_line_harvest.py` 聽寫比對）；要一字不差的片或句子設 `"fixed"` 改用 VoxCPM2 固定音軌。H3 只念錯一兩個字（聲調、破音字）先用 `tools/vc_swap.py` 換字，不重拍。
 - 角色參考音在定裝時（`make_film.py chars`）跟定妝圖一起做，定案後連同 `voice_sample` 存進 `output/角色/<角色>/ref_<代號>.wav`，之後每支片複製沿用、不重新設計：H3 每鏡拿同一個檔當音色參考，聲音才不會在片與片、鏡與鏡之間漂移。
 - TTS 引擎：旁白與 `fixed` 台詞預設 Ming-3.0-TTS（`film.json` 的 `voice_engine`，`tools/ming_batch.py`；裝在獨立的 `%AI_ROOT%\Ming`、8189 埠，不動 Comfy Desktop，見 `AGENT_SETUP.md` §2d），角色與旁白的參考音設計用 VoxCPM2（`tools/voxcpm_batch.py`）。要改回 VoxCPM2 念台詞就設 `"voice_engine": "voxcpm2"`；Ming 沒裝好時會停下，不自動換引擎。挑音都用 `voice_pick.py`；不支援注音標記。
 - 多音字、英文詞念錯：加進 repo 根目錄的讀音替換表 `tts-lexicon.md`（Markdown 表格，格式寫在檔頭）；只對某支片的放片子資料夾的同名檔，只有某句的寫 `film.json` 該句的 `"tts"`（同音字）。不要改字幕或劇本原文。

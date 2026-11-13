@@ -587,7 +587,9 @@ def harvest_lines():
                                           encoding="utf-8")
     if bad and os.environ.get("ALLOW_REVIEW") != "1":
         raise SystemExit("H3 念的台詞和原文差太多：" + "；".join(bad) +
-                         "\n在 film.json 的 seeds 加 \"h3_<鏡>\": 新數字、刪 work/h3/<鏡>/clip.mp4，再 set ONLY=<鏡> 跑 h3；抽 2–3 次都不對就在該句 line 加 "
+                         "\n在 film.json 的 seeds 加 \"h3_<鏡>\": 新數字、刪 work/h3/<鏡>/clip.mp4，再 set ONLY=<鏡> 跑 h3；"
+                         "只錯一兩個字（聲調、破音字）可先用 tools/vc_swap.py 換字（clip.mp4 先改名 clip_h3.mp4 當 src、out 寫回 clip.mp4，再跑 h3 重新比對）；"
+                         "抽 2–3 次都不對就在該句 line 加 "
                          "\"voice_mode\": \"fixed\"（改用固定音軌，先跑 voices 再刪 clip 重跑 h3）。確定只是聽寫聽錯就用 ALLOW_REVIEW=1 繼續。")
 
 

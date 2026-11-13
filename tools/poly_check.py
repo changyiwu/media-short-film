@@ -13,6 +13,8 @@
   - 「照詞典」：詞典有剛好含這個字的 2–4 字詞，用詞條的音當答案；★ 表示跟 pypinyin 的大陸預設念法不同，
     TTS 多半照大陸預設念，要確認詞條的意思跟句子一樣（「一毛沒收」≠ 詞條「沒收＝充公 ㄇㄛˋ」）。
   - 「同音字對／⚠ 同音字的音跟詞典不同」：送去念的文字換了字（"tts" 或讀音替換表）時，檢查換的字音對不對。
+  - 「台灣只有一個音、但和大陸預設不同」：簡編本只收一個音、pypinyin 卻猜成別的音（松柏的「柏」），TTS 多半照大陸音念，
+    要改同音字（上游 a61f4bf）。
   - 「要人看上下文」：詞典沒有剛好的詞，要自己判斷，必要時查 https://dict.revised.moe.edu.tw/ 例句。工具只列出來，不替你決定。
   - 聽寫只驗字、驗不出聲調：表上判定要念對的關鍵字，成片仍要用耳朵聽。
 查詢結果快取在報告旁的 moe_cache.json（重跑不再上網）。查詢只送詞語，不送其他資料。"""
@@ -173,7 +175,7 @@ def main():
     table = load_lexicon(src.parent)
     md = ["# 破音字檢查（教育部《國語辭典簡編本》＋《重編國語辭典修訂本》）", "",
           "| 來源 | 字 | 前後文 | 這個字的念法 | 詞典裡的詞 → 這裡的音 | pypinyin 猜 | 送去念的字 | 判斷 |", "|:--|:--|:--|:--|:--|:--|:--|:--|"]
-    bad, ok_dict, ctxq = [], [], []
+    bad, ok_dict, ctxq, tw = [], [], [], []
     for name, show, sing in collect(src, table):
         sub = align_sub(show, sing)
         gs = guess(show)
@@ -185,6 +187,14 @@ def main():
                     continue
                 rd = char_readings(c)
                 if len(rd) < 2:
+                    # 台灣只有一個音、但大陸預設念別的（上游 a61f4bf：松柏的「柏」台灣ㄅㄛˊ，生成器照大陸念 bǎi）
+                    g0 = gs[gi] if gi < len(gs) else ""
+                    if len(rd) == 1 and g0 and rd[0].replace("˙", "") != g0.replace("˙", ""):
+                        sc0 = sub.get(gi)
+                        srd0 = [x.replace("（又音）", "") for x in char_readings(sc0)] if sc0 and sc0 != c else []
+                        done = rd[0] in srd0
+                        tw.append(f"| {name} | {c} | {ph[max(0, i - 3):i]}【{c}】{ph[i + 1:i + 4]} | {rd[0]} | {g0} | "
+                                  f"{'寫成「' + sc0 + '」' if srd0 else ''} | {'同音字對' if done else '⚠ 要改同音字，TTS 多半照大陸音'} |")
                     continue
                 hits = word_hits(ph, i)
                 ans = sorted({h[1] for h in hits if "又音" not in h[0]})
@@ -212,11 +222,15 @@ def main():
            f"## ★ 詞典的音跟大陸預設不同（{len(star)}）— TTS 可能念錯，確認詞條意思後考慮加進 tts-lexicon.md", "", *H, *(star or ["（無）"]), "",
            f"## 詞典詞條定的音（{len(ok_dict)}）— 要確認詞條的意思跟句子一樣", "", *H, *(ok_dict or ["（無）"]), "",
            f"## 詞典沒有剛好的詞（{len(ctxq)}）— 看前後文自己定", "", *H, *(ctxq or ["（無）"])]
+    tw_bad = [x for x in tw if "⚠" in x]
+    TH = ["| 來源 | 字 | 前後文 | 台灣音 | pypinyin（大陸預設） | 送去念的字 | 判斷 |", "|:--|:--|:--|:--|:--|:--|:--|"]
+    md += ["", f"## 台灣只有一個音、但和大陸預設不同（{len(tw)}）— 字幕照原字，送去念的字要寫同音字（加進 tts-lexicon.md 或該句 \"tts\"）",
+           "", *TH, *(tw or ["（無）"])]
     rdir.mkdir(parents=True, exist_ok=True)
     rep = rdir / "poly_check.md"
     rep.write_text("\n".join(md) + "\n", encoding="utf-8")
-    print("\n".join(bad + star) or "沒有要處理的破音字")
-    print(f"⚠ {len(bad)}、★ {len(star)}、要看上下文 {len(ctxq)} →", rep)
+    print("\n".join(bad + star + tw_bad) or "沒有要處理的破音字")
+    print(f"⚠ {len(bad)}、★ {len(star)}、台灣單一音 ⚠ {len(tw_bad)}、要看上下文 {len(ctxq)} →", rep)
 
 
 if __name__ == "__main__":

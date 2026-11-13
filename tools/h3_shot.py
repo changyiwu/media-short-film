@@ -501,6 +501,11 @@ def generate(spec, prompt, base, out):
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-i", str(raw), "-r", str(FPS),
                         "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-crf", "12", "-preset", "slow", "-pix_fmt", "yuv420p",
                         "-c:a", "copy", str(out / "clip.mp4")], check=True)
+        # 逐格 PNG 只拿來壓 clip.mp4（crf 12），很吃硬碟（768p 每秒約 36 MB，每個 seed 都留）→ clip.mp4 壓好就刪（上游 7b4f3f7）。
+        # H3_KEEP_PNG=1 保留（例如要做無損逐格實驗）。
+        if os.environ.get("H3_KEEP_PNG") != "1" and (out / "clip.mp4").stat().st_size > 0:
+            shutil.rmtree(comfy_paths.output_dir(HOST) / "h3_shot_png" / tag, ignore_errors=True)
+            lst.unlink(missing_ok=True)
     else:
         print(json.dumps(e.get("status", {}), ensure_ascii=False)[:3000])
     meta = {"ok": ok, "length": length, "seed": spec.get("seed", 42), "wall_s": round(time.time() - t0, 1), "tag": tag}
