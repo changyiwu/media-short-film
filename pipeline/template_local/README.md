@@ -49,6 +49,7 @@
 | `seeds` | 想換的 seed：`char_<角色>`、`master_<名稱>`、`frame_<鏡>`、`h3_<鏡>`、`voice_<角色>` |
 | `music` | `caption`（純器樂描述，寫明 Vocal: NONE）、`seeds`（抽幾首，挑人聲殘留最少的） |
 | `mix` | `say_lead`（台詞比畫面提前幾秒，預設 0.2）、`default_tail`、`music_under_lines`（台詞期間配樂音量，0.15–0.30）、`music_bed_rms`、`target_lufs`、`voice_lufs`（每句台詞、旁白先調到同一個響度再混，範本預設 -20；不同聲音設計出來大小常差 10 dB 以上，不寫就照原音量。用 LUFS 不用 RMS：同 RMS 的低沉男聲聽起來比較小）、`amb_gain`（`amb` 環境音的音量倍數，預設 0.8）、`music_level`（選填，true＝配樂比自己典型音量大的段落壓回典型音量、不放大小聲處；Music 3 的前奏常比平均大 10 dB 以上，兩句之間會突然爆出來時用）、`music_lowpass`（配樂低通的頻率，預設 9000 Hz，濾掉刺耳的高頻；設 0 關掉） |
+| `subs` | 選填。`max_chars`（字幕每段最多幾字，含「名字：」、空白不算，預設 25）：`cut` 把超過的句子依標點拆成好幾段單行字幕，段數最少、各段長度盡量平均，顯示時間照字數比例分配；一個子句本身就超過才平均硬切 |
 | `ending` | 片尾（選用，預設不加）：`enabled`（預設 false；改 true，或設環境變數 `ENDING=1`，才做片尾並接進成片）、`closeups`（拿哪幾鏡的首幀當特寫）、`cards`（每張卡最多 3 行工具）、`card_dur`、`title_dur` |
 
 每一鏡（`shots[]`）：

@@ -837,6 +837,54 @@ def ass_time(t):
     return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{t % 60:05.2f}"
 
 
+SUB_MAX = int(CFG.get("subs", {}).get("max_chars", 25))   # 字幕每段最多幾字（含「名字：」，空白不算）；單行、不換行
+SUB_PUNCT = "，、；：。？！,;:?!…"
+
+
+def sub_len(s):
+    return len(s.replace(" ", ""))
+
+
+def split_sub(text, prefix="", n=SUB_MAX):
+    """把一句字幕拆成每段 ≤ n 字（含 prefix）的單行字幕，只在標點後切；段數最少，同段數時讓最長的一段最短。
+    一個子句本身就超過 n 字才硬切（平均切）。回傳 [(段落文字, 字數)]，prefix 只加在第一段。"""
+    clauses, cur = [], ""
+    for ch in text:
+        cur += ch
+        if ch in SUB_PUNCT:
+            clauses.append(cur); cur = ""
+    if cur.strip():
+        clauses.append(cur)
+    pieces = []                                       # 超長子句平均硬切
+    for c in clauses:
+        k = -(-sub_len(c) // n)
+        if k <= 1:
+            pieces.append(c); continue
+        step = -(-len(c) // k)
+        pieces += [c[i:i + step] for i in range(0, len(c), step)]
+    pieces = [p.strip() for p in pieces if p.strip()]
+    lens = [sub_len(p) for p in pieces]
+    lens[0] += sub_len(prefix)
+    m = len(pieces)
+    best = [(0, 0, -1)] + [(10 ** 9, 10 ** 9, -1)] * m   # best[j]＝前 j 塊的（段數, 最長段, 上一個切點）
+    for j in range(1, m + 1):
+        for i in range(j):
+            seg = sum(lens[i:j])
+            if seg > n and j - i > 1:
+                continue
+            cand = (best[i][0] + 1, max(best[i][1], seg), i)
+            if cand[:2] < best[j][:2]:
+                best[j] = cand
+    cuts, j = [], m
+    while j > 0:
+        i = best[j][2]; cuts.append((i, j)); j = i
+    out = []
+    for i, j in reversed(cuts):
+        t = "".join(pieces[i:j]).strip()
+        out.append(((prefix if i == 0 else "") + t, sum(lens[i:j])))
+    return out
+
+
 def overlay_pngs(r, od):
     """這一鏡的後製疊字（shot 的 overlay）：每項畫成一張 1920×1080 透明 PNG，回傳 [(png, 開始秒, 結束秒)]（秒數以這一鏡在成片裡的開頭為 0）。
     overlay 每項：text（必填，可用 \\n 換行）、start（預設 0）、end（預設鏡尾）、pos（center｜top｜bottom｜top-left｜top-right｜bottom-left｜bottom-right，
@@ -979,7 +1027,14 @@ def cut():
         b = min(b, r["start"] + r["dur"] - 0.04)
         v = VOICES[l["who"]]                         # 旁白預設不加「名字：」（narrator.sub_prefix 設 true 才加）
         name = f"{v['name']}：" if v.get("sub_prefix", l["who"] != "vo") else ""
-        ev += f"Dialogue: 0,{ass_time(a)},{ass_time(b)},{l['who']},,0,0,0,,{name}{l['text']}\n"
+        segs = split_sub(l["text"], name)             # 長句依標點拆成好幾段單行字幕，時間照字數比例分配
+        t0, t1, tot = l["film_start"], l["film_end"], sum(c for _, c in segs)
+        acc = 0
+        for k, (s, c) in enumerate(segs):
+            sa = a if k == 0 else t0 + (t1 - t0) * acc / tot
+            acc += c
+            sb = b if k == len(segs) - 1 else t0 + (t1 - t0) * acc / tot
+            ev += f"Dialogue: 0,{ass_time(sa)},{ass_time(sb)},{l['who']},,0,0,0,,{s}\n"
     (post / "subs.ass").write_text(hdr + ev, encoding="utf-8")
     (OUT / "cut").mkdir(exist_ok=True)
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", "post/video.mp4", "-i", "post/mix.wav", "-vf", "subtitles=post/subs.ass", "-map", "0:v", "-map", "1:a",
