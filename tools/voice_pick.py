@@ -5,6 +5,8 @@
   2. 長度要在 edge-tts 台灣國語參考音的 0.5–2.5 倍之間（擋掉拖長、亂音）；
   3. 音量音質：響度（LUFS）跟同角色所有候選的中位數差 ≤ 6 dB，4 kHz 以上能量比不異常高（嘶聲）（2026-10-19 加：
      〈歐幾里得的完美數〉自動挑到大 10 dB、音色不同與嘶聲的候選，旁白忽大忽小、音質不一被退件）；
+     不能有嗡嗡聲：tone_check.py 的持續窄頻峰 ≤ 10 dB（2026-11-14 加：〈畢達哥拉斯的三個正方形〉Ming 旁白有幾秒疊著
+     固定頻率的持續音，聽寫全對、響度正常，被使用者聽出音質很差）；
   4. 合格者依 pron_compare（對照 edge-tts 台灣國語參考音的每字音高曲線）分數排序，同分取離響度中位數近、平均距離小的。
 都不合格 → 取聽寫最接近的，標 needs_review（review_reason "asr"）；聽寫對的全都音量音質異常 → 照舊挑，標 needs_review（"sound"）。
 picks.json 每個候選記 lufs、hf_4k、lufs_dev、sound_ok。已挑過的句子不改（H3 可能已照長度拍好），只補量數字；要重挑用 --rerank。
@@ -25,6 +27,7 @@ import soundfile as sf  # noqa: E402
 import opencc  # noqa: E402
 from pron_compare import compare  # noqa: E402
 from tts_lexicon import load_lexicon, speakable  # noqa: E402
+from tone_check import BUZZ_DB, buzz  # noqa: E402
 
 DIG = "零一二三四五六七八九"
 
@@ -54,6 +57,9 @@ def int_zh_full(n):
 def norm(s, full=False):
     s = re.sub(r"\[:[^\]]*\]", "", s)
     s = re.sub(r"\d+", lambda m: (int_zh_full if full else int_zh)(int(m.group())), s)
+    # 「兩千五百」聽寫常寫成 2500，換回中文是「二千五百」：千、百、萬前的「兩」一律當「二」比
+    # （2026-11-14〈畢達哥拉斯的三個正方形〉K1 兩次 8 個候選全被擋下，原以為是「股」聽成「骨」）
+    s = re.sub(r"兩(?=[千百萬億])", "二", s)
     return re.sub(r"[^\u4e00-\u9fffA-Za-z]", "", s).upper()
 
 
@@ -114,6 +120,8 @@ def measure(out, rows):
             r["lufs"] = lufs(out / "cand" / r["file"])
         if "hf_4k" not in r:
             r["hf_4k"] = hf_ratio(out / "cand" / r["file"])
+        if "buzz_db" not in r:
+            r["buzz_db"] = buzz(out / "cand" / r["file"])[0]
     return rows
 
 
@@ -125,7 +133,7 @@ def role(j):
 def sound_judge(rows, med_lufs, hf_lim):
     for r in rows:
         r["lufs_dev"] = None if r["lufs"] is None or med_lufs is None else round(r["lufs"] - med_lufs, 1)
-        r["sound_ok"] = (r["lufs_dev"] is None or abs(r["lufs_dev"]) <= LUFS_DEV) and r["hf_4k"] <= hf_lim
+        r["sound_ok"] = (r["lufs_dev"] is None or abs(r["lufs_dev"]) <= LUFS_DEV) and r["hf_4k"] <= hf_lim and r.get("buzz_db", 0) <= BUZZ_DB
     return rows
 
 
@@ -216,9 +224,9 @@ def choose(out, picks, picks_path, name, j, rows, med=None):
     trim = write_trimmed(out / "cand" / best["file"], out / f"{name}.wav")
     why = None if good else ("sound" if said else "asr")   # sound＝聽寫對的候選全部響度離群或嘶聲；asr＝聽寫全錯
     picks[name] = {"text": j["text"], "pick": best["file"], "n_ok": len(good), "needs_review": not good, "review_reason": why, "trim_s": trim,
-                   "lufs": best["lufs"], "hf_4k": best["hf_4k"], "role_lufs": None if med is None else round(med, 1), "cands": rows}
+                   "lufs": best["lufs"], "hf_4k": best["hf_4k"], "buzz_db": best.get("buzz_db"), "role_lufs": None if med is None else round(med, 1), "cands": rows}
     picks_path.write_text(json.dumps(picks, ensure_ascii=False, indent=1), encoding="utf-8")
-    note = {"asr": "NEEDS_REVIEW " + best["asr"], "sound": f"NEEDS_REVIEW 音量音質（響度差 {best['lufs_dev']} dB、高頻比 {best['hf_4k']}）"}.get(why, "")
+    note = {"asr": "NEEDS_REVIEW " + best["asr"], "sound": f"NEEDS_REVIEW 音量音質（響度差 {best['lufs_dev']} dB、高頻比 {best['hf_4k']}、嗡嗡聲 {best.get('buzz_db')} dB）"}.get(why, "")
     print(f"[pick] {name} {best['file']} ok={len(good)}/{len(rows)} tw={best['tw_score']} {best['lufs']} LUFS hf={best['hf_4k']} {note}", flush=True)
 
 

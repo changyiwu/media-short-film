@@ -16,6 +16,7 @@ tools/h3_line_harvest.py 分離人聲、聽寫、拼音比對原文，差太多�
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -418,8 +419,13 @@ def voices():
     char_voices()
     free_comfy()
     vd = OUT / "voice"; vd.mkdir(exist_ok=True)
+    # 旁白參考音沿用 output/角色/旁白/ref_vo.wav，不每支片重新設計：重做的參考音給 Ming 念整段時會疊嗡嗡聲，
+    # 聲音也會在片與片之間漂移（2026-11-14〈畢達哥拉斯的三個正方形〉）。要換旁白聲音就把 narrator.reuse_ref 設 false
+    shared_vo = REPO / "output" / "角色" / "旁白" / "ref_vo.wav"
+    if "vo" in VOICES and VOICES["vo"].get("reuse_ref", True) and shared_vo.exists() and not (vd / "ref_vo.wav").exists():
+        shutil.copy(shared_vo, vd / "ref_vo.wav"); print(f"[voices] 旁白參考音沿用 {shared_vo}", flush=True)
     jobs = [dict(name=f"ref_{k}", text=c["voice_sample"], seed=seed("voice_" + k, 7), control=c["voice_design"])
-            for k, c in VOICES.items() if k not in CHARS]
+            for k, c in VOICES.items() if k not in CHARS and not (vd / f"ref_{k}.wav").exists()]
     fixed = [(i, sid, ln) for i, (sid, ln) in enumerate(LINES) if not h3_says(ln)]
     if not fixed:                                    # 全部 h3_ref：只要參考音
         if jobs:
@@ -914,7 +920,14 @@ def cut():
     k = int(0.12 * SR); duck = np.convolve(duck, np.ones(k) / k, mode="same")
     if sg:                                           # 倍數變化再多平滑 0.5 秒，不會突然跳大聲
         k2 = SR // 2; duck = np.convolve(np.pad(duck, (k2, k2), mode="edge"), np.ones(k2) / k2, mode="same")[k2:-k2]
-    mus = load(json.loads((post / "music_pick.json").read_text(encoding="utf-8"))["file"])[:n]; mus = np.pad(mus, (0, n - len(mus)))
+    # 配樂先低通：Music 3 偶有高頻的鈸聲、嘶聲，人耳聽起來像刺耳的高頻音；預設 9 kHz 以上濾掉（mix.music_lowpass 設 0 關掉）
+    # （2026-11-14〈畢達哥拉斯的三個正方形〉使用者要求「配樂不要有高頻音」）
+    msrc = json.loads((post / "music_pick.json").read_text(encoding="utf-8"))["file"]; lp = MIX.get("music_lowpass", 9000)
+    if lp:
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", msrc, "-af", f"lowpass=f={lp}:poles=2,lowpass=f={lp}:poles=2", "-ar", str(SR), "-ac", "1",
+             "-c:a", "pcm_f32le", post / "music_lp.wav"])
+        msrc = post / "music_lp.wav"
+    mus = load(msrc)[:n]; mus = np.pad(mus, (0, n - len(mus)))
     if MIX.get("music_level"):                       # 選填：配樂比自己的典型音量大的地方壓回典型音量（不放大小聲處），兩句之間才不會突然爆出來
         w = SR // 2; m_ = len(mus) // w * w
         env = np.sqrt((mus[:m_].reshape(-1, w) ** 2).mean(axis=1)) + 1e-9

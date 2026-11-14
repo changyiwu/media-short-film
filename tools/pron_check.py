@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 
 _FA = None
-TW_OVERRIDE = {"垃圾": ["le4", "se4"], "企": ["qi4"], "期": ["qi2"], "危": ["wei2"], "研": ["yan2"], "髮": ["fa4"], "微": ["wei2"],
+TW_OVERRIDE = {"垃圾": ["le4", "se4"], "企": ["qi4"], "期": ["qi2"], "危": ["wei2"], "研": ["yan2"], "究": ["jiu4"],"髮": ["fa4"], "微": ["wei2"],
                "質": ["zhi2"], "人質": ["ren2", "zhi4"],     # 台灣「質數」念 ㄓˊ（pypinyin 標 zhi4）；只有人質念 ㄓˋ
                "暴露": ["pu4", "lu4"], "液": ["yi4"], "和": None, "頭套": ["tou2", "tao4"], "什麼": ["shen2", "me5"], "東西": ["dong1", "xi5"],
                "時候": ["shi2", "hou4"], "為什麼": ["wei4", "shen2", "me5"], "這裡": ["zhe4", "li3"], "那裡": ["na4", "li3"], "哪裡": ["na3", "li3"],

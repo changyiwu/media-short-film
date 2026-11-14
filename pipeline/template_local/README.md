@@ -43,12 +43,12 @@
 | `vo_chunk` | 旁白併塊（預設 `true`，只在 `voice_engine: "ming"` 時作用）：連續幾鏡的旁白併成一塊念（最多 3 句、100 字，中間隔了別的鏡就斷開）再切回各鏡，語氣較連貫；`false` 改回逐句 |
 | `h3` | H3 共用設定：`style`、`setting`、`soundscape`（不寫台詞）、`camera`、`constraints`（每鏡都加的限制） |
 | `chars.<代號>` | `name`（字幕顯示）、`look`（**完整外觀描述**，每張首幀都會照抄）、`voice_design`（VoxCPM2 設計聲音的描述）、`voice_sample`（設計聲音時念的句子）、`h3_voice`、`edge_voice`（挑音用的台灣國語答案卷聲音）、`sub_color`（字幕顏色，ASS 格式 `&H00BBGGRR`） |
-| `narrator` | 旁白（選填，只有聲音）：`name`、`voice_design`、`voice_sample`、`edge_voice`、`sub_color`，跟角色同一套欄位但**不要 `look`、`h3_voice`**——不生定妝、不進 H3。代號固定是 `vo`（`chars` 不能再用這個代號）。字幕預設不加「名字：」，要加就設 `"sub_prefix": true` |
+| `narrator` | 旁白（選填，只有聲音）：`name`、`voice_design`、`voice_sample`、`edge_voice`、`sub_color`，跟角色同一套欄位但**不要 `look`、`h3_voice`**——不生定妝、不進 H3。代號固定是 `vo`（`chars` 不能再用這個代號）。字幕預設不加「名字：」，要加就設 `"sub_prefix": true`。參考音預設沿用 `output/角色/旁白/ref_vo.wav`（`voices` 自動複製進 `work/voice/`），要換新的旁白聲音才設 `"reuse_ref": false` |
 | `masters.<名稱>` | 場景母版（空景）提示詞。同一個場景的鏡頭都裁同一張母版，空間才一致 |
 | `shots[]` | 每一鏡，見下表 |
 | `seeds` | 想換的 seed：`char_<角色>`、`master_<名稱>`、`frame_<鏡>`、`h3_<鏡>`、`voice_<角色>` |
 | `music` | `caption`（純器樂描述，寫明 Vocal: NONE）、`seeds`（抽幾首，挑人聲殘留最少的） |
-| `mix` | `say_lead`（台詞比畫面提前幾秒，預設 0.2）、`default_tail`、`music_under_lines`（台詞期間配樂音量，0.15–0.30）、`music_bed_rms`、`target_lufs`、`voice_lufs`（每句台詞、旁白先調到同一個響度再混，範本預設 -20；不同聲音設計出來大小常差 10 dB 以上，不寫就照原音量。用 LUFS 不用 RMS：同 RMS 的低沉男聲聽起來比較小）、`amb_gain`（`amb` 環境音的音量倍數，預設 0.8）、`music_level`（選填，true＝配樂比自己典型音量大的段落壓回典型音量、不放大小聲處；Music 3 的前奏常比平均大 10 dB 以上，兩句之間會突然爆出來時用） |
+| `mix` | `say_lead`（台詞比畫面提前幾秒，預設 0.2）、`default_tail`、`music_under_lines`（台詞期間配樂音量，0.15–0.30）、`music_bed_rms`、`target_lufs`、`voice_lufs`（每句台詞、旁白先調到同一個響度再混，範本預設 -20；不同聲音設計出來大小常差 10 dB 以上，不寫就照原音量。用 LUFS 不用 RMS：同 RMS 的低沉男聲聽起來比較小）、`amb_gain`（`amb` 環境音的音量倍數，預設 0.8）、`music_level`（選填，true＝配樂比自己典型音量大的段落壓回典型音量、不放大小聲處；Music 3 的前奏常比平均大 10 dB 以上，兩句之間會突然爆出來時用）、`music_lowpass`（配樂低通的頻率，預設 9000 Hz，濾掉刺耳的高頻；設 0 關掉） |
 | `ending` | 片尾（選用，預設不加）：`enabled`（預設 false；改 true，或設環境變數 `ENDING=1`，才做片尾並接進成片）、`closeups`（拿哪幾鏡的首幀當特寫）、`cards`（每張卡最多 3 行工具）、`card_dur`、`title_dur` |
 
 每一鏡（`shots[]`）：

@@ -44,6 +44,8 @@
   - [x] 移除選用配音引擎 BreezyVoice／Breeze TTS 2；讀音替換表從 media-video-specs 移植成兩專案共用的 `tts-lexicon.md`
   - [x] 旁白與 `fixed` 台詞預設引擎改 Ming-3.0-TTS（`voice_engine`，參考音設計維持 VoxCPM2）
   - [x] 角色「丟番圖」＋〈丟番圖的墓誌銘〉（康軒 7 上 3-3〈應用問題〉備課 p.219）成片 130 秒＋發布資訊
+  - [x] 角色「畢達哥拉斯」＋〈畢達哥拉斯的三個正方形〉（康軒 8 上 2-3〈畢氏定理〉p.94～97）成片 138 秒＋發布資訊＋封面
+  - [x] 旁白參考音改成系列共用（`output/角色/旁白/ref_vo.wav`，範本 `voices` 自動沿用）；挑音加嗡嗡聲檢查（`tools/tone_check.py`）；配樂低通 9 kHz
 
 - [ ] 階段七：饒舌對決（`pipeline/template_battle/`、`rap-battle` 技能）
   - [x] 範本與技能移植，〈微積分之戰〉跑到歌曲比較
@@ -92,6 +94,8 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 多音字、英文詞念錯：加進 repo 根目錄的讀音替換表 `tts-lexicon.md`（Markdown 表格，格式寫在檔頭）；只對某支片的放片子資料夾的同名檔，只有某句的寫 `film.json` 該句的 `"tts"`（同音字）。不要改字幕或劇本原文。
 - 送進 TTS 的文字一律經 `tools/tts_lexicon.py`（`voxcpm_batch`、`ming_batch`、`gen_voice`、`voice_pick`、`recast` 已接），新寫的配音工具也要接；改 `tts-lexicon.md` 的格式時，media-video-specs 各範本的 `generate_narration.py` 要一起改。
 - 讀音替換表**四個 repo 各一份、內容逐位元組相同**（media-video-specs、media-short-film、media-voice-clone、agent-speak/speak/；四個都公開，不能假設使用者每個都下載，各自要單獨可用）：**改表時四份一起改**，用 `tools/tts_lexicon.py --check` 檢查、`--sync` 把各份條目合併寫回四份（遇到同一個原文改寫不同、或表頭說明不一樣時不寫入）；同層時 `tts_lexicon.py` 會合併讀取，本 repo 的優先。只有某個引擎會念錯的條目四份照樣都加，說明欄註明引擎。
+- 旁白參考音不要每支片重新設計：沿用 `output/角色/旁白/ref_vo.wav`（範本 `voices` 自動複製）。旁白聽寫全對也可能有持續的嗡嗡聲，`voice_pick.py` 用 `tools/tone_check.py` 擋；整塊候選都有就是參考音的問題，換參考音，不要只換 seed。新寫的配音工具挑音也要接 `tone_check.buzz()`。
+- `voice_pick.py` 遇英文字母（「x 是 21」）仍可能誤擋：文字其實對就用 `ALLOW_REVIEW=1` 放行，成片再用耳朵確認。
 - MiniMax Music 3 生超過約 100 秒的配樂一律帶 `gen_music3.py --tiled`：整段解碼會讓 ComfyUI 直接退出。
 - 送進歌曲模型的歌詞一律經 `tools/song_lyrics.py`（繁轉簡＋讀音替換表；`yue_song`、`ace_song`、`gen_music3` 已接），新寫的歌曲工具也要接；原始歌詞檔與字幕維持繁體。
 - 語音環境照 `AGENT_SETUP.md` §2b 自建（位置用 `AI_ROOT`／`PY_VOICE` 設定），不要拿其他專案的 venv 共用（例如 `media-voice-clone`）。
