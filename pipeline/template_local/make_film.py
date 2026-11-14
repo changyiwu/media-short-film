@@ -409,6 +409,31 @@ def vo_blocks(fixed):
     return [b for b in blocks + [cur] if len(b) > 1]
 
 
+def drop_stale_voices(vd, bv):
+    """台詞或旁白改了字（或併塊的組成變了）：把那個名字（line<i>／K<n>）的舊候選、已挑的檔、答案卷與 picks.json 紀錄
+    移到 work/voice/old/<名字>_<時間>/，讓這次重生。不然 TTS 看到候選已存在就跳過、voice_pick 沿用舊的（含 audition.py 人工挑選），
+    成片還是念舊的字（2026-11-15〈花拉子米的補正方形〉K3）。比對的是 picks.json 記下的送 TTS 文字。"""
+    bd = vd / "bv"; pp = bd / "picks.json"
+    if not pp.exists():
+        return
+    picks = json.loads(pp.read_text(encoding="utf-8")); stamp = time.strftime("%Y%m%d_%H%M%S"); changed = []
+    for j in bv:
+        old = picks.get(j["name"])
+        if not old or old.get("text") == j["text"]:
+            continue
+        n = j["name"]; dst = vd / "old" / f"{n}_{stamp}"; dst.mkdir(parents=True, exist_ok=True)
+        files = [*(bd / "cand").glob(f"{n}_s*.wav"), *(bd / "cand_trunc").glob(f"{n}_s*.wav"), bd / f"{n}.wav",
+                 bd / "edge_ref" / f"{n}.mp3", vd / f"tw_{n.removeprefix('line')}.wav", vd / f"tw_{n.removeprefix('line')}.mp3"]
+        for f in files:
+            if f.exists():
+                shutil.move(str(f), str(dst / f.name))
+        (dst / "pick.json").write_text(json.dumps({n: picks.pop(n)}, ensure_ascii=False, indent=1), encoding="utf-8")
+        changed.append(f"{n}：「{old.get('text', '')[:20]}…」→「{j['text'][:20]}…」")
+    if changed:
+        pp.write_text(json.dumps(picks, ensure_ascii=False, indent=1), encoding="utf-8")
+        print("[voices] 文字改了，舊候選與挑選移到 work/voice/old/、這次重生：\n  " + "\n  ".join(changed), flush=True)
+
+
 @stage("voices")
 def voices():
     """設計角色聲音（一次）→ edge-tts 台灣國語答案卷 → 每句 8 候選 → 自動挑（聽寫拼音聲調全對＋腔調分數，已去頭尾靜音）。
@@ -437,6 +462,11 @@ def voices():
     inblock = {x[0] for b in blocks for x in b}
     single = [x for x in fixed if x[0] not in inblock]
     keys = {f"K{n}": b for n, b in enumerate(blocks, 1)}
+    bv = [dict(name=f"line{i}", text=ln.get("tts", ln["text"]), ref_audio=f"voice/ref_{ln['who']}.wav", ref_text=VOICES[ln["who"]]["voice_sample"],
+               tw_ref=f"voice/tw_{i}.wav", seeds=8) for i, sid, ln in single]
+    bv += [dict(name=k, text="".join(x[2].get("tts", x[2]["text"]) for x in b), ref_audio="voice/ref_vo.wav", ref_text=VOICES["vo"]["voice_sample"],
+                tw_ref=f"voice/tw_{k}.wav", seeds=8) for k, b in keys.items()]
+    drop_stale_voices(vd, bv)
     targets = [(i, ln["text"], ln["who"]) for i, sid, ln in single] + [(k, "".join(x[2]["text"] for x in b), "vo") for k, b in keys.items()]
     for i, text, who in targets:                     # 答案卷：只拿來比腔調，不進成片
         w = vd / f"tw_{i}.wav"
@@ -450,10 +480,6 @@ def voices():
         else:                                        # 沒網路：改用設計出來的播報聲音產生答案卷（可靠度較低）
             jobs.append(dict(name=f"tw_{i}", text=text, seed=11,
                              control="A clear, neutral standard Taiwanese Mandarin news-reading voice, calm, precise tones."))
-    bv = [dict(name=f"line{i}", text=ln.get("tts", ln["text"]), ref_audio=f"voice/ref_{ln['who']}.wav", ref_text=VOICES[ln["who"]]["voice_sample"],
-               tw_ref=f"voice/tw_{i}.wav", seeds=8) for i, sid, ln in single]
-    bv += [dict(name=k, text="".join(x[2].get("tts", x[2]["text"]) for x in b), ref_audio="voice/ref_vo.wav", ref_text=VOICES["vo"]["voice_sample"],
-                tw_ref=f"voice/tw_{k}.wav", seeds=8) for k, b in keys.items()]
     (OUT / "bv.json").write_text(json.dumps(dict(out_dir="voice/bv", jobs=bv), ensure_ascii=False, indent=1), encoding="utf-8")
     if jobs:
         (OUT / "vox_design.json").write_text(json.dumps(dict(out_dir="voice", jobs=jobs), ensure_ascii=False, indent=1), encoding="utf-8")
