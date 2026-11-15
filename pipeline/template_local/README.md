@@ -43,7 +43,7 @@
 | `vo_chunk` | 旁白併塊（預設 `true`，只在 `voice_engine: "ming"` 時作用）：連續幾鏡的旁白併成一塊念（最多 3 句、100 字，中間隔了別的鏡就斷開）再切回各鏡，語氣較連貫；`false` 改回逐句 |
 | `h3` | H3 共用設定：`style`、`setting`、`soundscape`（不寫台詞）、`camera`、`constraints`（每鏡都加的限制） |
 | `chars.<代號>` | `name`（字幕顯示）、`look`（**完整外觀描述**，每張首幀都會照抄）、`voice_design`（VoxCPM2 設計聲音的描述）、`voice_sample`（設計聲音時念的句子）、`h3_voice`、`edge_voice`（挑音用的台灣國語答案卷聲音）、`sub_color`（字幕顏色，ASS 格式 `&H00BBGGRR`） |
-| `narrator` | 旁白（選填，只有聲音）：`name`、`voice_design`、`voice_sample`、`edge_voice`、`sub_color`，跟角色同一套欄位但**不要 `look`、`h3_voice`**——不生定妝、不進 H3。代號固定是 `vo`（`chars` 不能再用這個代號）。字幕預設不加「名字：」，要加就設 `"sub_prefix": true`。參考音預設沿用 `output/角色/旁白/ref_vo.wav`（`voices` 自動複製進 `work/voice/`），要換新的旁白聲音才設 `"reuse_ref": false` |
+| `narrator` | 旁白（選填，只有聲音）：`name`、`voice_design`、`voice_sample`、`edge_voice`、`sub_color`，跟角色同一套欄位但**不要 `look`、`h3_voice`**——不生定妝、不進 H3。代號固定是 `vo`（`chars` 不能再用這個代號）。字幕預設不加「名字：」，要加就設 `"sub_prefix": true`。參考音從旁白聲音庫 `output/角色/旁白/` 複製進 `work/voice/`（`voices` 自動做）：`"voice": "<名字>"` 選聲音（名字與特性見該資料夾 `voices.json`／`README.md`），不寫用預設；用聲音庫時 `voice_sample`、`edge_voice` 以聲音庫為準、不用寫 `voice_design`。已跑過 `voices` 的片換 `voice`，舊參考音與旁白舊候選會移到 `work/voice/old/` 重做。`"reuse_ref": false` 才照 `voice_design` 重新設計（不建議） |
 | `masters.<名稱>` | 場景母版（空景）提示詞。同一個場景的鏡頭都裁同一張母版，空間才一致 |
 | `shots[]` | 每一鏡，見下表 |
 | `seeds` | 想換的 seed：`char_<角色>`、`master_<名稱>`、`frame_<鏡>`、`h3_<鏡>`、`voice_<角色>` |

@@ -96,7 +96,20 @@ VOICES = dict(CHARS)
 if CFG.get("narrator"):
     if "vo" in CHARS:
         sys.exit('chars 不能有代號 "vo"（保留給旁白 narrator）')
-    VOICES["vo"] = CFG["narrator"]
+    VOICES["vo"] = dict(CFG["narrator"])
+# 旁白聲音庫 output/角色/旁白/voices.json：{"default": 名字, "voices": {名字: {voice_design, voice_sample, ...}}}，參考音在 旁白/<名字>/ref_vo.wav。
+# narrator.voice 指定名字，不寫用 default；narrator.reuse_ref 設 false 才照 narrator.voice_design 重新設計（不建議：會漂移、易嗡嗡聲）
+NARR_DIR = REPO / "output" / "角色" / "旁白"
+NARR = None                                                          # (名字, 聲音庫裡的設定)
+if "vo" in VOICES and VOICES["vo"].get("reuse_ref", True) and (NARR_DIR / "voices.json").exists():
+    _lib = json.loads((NARR_DIR / "voices.json").read_text(encoding="utf-8"))
+    _name = VOICES["vo"].get("voice") or _lib["default"]
+    if _name not in _lib["voices"]:
+        sys.exit(f'narrator.voice「{_name}」不在 {NARR_DIR / "voices.json"}；可選：{"、".join(_lib["voices"])}')
+    NARR = (_name, _lib["voices"][_name])
+    VOICES["vo"]["voice_sample"] = NARR[1]["voice_sample"]          # Ming 克隆要的參考音逐字稿，一定跟參考音同一句
+    if NARR[1].get("edge_voice"):                                    # 挑音的答案卷跟著聲音的性別走
+        VOICES["vo"]["edge_voice"] = NARR[1]["edge_voice"]
 LINES = []                                                           # (鏡, {who, text, tts?, at, kind})；kind＝line（角色台詞）｜vo（旁白）
 for _s in SHOTS:
     if _s.get("line"):
@@ -409,17 +422,18 @@ def vo_blocks(fixed):
     return [b for b in blocks + [cur] if len(b) > 1]
 
 
-def drop_stale_voices(vd, bv):
+def drop_stale_voices(vd, bv, redo=()):
     """台詞或旁白改了字（或併塊的組成變了）：把那個名字（line<i>／K<n>）的舊候選、已挑的檔、答案卷與 picks.json 紀錄
     移到 work/voice/old/<名字>_<時間>/，讓這次重生。不然 TTS 看到候選已存在就跳過、voice_pick 沿用舊的（含 audition.py 人工挑選），
-    成片還是念舊的字（2026-11-15〈花拉子米的補正方形〉K3）。比對的是 picks.json 記下的送 TTS 文字。"""
+    成片還是念舊的字（2026-11-15〈花拉子米的補正方形〉K3）。比對的是 picks.json 記下的送 TTS 文字。
+    redo：字沒改也要重做的名字（換了旁白聲音）。"""
     bd = vd / "bv"; pp = bd / "picks.json"
     if not pp.exists():
         return
     picks = json.loads(pp.read_text(encoding="utf-8")); stamp = time.strftime("%Y%m%d_%H%M%S"); changed = []
     for j in bv:
         old = picks.get(j["name"])
-        if not old or old.get("text") == j["text"]:
+        if not old or (old.get("text") == j["text"] and j["name"] not in redo):
             continue
         n = j["name"]; dst = vd / "old" / f"{n}_{stamp}"; dst.mkdir(parents=True, exist_ok=True)
         files = [*(bd / "cand").glob(f"{n}_s*.wav"), *(bd / "cand_trunc").glob(f"{n}_s*.wav"), bd / f"{n}.wav",
@@ -431,7 +445,7 @@ def drop_stale_voices(vd, bv):
         changed.append(f"{n}：「{old.get('text', '')[:20]}…」→「{j['text'][:20]}…」")
     if changed:
         pp.write_text(json.dumps(picks, ensure_ascii=False, indent=1), encoding="utf-8")
-        print("[voices] 文字改了，舊候選與挑選移到 work/voice/old/、這次重生：\n  " + "\n  ".join(changed), flush=True)
+        print("[voices] 文字改了（或換了旁白聲音），舊候選與挑選移到 work/voice/old/、這次重生：\n  " + "\n  ".join(changed), flush=True)
 
 
 @stage("voices")
@@ -444,11 +458,19 @@ def voices():
     char_voices()
     free_comfy()
     vd = OUT / "voice"; vd.mkdir(exist_ok=True)
-    # 旁白參考音沿用 output/角色/旁白/ref_vo.wav，不每支片重新設計：重做的參考音給 Ming 念整段時會疊嗡嗡聲，
-    # 聲音也會在片與片之間漂移（2026-11-14〈畢達哥拉斯的三個正方形〉）。要換旁白聲音就把 narrator.reuse_ref 設 false
-    shared_vo = REPO / "output" / "角色" / "旁白" / "ref_vo.wav"
-    if "vo" in VOICES and VOICES["vo"].get("reuse_ref", True) and shared_vo.exists() and not (vd / "ref_vo.wav").exists():
-        shutil.copy(shared_vo, vd / "ref_vo.wav"); print(f"[voices] 旁白參考音沿用 {shared_vo}", flush=True)
+    # 旁白參考音從聲音庫（output/角色/旁白/<名字>/ref_vo.wav）複製，不每支片重新設計：重做的參考音給 Ming 念整段時會疊嗡嗡聲，
+    # 聲音也會在片與片之間漂移（2026-11-14〈畢達哥拉斯的三個正方形〉）。用的是哪個聲音記在 work/voice/ref_vo.txt；
+    # narrator.voice 換成別的名字，就把舊參考音和旁白的舊候選移到 work/voice/old/ 重做（沒寫 voice、又沒有紀錄的舊片不動）
+    swapped = False
+    if NARR:
+        name, ref, mark = NARR[0], vd / "ref_vo.wav", vd / "ref_vo.txt"
+        cur = mark.read_text(encoding="utf-8").strip() if mark.exists() else None
+        if not ref.exists() or (cur != name and (cur or VOICES["vo"].get("voice"))):
+            if ref.exists():
+                (vd / "old").mkdir(exist_ok=True); swapped = True
+                shutil.move(str(ref), str(vd / "old" / f"ref_vo_{cur or '舊'}_{time.strftime('%Y%m%d_%H%M%S')}.wav"))
+            shutil.copy(NARR_DIR / name / "ref_vo.wav", ref); mark.write_text(name, encoding="utf-8")
+            print(f"[voices] 旁白聲音：{name}（{NARR[1].get('desc', '')}）", flush=True)
     jobs = [dict(name=f"ref_{k}", text=c["voice_sample"], seed=seed("voice_" + k, 7), control=c["voice_design"])
             for k, c in VOICES.items() if k not in CHARS and not (vd / f"ref_{k}.wav").exists()]
     fixed = [(i, sid, ln) for i, (sid, ln) in enumerate(LINES) if not h3_says(ln)]
@@ -466,7 +488,7 @@ def voices():
                tw_ref=f"voice/tw_{i}.wav", seeds=8) for i, sid, ln in single]
     bv += [dict(name=k, text="".join(x[2].get("tts", x[2]["text"]) for x in b), ref_audio="voice/ref_vo.wav", ref_text=VOICES["vo"]["voice_sample"],
                 tw_ref=f"voice/tw_{k}.wav", seeds=8) for k, b in keys.items()]
-    drop_stale_voices(vd, bv)
+    drop_stale_voices(vd, bv, redo={j["name"] for j in bv if j["ref_audio"] == "voice/ref_vo.wav"} if swapped else set())
     targets = [(i, ln["text"], ln["who"]) for i, sid, ln in single] + [(k, "".join(x[2]["text"] for x in b), "vo") for k, b in keys.items()]
     for i, text, who in targets:                     # 答案卷：只拿來比腔調，不進成片
         w = vd / f"tw_{i}.wav"
