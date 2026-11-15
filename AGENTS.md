@@ -100,6 +100,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 送進歌曲模型的歌詞一律經 `tools/song_lyrics.py`（繁轉簡＋讀音替換表；`yue_song`、`ace_song`、`gen_music3` 已接），新寫的歌曲工具也要接；原始歌詞檔與字幕維持繁體。
 - 語音環境照 `AGENT_SETUP.md` §2b 自建（位置用 `AI_ROOT`／`PY_VOICE` 設定），不要拿其他專案的 venv 共用（例如 `media-voice-clone`）。
 - 聽寫（ASR）一律經 `tools/stt.py` 的 `load_asr()`，不要直接 import `faster_whisper`：Windows on Arm 沒有 ctranslate2，靠它自動改用 openai-whisper。歌曲與饒舌的聽寫改走 `load_song_asr()`（Qwen3-ASR），強制對齊走 `load_song_aligner()`（Qwen3-ForcedAligner）；`transformers` 要用 `-hf` 版權重。
+- 拿來判斷「念對了沒」的聽寫一律不帶 `initial_prompt`（提示詞會把念錯的字拉回正確字）。人聽出念錯的字：有同音字可換加 `tts-lexicon.md`，沒有就加 `tools/pron_guard_rules.json`（`make_film.py review` 跑 `tools/pron_guard.py` 盯它）。
 - 工具要呼叫 venv 裡套件的命令列（例如 edge-tts）時，一律用 `[sys.executable, "-m", <模組>]`，不要靠 PATH 找執行檔：PATH 上可能是系統 Python 的舊版。
 - 工具一律直接跑 repo 的 `tools/`（入口腳本預設就找它，`make_*.cmd` 用自己所在的資料夾），不要再複製到 `C:\AI\tools`；要改位置才設 `AI_TOOLS`。新寫的腳本找工具也要用相對 repo 的路徑，不要寫死 `C:\AI\tools`。
 

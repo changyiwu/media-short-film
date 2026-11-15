@@ -3,6 +3,7 @@
 
 做的事：clip.mp4 的音軌 → BS-RoFormer 分離人聲 → 聽寫（tools/stt.py 的 load_asr）找開口與收尾 → 切出那句存成 wav →
 拼音（聲調）比對原文：聽寫常寫成簡體字或同音字（「阿禾」→「阿和」），比字會誤判，比拼音才準。
+聽寫不帶提示詞（2026-11-15，移植上游 `121f435` 的發現：提示詞會把念錯的字拉回正確字）。
 H3 會改用詞（例：二十四號→二十四日）、偶爾晚開口 1.5–2.1 秒；相似度低於門檻就標 needs_review，由 make_film.py 停下來。
 
 用法（Voice venv）：
@@ -59,11 +60,14 @@ def main():
     sep.separate(str(mix))
     voc = next(work.glob("mix_(Vocals)*.wav"))
 
-    from stt import DEFAULT_PROMPT, load_asr
+    import opencc
+    from stt import load_asr
     model = load_asr(local_files_only=True)
-    segs, _ = model.transcribe(str(voc), language="zh", beam_size=5, vad_filter=True, initial_prompt=DEFAULT_PROMPT,
+    # 不帶 initial_prompt：提示詞會把念錯的字拉回正確字（上游 2026-11-14「抓」念成「多」就這樣漏掉），比對原文的聽寫一律不帶提示
+    segs, _ = model.transcribe(str(voc), language="zh", beam_size=5, vad_filter=True,
                                vad_parameters={"min_silence_duration_ms": 500}, condition_on_previous_text=False)
-    segs = [dict(start=s.start, end=s.end, text=s.text.strip()) for s in segs]
+    s2t = opencc.OpenCC("s2t")                       # 沒有「繁體中文」提示時聽寫常出簡體；只轉字，s2twp 會連詞換（局部→區域性）
+    segs = [dict(start=s.start, end=s.end, text=s2t.convert(s.text.strip())) for s in segs]
     heard = "".join(s["text"] for s in segs)
     want, got = syllables(a.text, False), syllables(heard, False)
     match = ratio(want, got) if want else 0.0

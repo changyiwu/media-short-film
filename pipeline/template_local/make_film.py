@@ -1079,6 +1079,11 @@ def review():
         print(r.stdout[-3000:], flush=True)
         if r.returncode != 0:                                    # 自審失敗不能悄悄略過
             print(f"⚠ review.py 失敗（{r.returncode}）：\n{r.stderr[-2000:]}", flush=True)
+    if (OUT / "voice_picks.json").exists():                     # 讀音自審：tools/pron_guard_rules.json 的字，不帶提示聽寫＋把握度
+        r = run([PYV, T / "pron_guard.py", OUT / "voice_picks.json"], check=False)
+        print(r.stdout[-2000:], flush=True)
+        if r.returncode not in (0, 1):
+            print(f"⚠ pron_guard.py 失敗（{r.returncode}）：\n{r.stderr[-2000:]}", flush=True)
     print("→ 看 work/review/：film_1080p_pass1.jpg、pass5_cuts.jpg、review.json、asr.json；最後一定要人看成片", flush=True)
 
 
