@@ -1,5 +1,7 @@
 """配音候選自動挑選（Voice venv）：挑 voxcpm_batch.py 生的候選。2026-10-07 建立。
-比對與 edge-tts 答案卷都用「套過讀音替換表（tts-lexicon.md）的台詞」，跟 voxcpm_batch.py 實際念的一致。
+edge-tts 答案卷、腔調與長度比對用「套過讀音替換表（tts-lexicon.md）的台詞」，跟 TTS 實際念的一致；
+聽寫比對跟原文或套表後的文字其一相符就算對（2026-11-15 改：表常把字換成同音字給 TTS 念，例「一路→移路」，
+聽寫寫回正常用字「一路」，只比套表文字會因「一」「移」聲調不同把逐字正確的候選全擋下）。
 每句的所有 seed 候選：
   1. faster-whisper large-v3 聽寫，必須和台詞逐字相同（數字、標點、注音標記不計）才算合格；
   2. 長度要在 edge-tts 台灣國語參考音的 0.5–2.5 倍之間（擋掉拖長、亂音）；
@@ -81,13 +83,14 @@ def py_same(a, b):
     return f(a) == f(b)
 
 
-def judge(r, plain, rd, cand_path):
+def judge(r, plain, rd, cand_path, orig=None):
     # 聽寫把四位數寫成阿拉伯數字時不知道原本是年份（一六三七）還是數量（一千八百），兩種讀法都試，取對得上的
     # （2026-11-07〈丟番圖〉旁白「一千八百」被聽成 1800，8 個候選全被擋下）
-    want = norm(plain)
+    # 標準答案有兩份：套表後的文字（實際念的音）與原文（聽寫會寫回正常用字，例：念「移路」聽寫成「一路」），對上其一就算對
+    wants = {norm(plain)} | ({norm(orig)} if orig else set())
     heard = {norm(r["asr"]), norm(r["asr"], full=True)}
-    r["asr_ok"] = any(py_same(h, want) for h in heard)
-    r["sim"] = round(max(difflib.SequenceMatcher(None, h, want).ratio() for h in heard), 3)
+    r["asr_ok"] = any(py_same(h, w) for h in heard for w in wants)
+    r["sim"] = round(max(difflib.SequenceMatcher(None, h, w).ratio() for h in heard for w in wants), 3)
     r["len_ratio"] = round(dur(cand_path) / rd, 2)
     r["len_ok"] = 0.5 <= r["len_ratio"] <= 2.5
     return r
@@ -96,6 +99,23 @@ def judge(r, plain, rd, cand_path):
 RERANK = "--rerank" in sys.argv      # 不重跑 ASR，只用 picks.json 裡的聽寫結果重新判定與排序
 LUFS_DEV = 6.0                       # 跟同角色所有候選的響度中位數差超過這麼多 dB → 響度離群
 HF_CUT, HF_MIN, HF_MUL = 4000, 0.30, 3.0   # 4 kHz 以上能量比 > max(0.30, 同角色中位數 × 3) → 嘶聲
+
+
+def edge_ref(text, voice, dst, tries=5, wait=3):
+    """edge-tts 做答案卷。微軟服務偶爾回 NoAudioReceived（2026-11-15 試配音連續兩次），最多試 tries 次、每次隔 wait 秒；
+    失敗留下的 0 位元組檔會刪掉（不然下次會被當成已做好）。"""
+    import time
+    for i in range(tries):
+        res = subprocess.run([sys.executable, "-m", "edge_tts", "--voice", voice, "--text", text, "--write-media", str(dst)],
+                             capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if res.returncode == 0 and dst.exists() and dst.stat().st_size > 0:
+            return
+        dst.unlink(missing_ok=True)
+        err = (res.stderr.strip().splitlines() or ["(沒有錯誤訊息)"])[-1]
+        print(f"[edge-tts] {dst.name} 第 {i + 1}/{tries} 次失敗：{err}", flush=True)
+        if i < tries - 1:
+            time.sleep(wait)
+    raise RuntimeError(f"edge-tts 連續 {tries} 次做不出答案卷：{dst}（要連網；離線可在 job 給 tw_ref）")
 
 
 def lufs(p):
@@ -149,6 +169,7 @@ def main():
     lex = load_lexicon(spec_path.parent)
     for j in spec["jobs"]:                           # 第一輪：每句候選聽寫、腔調、響度、高頻比
         name, plain = j["name"], re.sub(r"\[:[^\]]*\]", "", speakable(j["text"], lex))
+        orig = re.sub(r"\[:[^\]]*\]", "", j["text"])      # 原文：聽寫比對的另一份標準答案
         cands = sorted((out / "cand").glob(f"{name}_s*.wav"), key=lambda p: int(p.stem.rsplit("_s", 1)[1]))
         if not cands:
             print("[miss]", name); continue
@@ -158,7 +179,7 @@ def main():
         if name in picks and len(picks[name]["cands"]) == len(cands) and fresh:
             rows = measure(out, picks[name]["cands"])
             if RERANK:
-                rows = [judge(r, plain, dur(refdir / f"{name}.mp3"), out / "cand" / r["file"]) for r in rows]
+                rows = [judge(r, plain, dur(refdir / f"{name}.mp3"), out / "cand" / r["file"], orig) for r in rows]
             # 已挑過的不改（H3 可能已照它的長度拍好），只補量數字；audition.py 人工改挑的（manual）連 --rerank 也不改
             todo.append((j, rows, RERANK and not picks[name].get("manual"))); continue
         if asr is None:
@@ -169,12 +190,12 @@ def main():
             if not ref.exists() or ref.stat().st_mtime < tw.stat().st_mtime:
                 subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tw), str(ref)], check=True)
         elif not ref.exists() or ref.stat().st_size == 0:     # edge-tts 失敗會留下 0 位元組的檔
-            subprocess.run([sys.executable, "-m", "edge_tts", "--voice", j.get("edge_voice", "zh-TW-YunJheNeural"), "--text", plain, "--write-media", str(ref)], check=True)
+            edge_ref(plain, j.get("edge_voice", "zh-TW-YunJheNeural"), ref)
         rd = dur(ref)
         rows = []
         for c in cands:
             heard = s2t.convert("".join(s.text for s in asr.transcribe(str(c), language="zh", beam_size=5)[0]))
-            r = judge({"file": c.name, "asr": heard}, plain, rd, c)
+            r = judge({"file": c.name, "asr": heard}, plain, rd, c, orig)
             try:
                 cp = compare(str(c), str(ref), plain); r.update(tw_score=cp["score"], tw_dist=cp["mean_dist"], tw_bad=cp["bad"])
             except Exception as e:                       # 單字句等對不齊時不計腔調分
