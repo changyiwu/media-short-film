@@ -62,7 +62,7 @@ README.md / AGENT_SETUP.md     專案說明、給 agent 的安裝手冊
 NOTICE.md                      來源與作者、本分支修改清單（必須保留）
 LICENSE / LICENSE-docs.md      MIT（程式）／CC BY-NC 4.0（文件素材）
 THIRD_PARTY_NOTICES.md         第三方模型與工具授權
-tts-lexicon.md                 讀音替換表（多音字、英文詞 → TTS 念得對的寫法；四個 repo 各一份、內容相同，同層時合併讀取）
+tts-lexicon.md                 讀音替換表（多音字、英文詞 → TTS 念得對的寫法；五個 repo 各一份、內容相同，同層時合併讀取）
 docs/                          總覽、端到端流程、規則與踩坑、自審清單、安裝、角色與首幀、換角重製、硬體說明
 tools/                         全域工具（各腳本直接用這裡，不再複製到 C:\AI\tools）
 output/                         自己的片與角色資產（.gitignore，不進 repo；規則見 output/AGENTS.md）
@@ -95,7 +95,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - TTS 引擎：旁白與 `fixed` 台詞預設 Ming-3.0-TTS（`film.json` 的 `voice_engine`，`tools/ming_batch.py`；裝在獨立的 `%AI_ROOT%\Ming`、8189 埠，不動 Comfy Desktop，見 `AGENT_SETUP.md` §2d），角色與旁白的參考音設計用 VoxCPM2（`tools/voxcpm_batch.py`）。要改回 VoxCPM2 念台詞就設 `"voice_engine": "voxcpm2"`；Ming 沒裝好時會停下，不自動換引擎。挑音都用 `voice_pick.py`；不支援注音標記。
 - 多音字、英文詞念錯：加進 repo 根目錄的讀音替換表 `tts-lexicon.md`（Markdown 表格，格式寫在檔頭）；只對某支片的放片子資料夾的同名檔，只有某句的寫 `film.json` 該句的 `"tts"`（同音字）。不要改字幕或劇本原文。
 - 送進 TTS 的文字一律經 `tools/tts_lexicon.py`（`voxcpm_batch`、`ming_batch`、`gen_voice`、`voice_pick`、`recast` 已接），新寫的配音工具也要接；改 `tts-lexicon.md` 的格式時，media-video-specs 各範本的 `generate_narration.py` 要一起改。
-- 讀音替換表**四個 repo 各一份、內容逐位元組相同**（media-video-specs、media-short-film、media-voice-clone、agent-speak/speak/；四個都公開，不能假設使用者每個都下載，各自要單獨可用）：**改表時四份一起改**，用 `tools/tts_lexicon.py --check` 檢查、`--sync` 把各份條目合併寫回四份（遇到同一個原文改寫不同、或表頭說明不一樣時不寫入）；同層時 `tts_lexicon.py` 會合併讀取，本 repo 的優先。只有某個引擎會念錯的條目四份照樣都加，說明欄註明引擎。
+- 讀音替換表**五個 repo 各一份、內容逐位元組相同**（media-video-specs、media-short-film、media-voice-clone、agent-speak/speak/、media-math-rap；五個都公開，不能假設使用者每個都下載，各自要單獨可用）：**改表時五份一起改**，用 `tools/tts_lexicon.py --check` 檢查、`--sync` 把各份條目合併寫回五份（遇到同一個原文改寫不同、或表頭說明不一樣時不寫入）；同層時 `tts_lexicon.py` 會合併讀取，本 repo 的優先。只有某個引擎會念錯的條目五份照樣都加，說明欄註明引擎。
 - 旁白參考音不要每支片重新設計：從旁白聲音庫 `output/角色/旁白/`（`voices.json`，每個聲音 `<名字>/ref_vo.wav`）挑，`film.json` 的 `narrator.voice` 指定名字、不寫用預設（範本 `voices` 自動複製）；加新聲音照該資料夾 `README.md`，要先讓 Ming 拿它念多句旁白、確認嗡嗡聲不多才收。旁白聽寫全對也可能有持續的嗡嗡聲，`voice_pick.py` 用 `tools/tone_check.py` 擋；整塊候選都有就是參考音的問題，換參考音，不要只換 seed。新寫的配音工具挑音也要接 `tone_check.buzz()`。
 - `voice_pick.py` 遇英文字母（「x 是 21」）仍可能誤擋：文字其實對就用 `ALLOW_REVIEW=1` 放行，成片再用耳朵確認。
 - MiniMax Music 3 生超過約 100 秒的配樂一律帶 `gen_music3.py --tiled`：整段解碼會讓 ComfyUI 直接退出。

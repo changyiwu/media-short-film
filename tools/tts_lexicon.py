@@ -1,17 +1,17 @@
 """讀音替換表（tts-lexicon.md）：送進 TTS 前把念錯的詞換成念得對的寫法，字幕照原文。2026-10-20 從 media-video-specs 移植。
-表在 repo 根目錄的 tts-lexicon.md，格式與規則寫在表的開頭。這份表有四份、內容完全相同（media-video-specs、本 repo、
-media-voice-clone、agent-speak/speak/；四個 repo 都公開，各自單獨下載就能用），放在同一層時合併讀取。
+表在 repo 根目錄的 tts-lexicon.md，格式與規則寫在表的開頭。這份表有五份、內容完全相同（media-video-specs、本 repo、
+media-voice-clone、agent-speak/speak/、media-math-rap；五個 repo 都公開，各自單獨下載就能用），放在同一層時合併讀取。
 
 找表的順序（近的覆蓋遠的，同一個原文以近的為準）：
-  同層其他三個 repo 的 tts-lexicon.md（有就合併）
+  同層其他四個 repo 的 tts-lexicon.md（有就合併）
   → 本 repo 的表：TTS_LEXICON（有設就用它）或 repo 根目錄的 tts-lexicon.md
   → 從起點資料夾（例如 output/<類型>/<片名>/work/）往上每一層的 tts-lexicon.md（片子資料夾放一份只對該片生效）。
 本專案套用的地方：voxcpm_batch.py（念台詞前）、gen_voice.py（edge-tts 答案卷、單句生成）、voice_pick.py（聽寫比對的標準之一，原文也算對）、
 recast.py voice。每段文字只套一次；film.json 的 "tts" 照樣可用，表會再套在它上面。
 
 試表（Voice venv 或任何 Python）：python tools/tts_lexicon.py [起點資料夾] "要念的句子"
-四份是否一致：python tools/tts_lexicon.py --check　　合併各份的條目寫回四份：python tools/tts_lexicon.py --sync
-（只在四個 repo 放在同一層時有用；--sync 遇到同一個原文改寫不同、或表頭說明不一樣時不寫入，先手動統一） """
+五份是否一致：python tools/tts_lexicon.py --check　　合併各份的條目寫回五份：python tools/tts_lexicon.py --sync
+（只在五個 repo 放在同一層時有用；--sync 遇到同一個原文改寫不同、或表頭說明不一樣時不寫入，先手動統一） """
 import os
 import re
 import sys
@@ -19,9 +19,9 @@ from pathlib import Path
 
 NAME = "tts-lexicon.md"
 REPO = Path(__file__).resolve().parents[1]
-# 四份同內容的表（repo 名稱, 表在 repo 裡的位置）；本 repo 以外的三份放在同一層時一起讀
+# 五份同內容的表（repo 名稱, 表在 repo 裡的位置）；本 repo 以外的四份放在同一層時一起讀
 COPIES = [("media-video-specs", NAME), ("media-short-film", NAME),
-          ("media-voice-clone", NAME), ("agent-speak", f"speak/{NAME}")]
+          ("media-voice-clone", NAME), ("agent-speak", f"speak/{NAME}"), ("media-math-rap", NAME)]
 SIBLINGS = [REPO.parent / r / rel for r, rel in COPIES if r != REPO.name]
 HEAD = ("原文", "改寫")
 
@@ -137,7 +137,7 @@ def sync(write):
         groups = ["、".join(r for r, (h, _, t) in parts.items() if (h, t) == x) for x in heads]
         print(f"表格以外的說明有 {len(heads)} 種版本：" + "／".join(groups) + "，先手動統一")
     if same:
-        print(f"四份完全相同（{len(union)} 條）")
+        print(f"五份完全相同（{len(union)} 條）")
         return 0
     if not write:
         print("不一致：python tools/tts_lexicon.py --sync 合併寫回" if not conflicts and len(heads) == 1 else "不一致")
