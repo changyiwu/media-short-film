@@ -1,4 +1,4 @@
-> 移植自上游（2026-10-29 版）：工作檔放 `work/`、生圖走 `gen_image.py`（預設 OpenAI，`IMAGE_BACKEND=local` 用千問）、DJ 參考音改 VoxCPM2，未移植 Colab 的 `film` 整場流程與 Kie API。下方驗證紀錄是上游數字。
+> 移植自上游（2026-10-29 版，2026-11-17 補到上游 `3aec3d1` 的音訊修正與自審工具，英文對決未移植）：工作檔放 `work/`、生圖走 `gen_image.py`（預設 OpenAI，`IMAGE_BACKEND=local` 用千問）、DJ 參考音改 VoxCPM2，未移植 Colab 的 `film` 整場流程與 Kie API。下方驗證紀錄是上游數字。
 
 # template_battle：饒舌對決範本（兩首歌 → 3–4 分鐘橫式對決影片）
 
@@ -34,13 +34,25 @@
 
 不給 stage 就從 `songs` 依序跑到 `srt`。已存在的輸出會跳過，中斷後重跑會接著做。還沒跑 H3 的鏡，`cut` 會用首幀靜態圖代替（沒有首幀就用灰底鏡號），可以先看節奏。
 
-### 輔助工具（片子資料夾裡，Voice venv；2026-11-13 改寫自上游 `82e6f7a`、`b436b75`、`b7189aa`）
+### 自審與修歌工具（片子資料夾裡，Voice venv；改寫自上游 `e634cce`、`88a1b6c`、`82e6f7a`、`b436b75`、`b7189aa`）
+
+怎麼用、什麼時候用，見技能 `references/review-checklist.md` 第 H 節與 `references/songs.md`。
 
 | 工具 | 用途 |
 |---|---|
+| `lyric_audit.py [A B]` | 全曲逐句聽寫（Qwen3-ASR，人聲、混音各一次），用拼音比 → `work/song/lyric_audit_<A\|B>.md`。對齊分數高不代表字唱對 |
+| `gap_check.py <A\|B> <原版歌檔>` | 接過重唱後，列人聲無聲段並比對原版：原版有聲、現在沒聲（⚠）的一定要修 |
+| `level_scan.py [mix.wav 或 成片.mp4]` | 全片音量掃描（濾掉 300 Hz 以下）：破洞、突然掉 8 dB |
+| `motion_check.py [門檻]` | 每鏡動作量（用到的範圍），尾幀＝首幀常把人鎖死 → `work/review/motion.json` |
+| `finger_sheet.py [--clips] [鏡號]` | 手部放大表（YOLO pose，要另裝 `ultralytics`，AGPL-3.0）。`--clips` 看 H3 成片：首幀 5 根，拍動作時可能多長一根 |
+| `voice_diff.py 檔案…` | 候選人聲跟 `output/饒舌對決/` 前面各場比聲紋（CAM++，用 Ming 附的 `campplus.onnx`）與音高 |
+| `resing_lines.py <A\|B> <窗開始> <窗結束> 候選…` | 局部重唱候選逐句聽寫比對（人聲、混音各一次），量窗前窗後時間差與多唱 |
+| `run_shared.py stage…` | 跟別的工作共用 GPU 時跑 `make_battle.py`，不卸載別人的模型（`SHARED_CPU=1` 聽寫、對齊、分人聲都用 CPU） |
 | `splice_resing.py plan.json` | 重唱的片段接回定稿（人聲連音樂整段換）：接點自動搬到兩版都沒在唱的空隙、窗頭窗尾各自對拍子、伴奏音量補平；報告接完拍子差（要 ≤3 ms）、「接點還在字上」與「兩版唱的不一樣（可能少一個字）」 |
 | `dj_pause.py <key> 字=秒 ...` | DJ 口白在指定字後面插停頓，切在句尾真正結束的地方（不照對齊器字尾切）；原檔留 `dj_<key>_orig.wav`。插完重跑 `audio`，要在 DJ 對嘴鏡生成前做 |
 | `dj_tail_check.py <wav>...` | 查 DJ 口白「句尾被砍成靜音」「停頓後冒出的小碎片」；`review` 會自動對 `work/audio/dj.wav` 跑 |
+
+`audio` 另外會：殺句後留殘響、B 前奏淡入、B 收尾的伴奏分軌破洞用前一、兩小節補（`tail_ring`）；定論口白下面墊 A 前奏最平穩的 2 小節循環（`verdict_bed`）；DJ 口白逐字對齊（Qwen3-ForcedAligner，`work/voice/ming/dj_align.json`，DJ 字幕照實際念到的字出；上游 `dj_align.py` 要另外跑，本分支併進 `audio`）。`songs` 會警告「人聲還在唱、歌詞卻沒對到」（Suno 多唱一遍副歌）。`review` 會印音量／人聲檢查（`work/review/audio_check.json`）。換了歌沒重跑 `audio` 就跑 `specs`、`cut`，會停下來提醒。
 
 `audio` 的前奏改伴奏分軌時，會自動找伴奏分軌被挖空的洞（原曲有聲音、分軌沒有），整小節換成前面和弦與音色最像的小節，畫面會印出補了哪裡，**要人聽**。最後的響度改成量整片後套固定增益，不用 `loudnorm`（它在峰值放不下時會偷偷退回動態壓縮）。
 
@@ -61,7 +73,7 @@
 |---|---|
 | `title` | 片名（片名卡、成片檔名） |
 | `seed0` | H3 seed 的起點（每鏡再依鏡號加） |
-| `rappers.A/B` | `name`、`short`、`team`（例：金方）、`tagline`（VS 卡小字）、`color`／`glow`（字幕、特效、字卡的己方顏色 RGB）、`look`（外觀完整描述，每張首幀照抄）、`person`（man／woman）、`pronoun`、`desc`（H3 用的短描述）、`song`、`suno_style`、`suno_negative`、`yue_style`、`lyrics`（見技能 `references/lyrics.md`）、`intro_card`（直排名牌 `[[文字, 字級], …]`）、`last_word_end`（選填）、`yue_bpm`（選填，`yue` 挑歌的目標 BPM；沒填讀 `yue_style` 的「NNN BPM」） |
+| `rappers.A/B` | `name`、`short`、`team`（例：金方）、`tagline`（VS 卡小字）、`color`／`glow`（字幕、特效、字卡的己方顏色 RGB）、`look`（外觀完整描述，每張首幀照抄）、`person`（man／woman）、`pronoun`、`desc`（H3 用的短描述）、`song`、`suno_style`、`suno_negative`、`yue_style`、`lyrics`（見技能 `references/lyrics.md`）、`intro_card`（直排名牌 `[[文字, 字級], …]`）、`last_word_end`（選填）、`align_from`（選填，前奏有 Suno 自己加的喊話時，對齊前把這秒數之前靜音）、`end_on_hold`／`keep_stop`（選填，只用在 B：最後一句後面有長音、自己收掉＝唱到底就結束，不換伴奏分軌；最後一個音跟音樂一起停＝人聲慢一點收、那個空檔不補）、`yue_bpm`（選填，`yue` 挑歌的目標 BPM；沒填讀 `yue_style` 的「NNN BPM」） |
 | `dj` | `name`、`short`（字幕名）、`color`、`look`、`desc`、`person`、`pronoun`、`voice_design`（VoxCPM2 設計參考音的描述；要營利就自己錄 `work/voice/ref_K.wav`）、`voice_sample`（參考音念的句子＝逐字稿）、`lines`（`open`／`switch`／`verdict`（選填）／`end`）、`end_beats`（片尾三拍大字）、`tts`（選填，念錯的句子改寫法：Ming 用同音字）、`intro_card` |
 | `arena` | `master`（擂台空景提示詞，左右兩半＝兩人的配色）、`keep`（首幀用的擂台鎖定句，`{ref}`＝參考圖編號）、`light`、`setting`／`style`／`keep_h3`（H3 用） |
 | `places.<地點>` | 閃回／插入鏡的地點：`light`（首幀光線）、`setting`（H3）、`era`（`period`／`modern`）、`text`（畫面裡有要保持不變的字） |
@@ -73,6 +85,10 @@
 | `flash_scenes` | 切進這些地點時閃白（其他插入鏡直接切） |
 | `locked` | 鏡頭鎖死不推近的鏡號 |
 | `crowd_sfx` | 觀眾歡呼音效資料夾（預設 `sfx/歡呼`） |
+| `bpm` | 抓拍子的先驗（預設 120；慢歌要給，不然會抓成兩倍速） |
+| `tail_ring` | 預設 `true`：殺句後留殘響、補伴奏破洞、B 前奏淡入，`cut` 墊全場歡呼，不會突然切斷 |
+| `verdict_bed` | 預設 `true`：DJ 定論口白很長時，用 A 前奏最平穩的 2 小節壓低循環墊底 |
+| `film_look_insert`、`arena_only` | 插入鏡專用的電影感句；`no_text` 裡只屬於擂台的句子（插入鏡會拿掉，空景才不會畫出饒舌手或舞台地板） |
 | `shots[]` | 每一鏡，見下表 |
 
 每一鏡（`shots[]`）：
@@ -88,7 +104,7 @@
 | `frame` | 首幀描述（英文，畫動作開始前的姿勢） |
 | `action` | H3 動作（`Starting from <Picture 1>, …`，慢而清楚的手勢） |
 | `gfx`、`card` | 這鏡要疊的字卡代號、直排名牌（`A`／`B`／`K`） |
-| `still`、`custom` | 首幀靜態慢推、自己做的影片檔 |
+| `still`、`custom`、`painting` | 首幀靜態慢推、自己做的影片檔、名畫（慢推較小、字卡放左邊不蓋畫） |
 | `last_first`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump` | 尾幀＝首幀（防切鏡）、慢動作、`false`＝14 步、額外限制句、換 H3 seed、換首幀 seed |
 
 ## 輸出（`work/`）

@@ -114,11 +114,15 @@ def card(cfg, key, out):
     col, _ = colors(cfg)
     acc = lambda a: {"A": col["A"], "B": col["B"], "J": col["J"], "ink": INK, "gold": GOLD}.get(a, GOLD)
     if key == "title":
-        w, h = 1080, 300; im, d = _panel(w, h, GOLD)
+        en = cfg.get("title_en")
+        w, h = 1180, (380 if en else 300); im, d = _panel(w, h, GOLD)
         _t(d, (w / 2, 34), cfg["title"], font(112), GOLD, "ma")
-        _t(d, (w / 2 - 44, 196), R["A"]["name"], font(56), col["A"], "ra")
-        _t(d, (w / 2, 196), "vs", font(56), INK, "ma")
-        _t(d, (w / 2 + 44, 196), R["B"]["name"], font(56), col["B"], "la")
+        y = 196
+        if en:
+            _t(d, (w / 2, 172), en, font(62), INK, "ma"); y = 276
+        _t(d, (w / 2 - 44, y), R["A"]["name"], font(56), col["A"], "ra")
+        _t(d, (w / 2, y), "vs", font(56), INK, "ma")
+        _t(d, (w / 2 + 44, y), R["B"]["name"], font(56), col["B"], "la")
         return _save(im, out)
     if key == "vs":
         w, h = 1560, 150; im, d = _panel(w, h, GOLD)
@@ -222,21 +226,46 @@ def build_events(cfg, tl):
             ct = char_times(l); seq = "".join(c for c, _ in ct)
             k = seq.rfind(rh) if rh else -1
             hits = [ct[k + j][1] for j in range(len(rh))] if k >= 0 else []
-            lines.append(dict(who=who, text=l["show"], start=l["start"] - 0.05, end=l["end"] + 0.25, rh=l.get("rhyme_show", rh), hits=hits,
-                              words=l["words"]))
+            lines.append(dict(who=who, text=l["show"], start=l.get("show_start", l["start"]) - 0.05, end=l["end"] + 0.25,
+                              rh=l.get("rhyme_show", rh), hits=hits, words=l["words"]))
             atk = l.get("atk")
             atk = (i % 2 == 1) if atk is None else atk
             if (atk or i == len(L) - 1) and hits:
-                attacks.append(dict(who=who, t=hits[-1], n="kill" if i == len(L) - 1 else len(rh)))
+                attacks.append(dict(who=who, t=hits[-1], n="kill" if i == len(L) - 1 else len(rh),
+                                    until=L[i + 1]["start"] if i + 1 < len(L) and L[i + 1].get("atk") is False else 1e9))   # 下一句是「收」的段落：押韻字不留到那句
     pos, text = tl["dj"]["pos"], tl["dj"]["text"]
     for key, (a, b) in pos.items():
         if key == "end":
             continue
-        parts = [x for x in re.findall(r"[^！？。]+[！？。]?", text[key]) if x.strip()]   # DJ 長句照句末標點拆段，時間依字數比例分
+        parts = []                                           # DJ 長句照標點拆段，太長再照逗號拆（字才不會縮小，〈向日葵之戰〉使用者看不清）
+        for x in re.findall(r"[^！？。；：]+[！？。；：]?", text[key]):
+            cur = ""
+            for y in re.findall(r"[^，]+，?", x):
+                if cur and len(cur) + len(y) > 17:
+                    parts.append(cur); cur = ""
+                cur += y
+            if cur.strip():
+                parts.append(cur)
         n_all = sum(len(x) for x in parts); t0 = a
+        af = HERE / "work" / "voice" / "ming" / "dj_align.json"; times = None
+        if af.exists():                                      # 有逐字對齊（make_battle.py audio 自動做，dj_align.py）就照實際念到的字出字幕
+            drop = "，。！？；：、《》「」 "; times = []
+            for w, st, en_ in json.loads(af.read_text(encoding="utf-8")).get(key, []):
+                cs = [c for c in w if c not in drop]
+                times += [(max(st, 0) + (en_ - st) * j / max(1, len(cs)), en_) for j in range(len(cs))]
+            if len(times) != sum(1 for x in parts for c in x if c not in drop):
+                times = None
+        k = 0; mine = []
         for x in parts:
-            t1 = t0 + (b - a) * len(x) / n_all
-            lines.append(dict(who="J", text=x, start=t0 - 0.05, end=t1 + 0.1, rh="", hits=[])); t0 = t1
+            if times:
+                m = sum(1 for c in x if c not in drop); t0, t1 = a + times[k][0], a + times[k + m - 1][1]; k += m
+            else:
+                t1 = t0 + (b - a) * len(x) / n_all
+            mine.append(dict(who="J", text=x, start=t0 - 0.05, end=t1 + 0.1, rh="", hits=[])); t0 = t1
+        for j, l in enumerate(mine):                         # 照對齊切的短句（「上台！」只有 0.2 秒）至少留 0.8 秒，不壓到下一段
+            lim = mine[j + 1]["start"] - 0.02 if j + 1 < len(mine) else b + 0.6
+            l["end"] = max(l["end"], min(l["start"] + 0.8, lim))
+        lines += mine
     beats3 = []
     if "end" in pos:
         a, b = pos["end"]; words = cfg["dj"].get("end_beats") or [text["end"]]
@@ -304,7 +333,7 @@ def big_word(text, k, g):
     return im
 
 
-COMBO = {"kill": "殺招！", 1: "押韻！", 2: "雙押！", 3: "三押！"}
+COMBO = {"kill": "殺招！", 1: "押韻！", 2: "雙押！", 3: "三押！", 4: "四押！", 5: "五押！", 6: "六押！"}
 
 
 def combo_badge(n, g, k):
@@ -365,7 +394,7 @@ def punch_plan(shots, lines):
     """長演唱鏡（> 3.3 秒、單人、沒字卡）在鏡內每句開頭交替推近（ERB 約 2 秒一刀，不用多生 H3）。"""
     plan = []
     for sh in shots:
-        if sh["kind"] != "sing" or sh["end"] - sh["start"] <= 3.3 or len(sh["subj"]) > 1 or sh.get("gfx") or sh.get("card"):
+        if sh["kind"] != "sing" or sh["end"] - sh["start"] <= 3.3 or len(sh["subj"]) > 1 or sh.get("gfx") or sh.get("card") or sh.get("dist") == "CU":   # 特寫再推會切到頭頂（〈向日葵之戰〉P11、Z19）
             continue
         starts = sorted(l["start"] + 0.05 for l in lines if sh["start"] + 0.6 < l["start"] + 0.05 < sh["end"] - 0.8)
         if not starts:
@@ -402,10 +431,24 @@ def render_fx(cfg, shots, ev, src, dst, wav, post):
             if fs_:
                 x, y, w_, h_ = max(fs_, key=lambda f: f[2] * f[3]); cx, cy = x + w_ / 2, y + h_ * 0.7
         p_["cx"], p_["cy"] = float(cx), float(cy)
+        # 審核回饋 #4：推近不能切到頭頂（舊 A11 在 102 秒推近，頭頂被裁掉）。整段取 5 格量「髮頂」＝臉框上緣再往上 0.45 個臉高，
+        # 裁切框上緣不得低於髮頂上方 3%；整段找不到臉就不推近。
+        tops = []
+        for k in range(5):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int((p_["t0"] + (p_["t1"] - p_["t0"]) * (k + 0.5) / 5) * FPS)); ok, frk = cap.read()
+            fk = faces(frk) if ok else []
+            if fk:
+                x, y, w_, h_ = max(fk, key=lambda f: f[2] * f[3]); tops.append(y - 0.45 * h_)
+        p_["ymax"] = float(max(0.0, min(tops) - 0.03 * H)) if tops else None
     cap.release()
+    punches = [p_ for p_ in punches if p_["ymax"] is not None]
     flash = set(cfg.get("flash_scenes", []))
     cuts = [b["start"] for a, b in zip(shots, shots[1:]) if a["scene"] != b["scene"] and b["scene"] in flash]
     (Path(post) / "fx_events.json").write_text(json.dumps({**ev, "cuts": cuts, "punches": punches}, ensure_ascii=False, indent=1), encoding="utf-8")
+    for a in attacks:                                        # 押韻字不疊到別人的鏡頭（〈瑜亮之戰〉v6「三押！」殘留到孔明反應鏡）
+        nx = next((s for s in shots if a["t"] < s["start"] < a["t"] + 1 and a["who"] not in s.get("subj", [])), None)
+        if nx:
+            a["until"] = min(a["until"], nx["start"])
     tabs = {k: speaker_tab(names[k], col[k]) for k in names}
     bugs = {lab: round_bug(lab, names[who], col[who]) for _, _, lab, who in rounds}
     shot_at = lambda t: next((s for s in shots if s["start"] <= t < s["end"]), None)
@@ -433,7 +476,7 @@ def render_fx(cfg, shots, ev, src, dst, wav, post):
         for p_ in punches:
             if p_["t0"] <= t < p_["t1"]:
                 hh, ww = int(H / PUNCH), int(W / PUNCH)
-                x0 = int(min(max(p_["cx"] - ww / 2, 0), W - ww)); y0 = int(min(max(p_["cy"] - hh / 2, 0), H - hh))
+                x0 = int(min(max(p_["cx"] - ww / 2, 0), W - ww)); y0 = int(min(max(p_["cy"] - hh / 2, 0), H - hh, p_["ymax"]))
                 fr = np.asarray(Image.fromarray(fr[y0:y0 + hh, x0:x0 + ww].astype(np.uint8)).resize((W, H), Image.LANCZOS), np.float32)
                 break
         shake = (0, 0); zoom = 1.0; ab = 0
@@ -472,10 +515,10 @@ def render_fx(cfg, shots, ev, src, dst, wav, post):
             k = (t - b["t"]) * FPS
             if k >= 0:
                 bw = big_word(b["text"], k, glow["J"]) if k < 6 else cache.setdefault(("bw", b["text"]), big_word(b["text"], 99, glow["J"]))
-                img.alpha_composite(bw, (70, 90 + b["row"] * 165))
+                img.alpha_composite(bw, (70, (90 + b["row"] * 165) if len(beats3) <= 3 else (50 + b["row"] * 145)))   # 4 行時收緊，第 4 行不碰投票卡（〈Bravo 之戰〉v2）
         for a in attacks:
             k = (t - a["t"]) * FPS
-            if 0 <= k < 24:
+            if 0 <= k < 24 and t < a["until"]:
                 b = combo_badge(a["n"], glow[a["who"]], k); img.alpha_composite(b, ((W - b.width) // 2, SUB_Y - 190))
         if len(cache) > 4000:
             cache.clear()

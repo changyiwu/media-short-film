@@ -40,7 +40,7 @@ description: 歷史人物饒舌對決影片（源自上游頻道的四場對決�
 
 ## 自審（交片前一定做）
 
-`make_battle.py review` 產生每秒一格的接觸表與自己切鏡偵測，照 `references/review-checklist.md` 一張張看，問題列成清單（時間、鏡號、問題、處理）→ 修 → 再出一版再看一次。**送給使用者的是 v1 和問題清單，最後一定要人看完整成片。**
+`make_battle.py review` 產生每秒一格的接觸表、自己切鏡偵測與音量／人聲檢查；歌定稿後另跑 `lyric_audit.py`，拍完跑 `motion_check.py`、`finger_sheet.py --clips`（工具表見範本 README）。照 `references/review-checklist.md`（含 H 節〈使用者抓過的問題〉）一張張看，問題列成清單（時間、鏡號、問題、處理）→ 修 → 再出一版再看一次。**送給使用者的是 v1 和問題清單，最後一定要人看完整成片。**
 
 ## 共同規則
 

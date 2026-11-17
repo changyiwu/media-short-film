@@ -207,6 +207,16 @@ def sep_stems(src, d):
     return voc, ins
 
 
+def vocal_gaps(voc, rows, min_gap=3.0):
+    """逐句之間有沒有「人聲還在唱、歌詞卻沒對到」的空檔（Suno 常自己把副歌多唱一遍；〈瑜亮之戰〉v1 誤當器樂段，字幕和唱的人都漏了）。"""
+    import librosa
+    import numpy as np
+    v, sr = librosa.load(str(voc), sr=16000)
+    rms = lambda a, b: float(np.sqrt(np.mean(v[int(a * sr):int(b * sr)] ** 2)))
+    sung = float(np.median([rms(x["start"], x["end"]) for x in rows if x["end"] - x["start"] > 0.3]))
+    return [(round(x["end"], 1), round(n["start"], 1)) for x, n in zip(rows, rows[1:]) if n["start"] - x["end"] >= min_gap and rms(x["end"] + 0.2, n["start"] - 0.2) > sung * 0.4]
+
+
 def last_word_end(voc, word_end):
     """最後一個字唱完：強制對齊的最後一個詞結束時間（實測跟人工標的差 0–0.07 秒），人聲還很大聲就往後延，最多 0.3 秒。
     不用「人聲變小的時刻」：Suno 常在最後一句後面自己加觀眾喊聲、ad-lib，會被當成還在唱（實測晚 14 秒）。"""
@@ -245,13 +255,16 @@ def songs():
         voc, ins = sep_stems(src, d / "sep")
         lines = lines_of(k)
         a, sr = sf.read(str(voc), dtype="float32", always_2d=True); a = a.mean(1)
+        aa = a
+        if r.get("align_from"):                                # 前奏有 Suno 自己加的喊話會把前幾句對齊拉走 → 對齊時把這秒數之前靜音（上游 e634cce）
+            aa = a.copy(); aa[:int(float(r["align_from"]) * sr)] = 0
         rows = []
-        for ln, s in zip(lines, align(a, sr, [re.sub(r"[：，、。！？「」『』（）—…]", " ", x["sing"]) for x in lines])):
+        for ln, s in zip(lines, align(aa, sr, [re.sub(r"[：，、。！？「」『』（）—…]", " ", x["sing"]) for x in lines])):
             t = cc.convert(hear(a[int(max(0, s["start"] - 0.1) * sr):int((s["end"] + 0.15) * sr)], sr))
             rows.append({"section": ln["section"], "text": ln["sing"], "start": s["start"], "end": s["end"], "words": s["words"],
                          "asr": t, "ok": round(difflib.SequenceMatcher(None, norm(ln["sing"]), norm(t)).ratio(), 2)})
         lw = r.get("last_word_end") or last_word_end(voc, rows[-1]["words"][-1]["e"] if rows[-1]["words"] else rows[-1]["end"])
-        y, s2 = librosa.load(str(src), sr=22050); bpm = float(np.atleast_1d(librosa.beat.beat_track(y=y, sr=s2)[0])[0])
+        y, s2 = librosa.load(str(src), sr=22050); bpm = float(np.atleast_1d(librosa.beat.beat_track(y=y, sr=s2, start_bpm=float(CFG.get("bpm", 120)))[0])[0])
         info = {"song": str(src), "vocals": str(voc), "instrumental": str(ins), "bpm": round(bpm, 1), "last_word_end": lw, "rows": rows}
         (d / f"align_{k}.json").write_text(json.dumps(info, ensure_ascii=False, indent=1), encoding="utf-8")
         rep[k] = {"bpm": round(bpm, 1), "char_ok": round(float(np.mean([x["ok"] for x in rows])), 2), "first": rows[0]["start"],
@@ -259,6 +272,8 @@ def songs():
         print(k, r["name"], json.dumps({q: v for q, v in rep[k].items() if q != "low"}, ensure_ascii=False), flush=True)
         for b in rep[k]["low"]:
             print("   低分句（去聽這句有沒有唱錯）：", b, flush=True)
+        for g in vocal_gaps(voc, rows):
+            print(f"   ⚠ {g[0]}–{g[1]} 秒人聲還在唱，但歌詞沒對到（Suno 多唱一遍？）→ 把那幾句補進歌詞，字幕和鏡頭才不會漏", flush=True)
     if abs(rep["A"]["bpm"] - rep["B"]["bpm"]) > 2:
         print(f"⚠ 兩首 BPM 不同（{rep['A']['bpm']} / {rep['B']['bpm']}）：A 停在拍上→1 小節→B 會接不準，建議重生成同一個 BPM", flush=True)
     (d / "songs_report.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -297,6 +312,32 @@ def dj():
                          "逗號後別放太短的句子）或換說法，刪 work/voice/ming 裡那句的 cand 再跑 dj；確定只是 ASR 聽錯就用 ALLOW_REVIEW=1 繼續。")
 
 
+def dj_align(clips):
+    """DJ 口白逐字對齊 → work/voice/ming/dj_align.json（{key: [[字, 開始, 結束], …]}，秒數從 audio 階段裁好的那段開頭算）。
+    battle_gfx.py 照它出 DJ 字幕（插入鏡要對到口白正在講的事，上游使用者 2026-11-04）；字數對不上就退回依字數比例分。
+    改寫自上游 dj_align.py（上游 88a1b6c）：上游另外手動跑、用 stable-ts 對原檔；本分支每次 audio 都用 Qwen3-ForcedAligner 對裁好的片段，
+    dj_pause.py 插停頓後重跑 audio 就會跟著更新。"""
+    import numpy as np
+    sys.path.insert(0, str(T)); import stt   # noqa: E401
+    al = stt.load_song_aligner(); out = {}
+    for key, v in clips.items():
+        clean = re.sub(r"[^一-鿿A-Za-z0-9]", "", DJ["lines"][key])
+        if not clean:
+            continue
+        try:
+            words = al(np.ascontiguousarray(v.mean(1)), SR, [clean])[0]["words"]
+        except SystemExit as e:
+            print(f"⚠ DJ {key} 逐字對齊失敗（{e}），字幕改依字數比例分", flush=True); continue
+        out[key] = [[w["w"], round(w["s"], 3), round(w["e"], 3)] for w in words]
+    (OUT / "voice" / "ming" / "dj_align.json").write_text(json.dumps(out, ensure_ascii=False, indent=0), encoding="utf-8")
+    del al
+    try:
+        import torch
+        torch.cuda.empty_cache()
+    except Exception:
+        pass
+
+
 # ------------------------------------------------------------------------------------------------ 全片音軌
 @stage("audio")
 def audio():
@@ -312,7 +353,7 @@ def audio():
         al = json.loads((OUT / "song" / f"align_{k}.json").read_text(encoding="utf-8"))
         mix, voc, ins = load_audio(al["song"]), load_audio(al["vocals"]), load_audio(al["instrumental"])
         n = min(len(mix), len(voc), len(ins))
-        _, b = librosa.beat.beat_track(y=librosa.to_mono(mix[:n].T), sr=SR, units="time")
+        _, b = librosa.beat.beat_track(y=librosa.to_mono(mix[:n].T), sr=SR, units="time", start_bpm=float(CFG.get("bpm", 120)))   # 慢歌要給 BPM 先驗，不然會抓成兩倍速
         rows = al["rows"]; period = float(np.median(np.diff(b)))
         D[k] = dict(mix=mix[:n], voc=voc[:n], inst=ins[:n], rows=rows, beats=b, period=period, lw=float(al["last_word_end"]),
                     one=float(b[np.argmin(np.abs(b - rows[0]["start"]))]))
@@ -412,6 +453,7 @@ def audio():
         v = load_audio(vb / f"dj_{key}.wav"); e = np.abs(v).max(1); nz = np.where(e > 0.01)[0]
         v = v[max(0, nz[0] - 480):nz[-1] + 2400]
         clips[key] = v / (np.sqrt(np.mean(v ** 2)) + 1e-9) * ref_rms * 1.3
+    dj_align(clips)
     b_first = B["rows"][0]["start"]
     need = (len(clips["switch"]) / SR + 1.2 + 1.0) if "switch" in clips else 0
     lead = None
@@ -425,10 +467,33 @@ def audio():
     PRE = round(max(0.0, D1_AT + open_len + 0.5 - (A["rows"][0]["start"] - 0.3)), 2) if open_len else 0.0
     sw = int((B["lw"] + 0.1) * SR)
     b_end = int((bar_line("B", B["rows"][-1]["start"]) + 8 * barB) * SR)
-    b_part = np.concatenate([mB[:sw], B["inst"][sw:b_end]])
-    x = int(0.05 * SR)
-    b_part[sw - x:sw] = mB[sw - x:sw] * np.linspace(1, 0, x)[:, None] + B["inst"][sw - x:sw] * np.linspace(0, 1, x)[:, None]
-    f = int(2 * barB * SR); b_part[-f:] *= np.linspace(1, 0, f)[:, None] ** 1.3
+    hold = R["B"].get("end_on_hold")                          # Suno 在最後一句後面有長音、自己收掉：唱到底就結束，不換伴奏分軌（〈向日葵之戰〉v3）
+    b_part = mB[:sw].copy() if hold else np.concatenate([mB[:sw], B["inst"][sw:b_end]])
+    keep_stop = R["B"].get("keep_stop")                       # 最後一個音跟音樂一起停、停一下再進器樂收尾：人聲慢一點收，那個空檔不補（〈向日葵之戰〉v4）
+    x = int((0.12 if keep_stop else 0.05) * SR)
+    if hold:
+        b_part[-x:] *= np.linspace(1, 0, x)[:, None]
+    else:
+        b_part[sw - x:sw] = mB[sw - x:sw] * np.linspace(1, 0, x)[:, None] + B["inst"][sw - x:sw] * np.linspace(0, 1, x)[:, None]
+    if CFG.get("tail_ring", True) and not hold and not keep_stop:
+        from scipy.signal import butter, sosfilt
+        h_ = sosfilt(butter(2, 300, "hp", fs=SR, output="sos"), b_part[sw:].mean(1))
+        hop = int(0.05 * SR); e_ = np.sqrt(np.convolve(h_ ** 2, np.ones(hop) / hop, "same"))[::hop]
+        low = np.flatnonzero(e_ < np.median(e_) * 0.12)
+        for i in low:                                          # 每個破洞格用前一小節（再不行前兩小節）同拍位補，交叉 20 ms
+            i0 = sw + i * hop - hop; i1 = min(i0 + 2 * hop, len(b_part)); x_ = int(0.02 * SR)
+            if i1 - i0 < 2 * x_:                               # 破洞在最後一格（上游沒擋，YuE2 歌尾實測會超出範圍）
+                continue
+            for k_ in (1, 2):
+                j0 = i0 - int(k_ * barB * SR)
+                if j0 > sw and e_[max(0, (j0 - sw) // hop)] >= np.median(e_) * 0.3:
+                    w_ = np.ones((i1 - i0, 1), np.float32); w_[:x_] = np.linspace(0, 1, x_)[:, None]; w_[-x_:] = np.linspace(1, 0, x_)[:, None]
+                    b_part[i0:i1] = b_part[i0:i1] * (1 - w_) + b_part[j0:j0 + i1 - i0] * w_
+                    break
+        if len(low):
+            print(f"伴奏破洞補了 {len(low)} 格（50 ms）", flush=True)
+    if not hold:
+        f = int(2 * barB * SR); b_part[-f:] *= np.linspace(1, 0, f)[:, None] ** 1.3
     ga = np.sqrt(np.mean(A["mix"][int(A["rows"][0]["start"] * SR):ia] ** 2))
     gb = np.sqrt(np.mean(B["mix"][int(b_first * SR):sw] ** 2))
     g = float(ga / gb)                                        # 兩人饒舌段一樣大聲
@@ -437,9 +502,30 @@ def audio():
     gap = np.zeros((int(pause * SR), 2), np.float32)
     if lead is not None:
         n = min(len(lead), len(gap)); gap[-n:] = lead[-n:] * g
+        if CFG.get("tail_ring", True):                         # 墊的 B 伴奏淡入（本分支才有的墊底，原本 20 ms 就進來）
+            f = min(int(1.2 * SR), n); gap[-n:][:f] *= np.linspace(0.1, 1, f)[:, None]
+    elif CFG.get("tail_ring", True):                           # B 前奏淡入，不要在 A 的殘響上突然進來（上游 e634cce）
+        f = int(1.2 * SR); b_part[:f] *= np.linspace(0.1, 1, f)[:, None]
     music = np.concatenate([np.zeros((int(PRE * SR), 2), np.float32), a_part, gap, b_part * g])
     music_end = len(music) / SR
     mix = np.concatenate([music, np.zeros((int(14 * SR), 2), np.float32)])
+    if CFG.get("tail_ring", True):                             # 殺句後不准突然切斷（使用者 2026-11-03）：最後一個字和收尾拍留殘響，蓋過硬停和換伴奏的落差；時間軸不動
+        from scipy.signal import fftconvolve
+        rng = np.random.default_rng(7)
+
+        def ring(seg, sec, wet):
+            n = int(sec * SR); tt = np.arange(n) / SR
+            out = []
+            for c in range(2):
+                ir = rng.standard_normal(n) * np.exp(-6.9 * tt / sec)
+                ir = np.convolve(ir, np.ones(9) / 9, "same")   # 去掉刺耳的高頻
+                out.append(fftconvolve(seg[:, c], ir / np.sqrt(np.sum(ir ** 2))))
+            return np.stack(out, 1).astype(np.float32) * wet
+
+        for t0, src, sec, wet in ((t_a + a_stop - 0.35, mA[ia - int(0.35 * SR):ia + int(HOLD * SR)], 3.4, 0.6),
+                                  (t_b + B["lw"] + 0.1 - 0.5, mB[sw - int(0.5 * SR):sw] * g, 3.0, 0.6)):
+            r = ring(src, sec, wet); i0 = int(t0 * SR); f = int(0.03 * SR); r[:f] *= np.linspace(0, 1, f)[:, None]
+            mix[i0:i0 + len(r)] += r[:max(0, len(mix) - i0)]
     voc = np.zeros_like(mix)
     voc[int(t_a * SR):int(t_a * SR) + ia] = A["voc"][:ia]
     vbb = B["voc"][:sw] * g; i0 = int(t_b * SR); voc[i0:i0 + len(vbb)] = vbb[:len(voc) - i0]
@@ -460,6 +546,34 @@ def audio():
         r = int(0.15 * SR); a0, a1 = max(0, i0 - r), min(len(mix), i0 + len(v) + r)
         env = np.ones(a1 - a0, np.float32) * 0.56; env[:r] = np.linspace(1, 0.56, r); env[-r:] = np.linspace(0.56, 1, r)
         mix[a0:a1] *= env[:, None]
+    if "verdict" in pos and CFG.get("verdict_bed", True):    # 定論口白很長：B 的尾奏淡出後墊 A 前奏的伴奏當底，−14 dB
+        # 〈Bravo 之戰〉v3 使用者聽出 3:49、3:55、3:58「跳接斷掉」：舊做法把 A 整段前奏直接循環（前奏中途鼓進來、有過門、
+        # 循環點沒對小節還帶到開頭 0.2 秒的靜音）。改成：前奏裡挑「每拍音量差 ≤6 dB、最安靜」的 2 小節（對小節線），等功率交叉 40 ms 循環。
+        bar_a = int(round(4 * A["period"] * SR)); lim = int((A["rows"][0]["start"] - 0.5) * SR); one = int(round(A["one"] * SR))
+        starts = [one - k_ * bar_a for k_ in range(1, 64) if one - k_ * bar_a >= 0 and one - k_ * bar_a + 2 * bar_a + int(0.05 * SR) <= lim]   # 小節線（從第一句的拍往回數）
+        def beat_db(s):
+            seg = mA[s:s + 2 * bar_a].mean(1); n_ = len(seg) // 8
+            return np.array([20 * np.log10(np.sqrt(np.mean(seg[i * n_:(i + 1) * n_] ** 2)) + 1e-9) for i in range(8)])
+        cand = [(float(np.ptp(beat_db(s))), float(beat_db(s).mean()), s) for s in starts]
+        steady = [c for c in cand if c[0] <= 6] or [c for c in cand if c[0] <= 12]
+        if not steady:
+            # 本分支加的：上游前奏不夠 2 小節時從 0 秒取，會把 A 開口後的人聲一起循環；YuE2 前奏常只有幾秒（〈微積分之戰〉實測每拍差 24–41 dB）
+            print(f"⚠ 定論墊底：A 前奏找不到平穩的 2 小節（候選 {len(cand)} 段），不墊（定論口白下面只剩 B 的尾奏，要人聽）", flush=True)
+        else:
+            spread, lvl, s_loop = min(steady, key=lambda c: c[1])
+            print(f"定論墊底：A 前奏 {s_loop / SR:.2f}–{(s_loop + 2 * bar_a) / SR:.2f} 秒（2 小節，每拍差 {spread:.1f} dB）循環", flush=True)
+            xl = int(0.04 * SR); unit = mA[s_loop:s_loop + 2 * bar_a + xl].copy()
+        v0, v1 = int(max(music_end - 3.0, pos["verdict"][0]) * SR), int((pos["verdict"][1] + 0.8) * SR)
+        if steady and v1 > v0:
+            bed = np.zeros((v1 - v0 + len(unit), 2), np.float32); fi = np.sin(np.linspace(0, np.pi / 2, xl))[:, None]; fo = fi[::-1]
+            for p_ in range(0, v1 - v0, 2 * bar_a):
+                u = unit.copy(); u[:xl] *= fi if p_ else 1; u[-xl:] *= fo; bed[p_:p_ + len(u)] += u
+            bed = bed[:v1 - v0] * 0.2
+            f = int(2.0 * SR); bed[:f] *= np.linspace(0, 1, f)[:, None]; bed[-f:] *= np.linspace(1, 0, f)[:, None]
+            if v1 > len(mix):
+                pad = v1 - len(mix) + SR
+                mix, voc, djw = (np.concatenate([z, np.zeros((pad, 2), np.float32)]) for z in (mix, voc, djw))
+            mix[v0:v1] += bed
     if "open" in pos and pos["open"][1] > t_a + A["rows"][0]["start"] - 0.2:
         print("⚠ DJ 開場口白壓到 A 第一句", pos["open"], flush=True)
     end_at = (pos["end"][1] if "end" in pos else music_end) + 8.0      # 片尾卡至少 8 秒
@@ -479,6 +593,7 @@ def audio():
         for ln, r in zip(lines_of(k), D[k]["rows"]):
             out.append({"who": k, "section": r["section"], "text": r["text"], "show": show_text(ln), "rhyme": ln.get("rhyme", ""),
                         "rhyme_show": rhyme_show(ln), "atk": ln.get("atk"), "start": round(r["start"] + off, 3),
+                        **({"show_start": round(r["show_start"] + off, 3)} if r.get("show_start") else {}),
                         "end": round(min(r["end"], cap) + off, 3),
                         "words": [{"w": w["w"], "s": round(w["s"] + off, 3), "e": round(min(w["e"], cap) + off, 3)} for w in r["words"]]})
         return out
@@ -623,9 +738,12 @@ def frame_prompt(s):
     if s["scene"] != "arena":
         text += "Here there is NO microphone, no DJ equipment and no stage light. "
     light = CFG["arena"]["light"] if s["scene"] == "arena" else CFG["places"][s["scene"]]["light"]
-    look = (CFG["film_look"] + f", {light}. HORIZONTAL 16:9 widescreen frame, the picture fills the ENTIRE frame edge to edge - NO black bars, "
+    insert = s["scene"] != "arena"                             # 插入鏡：film_look 提到饒舌手會在空景畫人、提到舞台地板會多一圈漆（〈向日葵之戰〉F02、F07、F34）
+    film = CFG.get("film_look_insert", CFG["film_look"]) if insert else CFG["film_look"]
+    no_text = CFG["no_text"].replace(CFG["arena_only"], "") if insert and CFG.get("arena_only") else CFG["no_text"]
+    look = (film + f", {light}. HORIZONTAL 16:9 widescreen frame, the picture fills the ENTIRE frame edge to edge - NO black bars, "
             "NO borders. ")
-    p = (keep + "New photo: " + text + look + CFG["no_text"]) if IMG == "qwen" else (text + look + CFG["no_text"] + keep)
+    p = (keep + "New photo: " + text + look + no_text) if IMG == "qwen" else (text + look + no_text + keep)
     return p, [r for _, r in refs]
 
 
@@ -699,9 +817,18 @@ def pron(k):
 
 
 @stage("specs")
+def need_fresh_audio():
+    """換了歌卻忘了跑 audio，specs、cut 會默默用舊混音（〈向日葵之戰〉v5 差點把舊音軌當新版交出去）。"""
+    mix = OUT / "audio" / "mix.wav"
+    newer = [r["song"] for r in R.values() if mix.exists() and (HERE / r["song"]).stat().st_mtime > mix.stat().st_mtime]
+    if newer or not mix.exists():
+        sys.exit(f"歌比 work/audio/mix.wav 新（{newer}）或還沒有混音：先跑 audio，再跑 specs、cut")
+
+
 def specs():
     """shots → work/h3/<鏡>/{spec.json, first.png, guide.wav, gen.json}。演唱鏡：對嘴音軌＝兩人人聲分軌（或 DJ 口白）那一段（audio.fixed）；
     無聲鏡：靜音、閉嘴。每鏡生成範圍＝[start−0.25, end+0.25]，17n+5 格、至少 73 格；預設 DMAD 4 步（draft）。雙人鏡只有第一位唱。"""
+    need_fresh_audio()
     import librosa
     import numpy as np
     import shutil
@@ -786,7 +913,9 @@ def specs():
         if s.get("last_first"):
             spec["last_frame"] = "first.png"                   # 尾幀＝首幀：防自己切鏡、冒旗子、冒道具（人會被鎖住不太動）
         (d / "gen.json").write_text(json.dumps({"clip_start": cs, "start": st, "end": en}), encoding="utf-8")
-        (d / "spec.json").write_text(json.dumps(spec, ensure_ascii=False, indent=1), encoding="utf-8")
+        new = json.dumps(spec, ensure_ascii=False, indent=1)
+        if not (d / "spec.json").exists() or (d / "spec.json").read_text(encoding="utf-8") != new:   # 內容沒變就不重寫（不然已做好的鏡會被重跑）
+            (d / "spec.json").write_text(new, encoding="utf-8")
     (OUT / "h3").mkdir(exist_ok=True)
     (OUT / "h3" / "timeline.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
     print(len(rows), "shots; H3 frames", sum(r["frames"] for r in rows), flush=True)
@@ -897,7 +1026,7 @@ def segment(s, seg_dir, vsr_dir):
         src, mode = first, "still" if s.get("still") else "stand-in"
     else:
         src, mode = None, "slate"
-    if src is not None and out.exists() and out.stat().st_mtime > src.stat().st_mtime and abs(dur(out) - n / FPS) < 0.05:
+    if src is not None and out.exists() and out.stat().st_mtime > src.stat().st_mtime and abs(dur(out) - n / FPS) < 0.5 / FPS:   # 差 1 格就重做：容許 0.05 秒時舊片段少 1 格沒重剪，累積到畫面比聲音早 3 格（〈瑜亮之戰〉v2 抓到）
         return out, mode
     if mode == "slate":
         sh_(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c=0x303030:s=1920x1080:r=24", "-vf",
@@ -908,7 +1037,7 @@ def segment(s, seg_dir, vsr_dir):
              "-c:v", "libx264", "-crf", "14", "-pix_fmt", "yuv420p", out])
     elif mode in ("still", "stand-in"):
         sh_(["ffmpeg", "-y", "-v", "error", "-loop", "1", "-i", src, "-vf",
-             f"{FIT},zoompan=z='1+0.0009*on':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1920x1080:fps=24,format=yuv420p",
+             f"{FIT},zoompan=z='1+{0.0003 if s.get('painting') else 0.0009}*on':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1920x1080:fps=24,format=yuv420p",   # 名畫慢推小一點，不切到畫邊
              "-frames:v", str(n), "-c:v", "libx264", "-crf", "14", out])
     else:
         v = clip
@@ -924,7 +1053,7 @@ def segment(s, seg_dir, vsr_dir):
     return out, mode
 
 
-def crowd_audio(total, attacks, end_still):
+def crowd_audio(total, attacks, end_still, roars=()):
     """觀眾聲：每次押韻攻擊後一聲歡呼、片尾墊歡呼（repo 的 sfx/歡呼，CC0）。H3 無聲鏡給的是靜音固定音軌，所以沒有原生人群聲。"""
     import numpy as np
     import soundfile as sf
@@ -943,7 +1072,11 @@ def crowd_audio(total, attacks, end_still):
         s = srcs[i % len(srcs)]; seg = s[int(0.3 * SR):int(2.3 * SR)].copy()
         f = int(0.4 * SR); seg[-f:] *= np.linspace(1, 0, f)[:, None]; g0 = int(0.05 * SR); seg[:g0] *= np.linspace(0, 1, g0)[:, None]
         i0 = int((a["t"] + 0.12) * SR); out[i0:i0 + len(seg)] += seg[:max(0, len(out) - i0)] * g
-    e0, e1 = max(0, int(end_still[0] * SR) - 4 * SR), int(end_still[1] * SR)
+    for r0, r1 in roars:                                       # 殺句後全場炸開：跟殘響一起接住硬停（DJ 開口前淡掉）
+        i0, i1 = int(r0 * SR), min(int(r1 * SR), len(out)); s = sum(np.resize(np.roll(q, int(q_i * 0.37 * SR), axis=0), (i1 - i0, 2)) for q_i, q in enumerate(srcs)) / np.sqrt(len(srcs)) * 10 ** (-17 / 20)   # 單一段歡呼斷斷續續（4:01 有空洞）→ 幾段疊起來才連續
+        f = int(0.2 * SR); s[:f] *= np.linspace(0, 1, f)[:, None]; f = int(1.6 * SR); s[-f:] *= np.linspace(1, 0, f)[:, None]
+        out[i0:i1] += s
+    e0, e1 = max(0, int(end_still[0] * SR) - int(0.2 * SR)), int(end_still[1] * SR)   # DJ 片尾口白講完才進歡呼（提早 4 秒會蓋掉「type PROVE」，2026-10-30）
     b = np.resize(np.concatenate(srcs), (e1 - e0, 2)) * 10 ** (-20 / 20)
     f = int(1.5 * SR); b[:f] *= np.linspace(0, 1, f)[:, None]; b[-f:] *= np.linspace(1, 0, f)[:, None]
     out[e0:e1] += b[:len(out) - e0]
@@ -952,6 +1085,7 @@ def crowd_audio(total, attacks, end_still):
 
 @stage("cut")
 def cut():
+    need_fresh_audio()
     import numpy as np
     import soundfile as sf
     import battle_gfx as gfx
@@ -989,12 +1123,13 @@ def cut():
          "-ar", str(SR), "-ac", "2", "-t", f"{total:.3f}", "-c:a", "pcm_f32le", ln])
     m, _ = sf.read(str(ln), dtype="float32", always_2d=True); m = m[:int(total * SR)]
     ev = gfx.build_events(CFG, timeline())
-    m = m + crowd_audio(total, ev["attacks"], end_still)[:len(m)]
+    mk = timeline()["marks"]
+    m = m + crowd_audio(total, ev["attacks"], end_still, roars=[(mk["a_stop"], mk["a_stop"] + 3.6), (mk["b_last"], mk["b_last"] + 3.2)])[:len(m)]
     raw = post / "final_raw.wav"; sf.write(raw, m, SR, subtype="FLOAT")
-    # 加了觀眾聲之後再對一次響度：量 → 固定增益 → 限幅（alimiter 一定要 level=false；0.78≈−2.2 dBFS，AAC 之後真峰值才會 ≤ −1）
+    # 加了觀眾聲之後再對一次響度：量 → 固定增益 → 限幅（alimiter 一定要 level=false；0.70≈−3.1 dBFS，AAC 之後真峰值才會 ≤ −1）
     gain = 0.0
     for _ in range(4):
-        r = subprocess.run(["ffmpeg", "-i", str(raw), "-af", f"volume={gain:.2f}dB,alimiter=limit=0.78:level=false:attack=2:release=80,ebur128",
+        r = subprocess.run(["ffmpeg", "-i", str(raw), "-af", f"volume={gain:.2f}dB,alimiter=limit=0.70:level=false:attack=2:release=80,ebur128",
                             "-f", "null", "-"], capture_output=True, text=True, encoding="utf-8", errors="replace")
         got = re.findall(r"I:\s*(-?[\d.]+) LUFS", r.stderr)
         got = float(got[-1]) if got else -16.0
@@ -1002,7 +1137,7 @@ def cut():
             break
         gain += -16.0 - got
     final_wav = post / "final_audio.wav"
-    sh_(["ffmpeg", "-y", "-v", "error", "-i", raw, "-af", f"volume={gain:.2f}dB,alimiter=limit=0.78:level=false:attack=2:release=80",
+    sh_(["ffmpeg", "-y", "-v", "error", "-i", raw, "-af", f"volume={gain:.2f}dB,alimiter=limit=0.70:level=false:attack=2:release=80",
          "-ar", str(SR), "-c:a", "pcm_s16le", final_wav])
 
     ov, spans = [], []                                         # 字卡（字幕交給 battle_gfx.render_fx）
@@ -1021,6 +1156,8 @@ def cut():
         else:
             boxes = sum((gfx.seg_faces(seg_dir / f"{s['id']}.mp4") for s in sp["shots"]), [])
             x, y = gfx.place(size, boxes)
+            if any(s.get("painting") for s in sp["shots"]):       # 名畫靠右，字卡放左邊空位（ROUND 角標下面），不蓋畫
+                x, y = 40, 150
         ov.append((p, sp["start"] + 0.15, sp["end"], int(x), int(y)))
         report.append(dict(card=sp["key"], start=sp["start"], end=sp["end"], xy=[int(x), int(y)], size=list(size)))
     (post / "card_layout.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -1044,12 +1181,50 @@ def cut():
 
 
 # ------------------------------------------------------------------------------------------------ 自審
+def audio_checks():
+    """使用者抓過的聲音問題自動查（review 會印）：濾掉 300 Hz 以下（手機喇叭放不出來）的單聲道音量破洞、突然掉音；最後一句之後人聲還在唱；對齊低分句。"""
+    import librosa
+    import numpy as np
+    from scipy.signal import butter, sosfilt
+    sr = 16000; m = timeline()["marks"]
+    y = sosfilt(butter(4, 300, "hp", fs=sr, output="sos"), librosa.load(str(OUT / "audio" / "mix.wav"), sr=sr, mono=True)[0])
+    db = lambda a: 20 * np.log10(np.sqrt(np.mean(a ** 2)) + 1e-7)
+    h = int(0.05 * sr); end = int(m["music_end"] * sr)
+    low = [db(y[i:i + h]) < -42 for i in range(0, end, h)]; holes = []; i = 0
+    while i < len(low):
+        j = i
+        while j < len(low) and low[j]:
+            j += 1
+        if (j - i) * 0.05 >= 0.1 and i > 0:
+            holes.append((round(i * 0.05, 2), round(j * 0.05, 2)))
+        i = max(j, i + 1)
+    e = [db(y[int(t * sr):int((t + 0.5) * sr)]) for t in np.arange(0, m["music_end"], 0.5)]
+    drops = [(round(k * 0.5, 1), round(float(e[k - 1] - e[k]), 1)) for k in range(1, len(e)) if e[k - 1] - e[k] >= 8]
+    rep = dict(holes=holes, drops=drops, tail={}, low_ok={})
+    (OUT / "review").mkdir(parents=True, exist_ok=True)
+    for k in R:
+        al = json.loads((OUT / "song" / f"align_{k}.json").read_text(encoding="utf-8")); rows = al["rows"]
+        v = librosa.load(al["vocals"], sr=sr, mono=True)[0]
+        sung = np.median([db(v[int(x["start"] * sr):int(x["end"] * sr)]) for x in rows if x["end"] - x["start"] > 0.3])
+        t0 = rows[-1]["end"] + 0.3; on = [t for t in np.arange(t0, len(v) / sr - 1, 1.0) if db(v[int(t * sr):int((t + 1) * sr)]) > sung - 8]
+        if len(on) >= 2:
+            rep["tail"][k] = (round(float(on[0]), 1), round(float(on[-1]) + 1, 1))
+        rep["low_ok"][k] = [(round(x["start"], 1), x["text"]) for x in rows if 0 <= x.get("ok", 1) < 0.3]
+    (OUT / "review" / "audio_check.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1), encoding="utf-8")
+    print("⚠ 音量／人聲檢查（每一條都要交代，見 review-checklist 第 H 節）：", flush=True)
+    print("  音量破洞（300 Hz 以上，秒）：", holes, flush=True)
+    print("  突然掉音（秒，掉幾 dB）：", drops, flush=True)
+    print("  最後一句之後人聲還在唱（歌曲時間）：", rep["tail"], flush=True)
+    print("  對齊低分句（一定要查，不准當成聽寫不準）：", rep["low_ok"], flush=True)
+
+
 @stage("review")
 def review():
     """每秒一格接觸表（時間碼・鏡號・當下歌詞）＋H3 自己切鏡偵測（用到的範圍內）＋響度。最後一定要人看完整成片。"""
     import numpy as np
     from PIL import Image, ImageDraw, ImageFont
     sys.path.insert(0, str(REPO / "tools")); from fonts import font   # noqa: E401
+    audio_checks()
     shots, end_still = resolve_shots(); tl = timeline()
     video = OUT / "cut" / f"{CFG['title']}_v{VER}_1920x1080.mp4"
     rv = OUT / "review" / f"fc_v{VER}"; rv.mkdir(parents=True, exist_ok=True)
@@ -1110,9 +1285,9 @@ def srt():
     def ts(t):
         t = max(0.0, t); h, r = divmod(t, 3600); m, s = divmod(r, 60)
         return f"{int(h):02d}:{int(m):02d}:{int(s):02d},{int(round((s - int(s)) * 1000)):03d}"
-    rows = [(l["start"], l["end"], f"{names[l['who']]}：{l['text'].replace('　', '，')}") for l in ev["lines"]]
+    rows = [(l["start"], l["end"], f"{names[l['who']]}：{l['text'].replace('　', '，').replace('？，', '？').replace('！，', '！')}") for l in ev["lines"]]
     if ev["beats3"]:
-        rows.append((ev["beats3"][0]["t"], ev["beats3"][-1]["t"] + 2.0, f"{names['J']}：" + "".join(b["text"] for b in ev["beats3"])))
+        rows.append((ev["beats3"][0]["t"], ev["beats3"][-1]["t"] + 2.0, f"{names['J']}：" + timeline()["dj"]["text"]["end"]))   # 字幕檔照實際念的（end_beats 只是畫面大字）
     rows.sort()
     p = OUT / "cut" / f"{CFG['title']}_v{VER}.srt"; p.parent.mkdir(exist_ok=True)
     p.write_text("\n".join(f"{i}\n{ts(a)} --> {ts(b)}\n{t}\n" for i, (a, b, t) in enumerate(rows, 1)), encoding="utf-8")

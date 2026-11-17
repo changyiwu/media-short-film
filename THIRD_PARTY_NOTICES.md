@@ -35,6 +35,8 @@
 | 動作 LoRA：JOKER141 Combat-Base-V2、GunFu、Motion-Continuity-Repair；RunningHubAI speed-slider-1.1 | **未標示授權**（等同保留所有權利）；同時是 H3 衍生作品 | 不明 | 只附連結、不轉散布；至少須遵守 H3 授權 | https://huggingface.co/JOKER141 、https://huggingface.co/RunningHubAI/rh-h3-speed-slider-1.1-lora |
 | 換角色 LoRA：Alissonerdx `minimax_h3_character_swap_v1.1_ref2va_fro`（`tools/h3_edit.py` 的 `"recipe": "body_swap"`，2026-11-07 從上游移植） | BFS Character Swap License | 可以（影片、電影可直接用；年營收超過 100 萬美元的組織要標示 Alissonerdx 與 BFS Character Swap LoRA；不可做成 API／SaaS 服務）；同時是 H3 衍生作品 | 只附下載清單 `setup/downloads_swap.json` | https://huggingface.co/Alissonerdx/Minimax-H3-ComfyUI/blob/main/LICENSE_CHARACTER_SWAP.md |
 | 換頭 LoRA：Alissonerdx `minimax_h3_head_swap_v1.0_r32`（`"recipe": "head_swap"`） | **未標示授權**（repo 的 LICENSES.md 只涵蓋換角色與動作遷移）；H3 衍生作品 | 不明 | 只附下載連結、不轉散布 | https://huggingface.co/Alissonerdx/Minimax-H3-ComfyUI |
+| CAM++ 聲紋模型 `campplus.onnx`（3D-Speaker；ComfyUI-Ming-3-tts 節點附的檔，饒舌範本 `voice_diff.py` 比人聲用，只算相似度） | Apache-2.0 | 可以 | 保留授權 | https://github.com/modelscope/3D-Speaker |
+| YOLO11 pose `yolo11x-pose.pt`（Ultralytics；饒舌範本 `finger_sheet.py` 選用，第一次執行自動下載） | **AGPL-3.0**（另有商業授權） | 本機自用可以；做成網路服務或散布要照 AGPL 開源 | 不附檔、不轉散布 | https://github.com/ultralytics/ultralytics |
 | SDPose（Comfy-Org 打包）、RT-DETRv4 | MIT／Apache-2.0（SD 底模授權未查） | 大致可以 | 保留授權 | https://huggingface.co/Comfy-Org/SDPose |
 | YuE2（選用） | CC BY-NC 4.0 | 不可以 | 署名、非商業 | https://huggingface.co/m-a-p |
 | OpenAI Image 2.5 API（選用，雲端） | OpenAI Services Agreement | 可以 | 產出歸客戶（第 4.1 條）；另須遵守 Usage Policies | https://cdn.openai.com/osa/openai-services-agreement.pdf |
@@ -49,6 +51,7 @@
 | nvidia-vfx（RTX Video Super Resolution） | NVIDIA 專有授權 | 不可放進 repo，請使用者自行 `pip install` | https://pypi.org/project/nvidia-vfx/ |
 | ostris/ai-toolkit | MIT（Copyright (c) 2024 Ostris, LLC） | 保留聲明 | https://github.com/ostris/ai-toolkit |
 | faster-whisper | MIT | — | https://github.com/SYSTRAN/faster-whisper |
+| ultralytics（選用，`finger_sheet.py`） | **AGPL-3.0** | Voice 環境預設不裝；要用的人自己 `pip install ultralytics`，本 repo 只 import、不含它的程式碼 | https://github.com/ultralytics/ultralytics |
 | python-audio-separator | MIT（README 請使用者標註 UVR 專案） | 建議在片尾或說明欄標註 | https://github.com/nomadkaraoke/python-audio-separator |
 | edge-tts | LGPL-3.0（套件）；**微軟朗讀服務沒有公開授權第三方使用** | 本 repo 只用它產生「發音對照」參考音、不放進成片；離線替代為 VoxCPM2 設計的播報聲音 | https://github.com/rany2/edge-tts |
 | Blender | GPL（只約束程式本身；算出的圖與 .blend 歸使用者） | 無 | https://www.blender.org/about/license/ |

@@ -54,6 +54,7 @@
   - [x] 歌詞送模型前繁轉簡（`tools/song_lyrics.py`）、歌曲聽寫改 Qwen3-ASR
   - [x] 比較 Qwen3-ForcedAligner 與 stable-ts，`make_battle.py`、`pick_song.py` 改用 Qwen（`stt.load_song_aligner()`）
   - [x] 〈微積分之戰〉定案 YuE2 歌，跑完 `songs dj audio`（影像階段不做：測試片，題材已有人做過）
+  - [x] 補移植上游到 `3aec3d1` 的對決音訊修正（殺句殘響、定論墊底、DJ 逐字字幕、聲音自動檢查）、自審與修歌工具、自審清單 H 節
   - [ ] 選新主題跑完整流程（`chars` 之後的階段還沒實跑）
 
 ## 資料夾結構

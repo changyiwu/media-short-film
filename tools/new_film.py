@@ -22,7 +22,8 @@ TEMPLATE = REPO / "pipeline" / "template_local"
 FILMS = REPO / "output"
 COPY = ["film.json", "make_film.py", "review.py"]
 BATTLE_KIND = "饒舌對決"  # 這個類型用 pipeline/template_battle/，流程見 rap-battle 技能
-BATTLE_COPY = ["battle.json", "make_battle.py", "battle_gfx.py"]
+# battle.json＋範本資料夾裡全部 .py（make_battle.py review 會 import dj_tail_check.py；自審與修歌工具也要在片子資料夾裡跑）
+BATTLE_COPY = ["battle.json"] + sorted(p.name for p in (REPO / "pipeline" / "template_battle").glob("*.py"))
 REQ_TEMPLATE = """# {name} 需求確認（{today}）
 
 ## 創作簡報

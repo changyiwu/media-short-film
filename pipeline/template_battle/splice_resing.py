@@ -1,6 +1,7 @@
 """把局部重唱的候選接回定稿：人聲連音樂整段換，接點自動找好。
 改寫自上游 pipeline/template_battle/splice_resing.py（上游 82e6f7a、b436b75，2026-11-08）：上游接 Suno 局部重唱（suno_replace.py，本分支沒移植）；
-本分支任何「同一首歌、同編曲」的重唱片段都能接（YuE2 重生、Suno 等）。分人聲改用 audio_separator API，分好的檔放 work/song/sep_takes/。
+本分支任何「同一首歌、同編曲」的重唱片段都能接（Suno 局部重唱等）；YuE2 換 seed 是另一首歌（旋律、編曲都不同），接不上。
+接之前先用 resing_lines.py 逐句比候選，接完重跑 songs，再跑 lyric_audit.py、gap_check.py。分人聲改用 audio_separator API，分好的檔放 work/song/sep_takes/。
 〈Bravo 之戰〉v3（2026-11-08）使用者聽出 2:51、2:55「音樂跳接」：舊做法固定接點＋固定時間差，接點落在字中間（「張揚」的「揚」切一半），
 候選的拍子在窗裡慢慢漂（窗頭對齊、窗尾差 16 ms）。這支改成：
   1. 每個版本先分人聲（BS-RoFormer，存 work/song/sep_takes/，只做一次）；
