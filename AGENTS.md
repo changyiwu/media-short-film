@@ -57,6 +57,10 @@
   - [x] 補移植上游到 `3aec3d1` 的對決音訊修正（殺句殘響、定論墊底、DJ 逐字字幕、聲音自動檢查）、自審與修歌工具、自審清單 H 節
   - [ ] 選新主題跑完整流程（`chars` 之後的階段還沒實跑）
 
+- [ ] 階段八：錄音室唱歌片（`pipeline/template_studio/`，古代人物在現代錄音室唱華語流行歌）
+  - [x] 單人錄音室範本 `make_studio.py`＋`studio.json`（改寫自饒舌範本），`new_film.py` 新增「錄音室」類型
+  - [ ] 〈別碰我的圓〉（阿基米德）試作：生歌（Music 3／YuE2 比較）→ 跑完整流程
+
 ## 資料夾結構
 ```
 README.md / AGENT_SETUP.md     專案說明、給 agent 的安裝手冊
@@ -67,7 +71,7 @@ tts-lexicon.md                 讀音替換表（多音字、英文詞 → TTS �
 docs/                          總覽、端到端流程、規則與踩坑、自審清單、安裝、角色與首幀、換角重製、硬體說明
 tools/                         全域工具（各腳本直接用這裡，不再複製到 C:\AI\tools）
 output/                         自己的片與角色資產（.gitignore，不進 repo；規則見 output/AGENTS.md）
-pipeline/                      template_local（新片範本）、template_battle（饒舌對決範本）、demo_local（安裝驗證）
+pipeline/                      template_local（新片範本）、template_battle（饒舌對決範本）、template_studio（單人錄音室唱歌範本）、demo_local（安裝驗證）
 setup/                         模型下載清單、套件清單、check_env（只讀環境核對）、smoke_test、硬體偵測、16GB 模擬測試
 cloud/                         H3 送 Google Colab 跑
 sfx/                           Freesound CC0 音效
@@ -126,6 +130,7 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 《臭豆腐》與〈測試_H3灰模動作參考〉是搬來的舊作，不是用 `make_film.py`／`h3_shot.py` 做的，結構不照範本（成品在 `media/`）；重現《臭豆腐》用它自己的 `build_seg.py`，舊產生器 `ref2va.py` 封存在該片的 `legacy/`，不要搬進 `tools/`，新片一律用 `tools/h3_shot.py`。
 - 頻道與角色的做片規則在 `output/AGENTS.md`（`output/CLAUDE.md` 橋接），只屬於某類影片的規則在 `output/<類型>/AGENTS.md`，角色資產在 `output/角色/`（各類型共用）；不要把這些寫進本檔或 `pipeline/`。
 - 饒舌對決放 `output/饒舌對決/<片名>/`，用 `tools/new_film.py 饒舌對決 <片名>` 建立（`pipeline/template_battle/`），流程照 `rap-battle` 技能。
+- 錄音室唱歌片（單人主唱）放 `output/錄音室/<片名>/`，用 `tools/new_film.py 錄音室 <片名>` 建立（`pipeline/template_studio/`），流程照該範本 `README.md`；生歌前先問有沒有 Suno，候選歌一律做試聽影片給使用者挑（`make_studio.py pick`）。
 - 照參考影片換主角（保留動作、背景、聲音）照 `docs/08_換角重製.md`：片子資料夾寫 `recast.json`，用 `tools/recast.py`（首幀、配音、各鏡 spec、H3、剪接）；不要走 `make_film.py` 的 h3 階段（它不會把 `control` 傳給 H3）。
 - 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `work/cut/film_1080p.mp4` 移到片子資料夾（`output/<類型>/<片名>/`）最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `.agents/skills/short-film/references/review.md`）。
 - 片尾是選用、預設不加：`film.json` 的 `ending.enabled` 為 true（或設 `ENDING=1`）才做片尾、接進成片。

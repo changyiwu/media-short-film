@@ -8,6 +8,7 @@
 - 另外建空的 需求確認.md、劇本.md、製作紀錄.md（需求確認表的欄位見 .agents/skills/short-film/references/interview.md）。
 - output/AGENTS.md 不存在時（新電腦、新頻道），從 templates/AGENTS_TEMPLATE.md 建一份，並加 CLAUDE.md 橋接。
 - output/<類型>/ 是新的時，建 output/<類型>/AGENTS.md（類型規則的空白範本）＋CLAUDE.md 橋接，並列出既有類型方便核對有沒有打錯字。
+- 類型「饒舌對決」改用 pipeline/template_battle/，類型「錄音室」改用 pipeline/template_studio/（studio.json＋make_studio.py）。
 - output/<類型>/<片名>/ 已存在就停下來，不覆蓋。
 """
 import json
@@ -24,6 +25,8 @@ COPY = ["film.json", "make_film.py", "review.py"]
 BATTLE_KIND = "饒舌對決"  # 這個類型用 pipeline/template_battle/，流程見 rap-battle 技能
 # battle.json＋範本資料夾裡全部 .py（make_battle.py review 會 import dj_tail_check.py；自審與修歌工具也要在片子資料夾裡跑）
 BATTLE_COPY = ["battle.json"] + sorted(p.name for p in (REPO / "pipeline" / "template_battle").glob("*.py"))
+STUDIO_KIND = "錄音室"  # 單人錄音室唱歌片用 pipeline/template_studio/
+STUDIO_COPY = ["studio.json", "make_studio.py"]
 REQ_TEMPLATE = """# {name} 需求確認（{today}）
 
 ## 創作簡報
@@ -109,6 +112,23 @@ def main():
         (dst / "製作紀錄.md").write_text(f"# {name}：製作紀錄\n\n## {date.today().isoformat()} 開新片\n\n- 從 pipeline/template_battle/ 建立。\n", encoding="utf-8")
         print(f"建立 output/{kind}/{name}/：{'、'.join(BATTLE_COPY)}、製作紀錄.md")
         print("battle.json 目前還是範例〈微積分之戰〉，要換成自己的；流程見 .agents/skills/rap-battle/SKILL.md。")
+        return
+    if kind == STUDIO_KIND:
+        for f in STUDIO_COPY:
+            shutil.copy2(REPO / "pipeline" / "template_studio" / f, dst / f)
+        text = (dst / "studio.json").read_text(encoding="utf-8")
+        text, n = re.subn(r'^(\s*"title":\s*)".*?"', lambda m: m.group(1) + json.dumps(name, ensure_ascii=False), text, count=1, flags=re.M)
+        if n != 1:
+            sys.exit("studio.json 找不到 title 欄位，範本格式可能改了")
+        (dst / "studio.json").write_text(text, encoding="utf-8")
+        today = date.today().isoformat()
+        (dst / "需求確認.md").write_text(REQ_TEMPLATE.format(name=name, today=today), encoding="utf-8")
+        (dst / "劇本.md").write_text(f"# {name}：歌詞\n\n> 定稿後填進 studio.json 的 lyrics（sing＝送去生歌的寫法、show＝字幕）。\n", encoding="utf-8")
+        (dst / "製作紀錄.md").write_text(f"# {name}：製作紀錄\n\n## {today} 開新片\n\n- 從 pipeline/template_studio/ 建立。\n", encoding="utf-8")
+        for c in created:
+            print("建立", c)
+        print(f"建立 output/{kind}/{name}/：{'、'.join(STUDIO_COPY)}、需求確認.md、劇本.md、製作紀錄.md")
+        print("studio.json 目前還是範例〈別碰我的圓〉（阿基米德），要換成自己的；流程見 pipeline/template_studio/README.md。")
         return
 
     for f in COPY:
