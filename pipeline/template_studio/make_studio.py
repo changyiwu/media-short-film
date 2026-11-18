@@ -14,6 +14,8 @@ stage（不給＝從 songs 依序跑到 srt；lyrics、music3、yue、pick 不�
   chars     從 output/角色/<角色>/ 複製轉面圖、表情表、臉部近照 → work/chars/S_<turn|expr|face>.png
   studio    錄音室母版（空景）→ work/scenes/studio.png
   frames    每鏡首幀 → work/first/<鏡>.png＋接觸表 work/first/_sheet.jpg（人工關卡 1）
+  fix       只修首幀局部：那鏡寫 "fix"（英文），拿現有首幀＋麥克風架參考圖修圖，舊圖留在 work/first/_old/
+  last      生自訂尾幀：那鏡寫 "last"（英文，鏡頭結束時哪裡不一樣），存 work/first/<鏡>_last.png，specs 當 H3 尾幀
   specs     每鏡 H3 spec（對嘴音軌、限制句）→ work/h3/<鏡>/
   h3        跑 H3 → work/h3/<鏡>/clip.mp4＋work/review/clips_*.jpg（人工關卡 2）
   cut       放大 → 剪接 → −16 LUFS → ASS 字幕（片名卡＋歌詞）→ work/cut/film_1080p.mp4＋手機版 film_phone.mp4
@@ -58,6 +60,12 @@ SR, FPS, W, H = 48000, 24, 1920, 1080
 S = CFG["singer"]
 DIST = {"ECU": "an extreme close-up of the face", "CU": "a close-up from the chest up", "MCU": "a medium close-up from the waist up",
         "MS": "a medium shot from the knees up", "WIDE": "a wide shot showing the whole booth"}
+# 中景、全景加正常成人比例（〈別碰我的圓〉O01 全身鏡上身短、腿過長、腰線太高，使用者退件）
+BODY = {"MS": " He is a TALL man, about 195 cm tall. Natural adult male body proportions: normal shoulder width, a normal-length torso, the waist at a natural height.",
+        "WIDE": " He is a TALL man, about 195 cm tall, with a long straight torso and long legs. Natural adult male body proportions as in the turnaround sheet: the head is about one-seventh of his whole height, normal "
+                "shoulder width, a normal-length torso, the waist (rope belt) at about the middle of his body, the legs NOT elongated. The "
+                "camera is at his chest height, a normal lens, no wide-angle distortion. The microphone stand's tripod base stands on the "
+                "floor right next to his feet, at the same distance from the camera as he is."}
 CLOSE = ("ECU", "CU", "MCU")
 SHEETS = {"turn": "turnaround sheet", "expr": "expression sheet", "face": "close-up face sheet"}
 SHEETS_BY_DIST = {"ECU": ["face", "expr"], "CU": ["face", "expr"], "MCU": ["face", "turn"], "MS": ["turn", "face"], "WIDE": ["turn", "face"]}
@@ -440,6 +448,20 @@ def studio():
     print("→ 看 work/scenes/studio.png：背景布顏色、麥克風、沒有人、沒有字和商標", flush=True)
 
 
+def rig_ref():
+    """從母版裁出麥克風架（studio.rig_crop＝[x0, y0, x1, y1]）放大兩倍 → work/scenes/rig.png。每張首幀多附它，
+    防噴罩蛇管、麥克風線的走法才會鏡鏡一樣（只附母版時麥克風架太小，近景會各畫各的）。換母版要刪 rig.png 重裁。"""
+    dst = OUT / "scenes" / "rig.png"
+    box = CFG["studio"].get("rig_crop")
+    if not box or dst.exists() or not (OUT / "scenes" / "studio.png").exists():
+        return dst if dst.exists() else None
+    from PIL import Image
+    im = Image.open(OUT / "scenes" / "studio.png").convert("RGB").crop(tuple(box))
+    im.resize((im.width * 2, im.height * 2), Image.LANCZOS).save(dst)
+    print("→ 看 work/scenes/rig.png：只有麥克風、防噴罩、吊桿和線", flush=True)
+    return dst
+
+
 def shot_sheets(s):
     names = s.get("sheets") or SHEETS_BY_DIST[s["dist"]]
     if any(n not in SHEETS for n in names) or not 1 <= len(names) <= 3:
@@ -458,10 +480,18 @@ def frame_prompt(s):
                     "background, labels or poses; the result is one single photo.")
     refs.append(OUT / "scenes" / "studio.png")
     keep.append(CFG["studio"]["keep"].replace("{ref}", f"<image{len(refs)}>"))
+    rig = rig_ref()
+    if rig and s.get("rig", True):   # 刻意鏡像的鏡（麥克風在另一邊）設 "rig": false
+        refs.append(rig)
+        keep.append(CFG["studio"]["rig_keep"].replace("{ref}", f"<image{len(refs)}>"))
     text = s["frame"] + " "
     if s.get("singer", True):
         text += S.get("studio_wear", "") + " "
+        if s.get("mic", True):   # 麥克風在嘴巴正前方、嘴巴高度、跟臉一樣長；主唱離開麥克風的鏡設 "mic": false
+            text += CFG["studio"].get("mic", "") + " "
     text += f"CAMERA DISTANCE: {DIST[s['dist']]}" + (" - the face is large and sharp, nothing between the subject and the camera. " if s["dist"] in CLOSE else ". ")
+    if s.get("singer", True):
+        text += BODY.get(s["dist"], "").strip() + " "
     p = (" ".join(keep) + " New photo: " + CFG["film_look"] + " " + text + CFG["studio"]["light"] + " HORIZONTAL 16:9 widescreen frame, the "
          "picture fills the ENTIRE frame edge to edge - NO black bars, NO borders. " + CFG["no_text"])
     return p, refs
@@ -484,8 +514,9 @@ def sheet(files, dst, cols=4, label=None):
 
 @stage("frames")
 def frames():
-    """每鏡首幀（still 的鏡也要首幀，cut 會用）。唱歌鏡畫「開口前」的姿勢；母版裡的背景布、麥克風、燈每鏡都一樣。"""
-    shots = resolve_shots()
+    """每鏡首幀（still 的鏡也要首幀，cut 會用）。唱歌鏡畫「開口前」的姿勢；母版裡的背景布、麥克風、燈每鏡都一樣。
+    首幀跟歌的時間無關：還沒定歌（沒有 timeline.json）也能先生，只是不檢查鏡長。"""
+    shots = resolve_shots() if (OUT / "audio" / "timeline.json").exists() else CFG["shots"]
     miss = [p.name for p in [OUT / "chars" / f"S_{n}.png" for n in SHEETS] + [OUT / "scenes" / "studio.png"] if not p.exists()]
     if miss:
         raise SystemExit(f"缺 {miss}：先跑 chars studio")
@@ -510,6 +541,64 @@ def frames():
     print(r.stdout[-1500:] if r.returncode == 0 else f"⚠ 首幀臉數檢查失敗（{r.returncode}），改人工看", flush=True)
     print("→ 人工關卡 1：看 work/first/_sheet.jpg（臉、服裝、耳機、麥克風位置、背景布顏色、多手多腳、背景字）。重畫：刪該鏡 png，"
           "studio.json 那鏡加 frame_seed_bump 或改 frame，再跑 frames", flush=True)
+
+
+@stage("fix")
+def fix():
+    """只修首幀的局部（線、桿子、耳機線這類小地方），其他照舊：studio.json 那鏡寫 "fix"（英文，只寫要改什麼）。
+    拿現有首幀＋麥克風架參考圖修圖，比整張重生穩（重生會連帶改掉已經對的地方）。舊圖移到 work/first/_old/；
+    work/first/_fixed.json 記每鏡修過的 fix 文字，同一句不會重修，要再修就改 fix 的寫法或刪掉那筆紀錄。"""
+    shots = CFG["shots"]
+    rec_f = OUT / "first" / "_fixed.json"
+    rec = json.loads(rec_f.read_text(encoding="utf-8")) if rec_f.exists() else {}
+    rig = rig_ref()
+    (OUT / "first" / "_old").mkdir(exist_ok=True)
+    for s in shots:
+        want = s.get("fix")
+        src = OUT / "first" / f"{s['id']}.png"
+        if not want or rec.get(s["id"]) == want or not src.exists():
+            continue
+        old = OUT / "first" / "_old" / f"{s['id']}_{time.strftime('%H%M%S')}.png"
+        shutil.copy2(src, old)
+        refs = [old] + ([rig] if rig and s.get("rig", True) else [])
+        p = ("Edit <image1>. Keep EVERYTHING in <image1> exactly the same - the same person, face, expression, pose, hands, clothes, "
+             "headphones, microphone, stand, pop filter, background, lighting, camera angle and framing - and change ONLY this: " + want +
+             (" <image2> is a close-up of the correct microphone rig, for reference only." if len(refs) > 1 else "") +
+             " HORIZONTAL 16:9 frame, same size as <image1>. " + CFG["no_text"])
+        (OUT / "first" / f"{s['id']}.fix.txt").write_text(p, encoding="utf-8")
+        cmd = [PYH3, T / "gen_image.py", "--model", "qwen-edit", "--width", "1344", "--height", "768", "--prompt", p,
+               "--seed", 6101 + zlib.crc32(s["id"].encode()) % 900, "--prefix", f"studio/fix_{s['id']}", "--out", OUT / "first"]
+        for r in refs:
+            cmd += ["--ref", r]
+        gen_img(cmd)
+        newest(OUT / "first").replace(src)
+        rec[s["id"]] = want
+        rec_f.write_text(json.dumps(rec, ensure_ascii=False, indent=1), encoding="utf-8")
+        print("fix", s["id"], flush=True)
+    sheet([OUT / "first" / f"{s['id']}.png" for s in shots], OUT / "first" / "_sheet.jpg")
+    print("→ 看 work/first/_sheet.jpg；修壞了就從 work/first/_old/ 拿回舊圖", flush=True)
+
+
+@stage("last")
+def last():
+    """生自訂尾幀：studio.json 那鏡寫 "last"（英文，只寫鏡頭結束時跟首幀不一樣的地方），拿首幀修成
+    work/first/<鏡>_last.png，specs 會把它當 H3 的尾幀。用在動作會改變外觀的鏡（拿下耳機）：只給首幀 H3 不知道結果
+    長什麼樣，會溶接、拉近或冒出第二副耳機；尾幀＝首幀又會把動作倒回去。要重生就刪掉那張 _last.png。"""
+    for s in CFG["shots"]:
+        want = s.get("last")
+        src, dst = OUT / "first" / f"{s['id']}.png", OUT / "first" / f"{s['id']}_last.png"
+        if not want or dst.exists() or not src.exists():
+            continue
+        p = ("Edit <image1>. The new picture is the LAST frame of the same continuous shot a few seconds later: keep the same person, "
+             "face, body proportions, clothes, microphone, stand, pop filter, cables, background, lighting, camera position, angle and "
+             "framing exactly the same as <image1> - and change ONLY this: " + want + " HORIZONTAL 16:9 frame, same size as <image1>. " +
+             CFG["no_text"])
+        (OUT / "first" / f"{s['id']}_last.txt").write_text(p, encoding="utf-8")
+        gen_img([PYH3, T / "gen_image.py", "--model", "qwen-edit", "--width", "1344", "--height", "768", "--prompt", p,
+                 "--seed", 6301 + zlib.crc32(s["id"].encode()) % 900, "--prefix", f"studio/last_{s['id']}", "--out", OUT / "first",
+                 "--ref", src])
+        newest(OUT / "first").replace(dst)
+        print("last", s["id"], flush=True)
 
 
 # ------------------------------------------------------------------------------------------------ H3
@@ -595,6 +684,9 @@ def specs():
                 "music": "N/A"}
         if s.get("last_first"):
             spec["last_frame"] = "first.png"                   # 尾幀＝首幀：防自己切鏡、冒道具（人會被鎖住不太動）
+        elif s.get("last") and (OUT / "first" / f"{sid}_last.png").exists():
+            shutil.copy2(OUT / "first" / f"{sid}_last.png", d / "last.png")   # 自訂尾幀（last 階段生）
+            spec["last_frame"] = "last.png"
         (d / "gen.json").write_text(json.dumps({"clip_start": cs, "start": st, "end": en}), encoding="utf-8")
         new = json.dumps(spec, ensure_ascii=False, indent=1)
         if not (d / "spec.json").exists() or (d / "spec.json").read_text(encoding="utf-8") != new:   # 內容沒變就不重寫（不然已做好的鏡會被重跑）
@@ -911,7 +1003,7 @@ def srt():
 
 
 ORDER = [songs, audio, chars, studio, frames, specs, h3, cut, review, srt]
-ALL = {f.__name__: f for f in ORDER + [lyrics, music3, yue, pick]}
+ALL = {f.__name__: f for f in ORDER + [lyrics, music3, yue, pick, fix, last]}
 
 if __name__ == "__main__":
     sys.path.insert(0, str(HERE))
