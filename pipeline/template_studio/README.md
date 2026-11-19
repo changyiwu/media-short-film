@@ -6,7 +6,7 @@
 
 範例 `studio.json`＝〈別碰我的圓〉（阿基米德，16 句主副歌＋橋段＋尾段、30 鏡）。
 
-類型規則（不沿用 THE FIRST TAKE 名稱、結尾自我揭穿殺句、傳說在說明欄標明）在 `output/錄音室/AGENTS.md`。
+類型規則（不沿用 THE FIRST TAKE 名稱、結尾自我揭穿殺句、傳說在說明欄標明，以及〈別碰我的圓〉的 H3 踩坑）在 `templates/kinds/錄音室.md`；`new_film.py` 第一次建「錄音室」類型時複製成 `output/錄音室/AGENTS.md`。持續出現的道具（耳機、麥克風組）要先做道具參考圖，做法見 `docs/07_角色與首幀.md` §6。
 
 ## 用法
 
@@ -24,10 +24,11 @@
    %PY_VOICE% make_studio.py pick              :: 排序＋每首一支試聽影片 work/試聽/
    ```
    **人看著 `work/試聽/` 的影片聽完挑一首**，把 `work/gen/pick.json` 那首的 `file` 填進 `studio.json` 的 `song`。
-5. `make_studio.py songs audio chars studio frames` → **人工關卡 1**：`work/scenes/studio.png`（背景布、麥克風、沒有人和字）、`work/first/_sheet.jpg`（每鏡首幀）。重畫：刪那張 png，那鏡加 `frame_seed_bump` 或改 `frame`，再跑 `frames`。
-6. `make_studio.py specs h3` → **人工關卡 2**：`work/review/clips_*.jpg`。重拍：那鏡加 `seed_bump`（會切鏡的再加 `last_first: true`），再跑 `specs h3`。
-7. `make_studio.py cut review srt` → **人工關卡 3**：看 `work/review/fc_v1/sheet_*.jpg`，**最後一定要人看完整成片** `work/cut/film_1080p.mp4`。改版：`--ver 2`（輸出 `film_v2_1080p.mp4`）。
-8. 成片定案照專案規則：使用者說可以才把 `work/cut/film_1080p.mp4` 移到片子資料夾最上層改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`），生成 `發布資訊.md`。
+5. 道具參考圖（`output/道具/<道具>/` 的 `_views.png`、`_detail.png`）複製到 `work/props/`，`studio.json` 的 `props` 列出。`make_studio.py songs audio chars studio frames` → **人工關卡 1**：`work/scenes/studio.png`（背景布、麥克風、沒有人和字）、`work/first/_sheet.jpg`（每鏡首幀）。**把每鏡的道具區域裁出來拼一張表，跟道具參考圖逐鏡比**（耳機出線、麥克風線、蛇管）。重畫整張：刪那張 png，那鏡加 `frame_seed_bump` 或改 `frame`，再跑 `frames`；只錯一個小地方：那鏡寫 `fix`（只寫要改什麼），跑 `fix`（拿現有首幀＋道具參考圖局部修，舊圖移到 `work/first/_old/`）。
+6. 動作會改變外觀的鏡（拿下耳機）寫 `last`，跑 `make_studio.py last` 生自訂尾幀 `work/first/<鏡>_last.png`，先給人看。
+7. `make_studio.py specs h3` → **人工關卡 2**：`work/review/clips_*.jpg`（另外每鏡抽 8～12 格看線材、色調、疊影、紅光）。重拍：先把 `work/h3/<鏡>/clip.mp4` 移走（`spec.json` 沒變不會重拍），那鏡加 `seed_bump`（會切鏡、推近的再加 `last_first: true`＋鎖死的 `camera`），再跑 `ONLY=<鏡號…> make_studio.py specs h3`。
+8. `make_studio.py cut review srt` → **人工關卡 3**：看 `work/review/fc_v1/sheet_*.jpg`，**最後一定要人看完整成片** `work/cut/film_1080p.mp4`。改版：`--ver 2`（輸出 `film_v2_1080p.mp4`）。
+9. 成片定案照專案規則：使用者說可以才把 `work/cut/film_1080p.mp4` 移到片子資料夾最上層改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`），生成 `發布資訊.md`。
 
 不給 stage 就從 `songs` 依序跑到 `srt`（生歌的 `lyrics music3 yue pick` 要手動跑）。已存在的輸出會跳過，中斷後重跑會接著做。還沒跑 H3 的鏡，`cut` 會用首幀靜態圖代替（沒有首幀就用灰底鏡號），可以先看節奏。
 
@@ -53,7 +54,8 @@
 | `singer` | `name`、`code`（定妝檔名前綴）、`char_dir`（相對片子資料夾的角色資料夾）、`pronoun`、`look`（照抄角色 README）、`studio_wear`（耳機等錄音室穿戴，每張首幀加在 frame 後面）、`desc`（H3 短描述）、`perform`（唱歌鏡的表演句，接在 action 後面） |
 | `studio` | `master`（錄音室空景提示詞）、`keep`（首幀鎖定句，`{ref}`＝母版圖號）、`light`、`setting`／`style`／`keep_h3`（H3 用） |
 | `film_look`、`no_text` | 首幀電影感句、不要字的句子 |
-| `title_card` | 片名卡：`series`（左上系列名）、`text`（歌名）、`sub`（主唱）、`sec`（出現到第幾秒；前奏比它短就在前面墊靜音）、`color`（ASS 的 &HBBGGRR） |
+| `title_card` | 片名卡：`series`（左上系列名）、`text`（歌名）、`sub`（主唱）、`sec`（前奏比它短就在前面墊靜音；也是字卡預設消失的秒數）、`color`（ASS 的 &HBBGGRR）。兩側版型（人走在中間不擋字）：`layout: "sides"`、`left`／`right`（每行 `[文字, 字級, "acc"/"white"/"gray"/&H色碼]`）、`start`、`end`（字卡留到第幾秒，不影響音訊時間軸；開場走進來的鏡建議留到該鏡結束）、`side_margin` |
+| `props` | 道具參考圖：`[{name, views, detail, keep}]`，圖放 `work/props/`；近景（ECU／CU／MCU）附 `detail`、其他附 `views`，`keep` 是加進首幀提示詞的那句話。做法見 `docs/07` §6 |
 | `subs` | 歌詞字幕：`size`、`margin`、`color`、`english`（true＝每句的 `en` 當第二行） |
 | `song_style` | `music3`（Music 3 caption：Genre／Vocal／Arrangement）、`yue`（YuE2 英文逗號標籤，語言放第一個、最後寫 BPM） |
 | `show_replace` | `sing`→字幕的替換表（國字數字→阿拉伯數字、同音字→原字） |
@@ -74,7 +76,9 @@
 | `frame` | 首幀描述（英文，畫開口前的姿勢） |
 | `action` | H3 動作（`Starting from <Picture 1>, …`，慢而清楚） |
 | `camera` | 選填，預設三腳架極慢推近 |
-| `still`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump`、`last_first` | 首幀靜態慢推、慢動作、`false`＝14 步、額外限制句、換 H3 seed、換首幀 seed、尾幀＝首幀 |
+| `still`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump`、`last_first` | 首幀靜態慢推、慢動作（也會把唱歌嘴型壓小）、`false`＝14 步、額外限制句、換 H3 seed、換首幀 seed、尾幀＝首幀（要同時把 `camera` 寫成鎖死） |
+| `fix` | 首幀局部修圖：只寫要改什麼（英文），`fix` 階段拿現有首幀＋麥克風組／道具參考圖修；`work/first/_fixed.json` 記修過的句子，同一句不重修 |
+| `last`、`last_seed_bump` | 自訂尾幀：寫鏡頭結束時哪裡不一樣（英文），`last` 階段從首幀生 `work/first/<鏡>_last.png`；要重生就刪那張圖 |
 
 ## 輸出（`work/`）
 
@@ -82,4 +86,6 @@
 
 ## 驗證紀錄
 
-2026-11-18 寫成，只做過不用顯卡的乾跑（設定檔讀取、歌詞檔、鏡表時間換算、字幕檔），生歌、首幀、H3、剪接還沒實跑。
+2026-11-18 寫成，只做過不用顯卡的乾跑（設定檔讀取、歌詞檔、鏡表時間換算、字幕檔）。
+
+2026-11-19 〈別碰我的圓〉（Music 3 生歌、31 鏡、167 秒）跑完 `frames` 到 `srt` 全程。實測加上 `fix`、`last`、`props`、兩側片名卡；踩到的坑寫在 `templates/kinds/錄音室.md` 與 `docs/03`（§3b 道具、§4 H3）。每鏡 H3 約 3～6 分鐘、全身走路鏡約 11 分鐘（RTX 5060 Ti 16GB，DMAD 4 步）。

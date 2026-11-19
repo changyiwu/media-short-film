@@ -2,7 +2,8 @@
 
 用法：python tools/new_film.py <類型> <片名>     例：python tools/new_film.py 數學故事 埃拉托賽尼的篩子
 
-- 類型是影片類型的資料夾（例：數學故事、換角重製、原創短劇、測試），各類型專屬的規則寫在 output/<類型>/AGENTS.md。
+- 類型是影片類型的資料夾（例：數學故事、換角重製、原創短劇、測試），各類型專屬的規則寫在 output/<類型>/AGENTS.md
+  （第一次建這個類型時，templates/kinds/<類型>.md 有就照它，沒有就用空白範本）。
 - 只複製 film.json、make_film.py、review.py（跳過 work/、__pycache__、README.md；說明請看範本的 README.md）。
 - film.json 的 title 換成片名，repo_dir 改成 "../../.."（片子在 repo 下三層）。
 - 另外建空的 需求確認.md、劇本.md、製作紀錄.md（需求確認表的欄位見 .agents/skills/short-film/references/interview.md）。
@@ -69,8 +70,8 @@ REPO_DIR = "../../.."
 
 
 def check_name(label, v):
-    if not v or any(c in v for c in BAD_CHARS) or v in (".", "..") or v == "角色":
-        sys.exit(f"{label}不能用：{v!r}（不能空白、不能含 {BAD_CHARS}，也不能叫「角色」）")
+    if not v or any(c in v for c in BAD_CHARS) or v in (".", "..", "角色", "道具"):
+        sys.exit(f"{label}不能用：{v!r}（不能空白、不能含 {BAD_CHARS}，也不能叫「角色」「道具」）")
 
 
 def main():
@@ -93,10 +94,12 @@ def main():
         created += ["output/AGENTS.md（從 templates/AGENTS_TEMPLATE.md 建立，請改成自己的頻道規則）", "output/CLAUDE.md"]
 
     if not (kind_dir / "AGENTS.md").exists():
-        others = sorted(p.name for p in FILMS.iterdir() if p.is_dir() and p.name != "角色" and p.name != kind)
+        others = sorted(p.name for p in FILMS.iterdir() if p.is_dir() and p.name not in ("角色", "道具", kind))
         print(f"新類型「{kind}」；既有類型：{'、'.join(others) or '（無）'}。打錯字的話刪掉 output/{kind}/ 重跑。")
         kind_dir.mkdir(parents=True, exist_ok=True)
-        (kind_dir / "AGENTS.md").write_text(KIND_TEMPLATE.format(kind=kind), encoding="utf-8")
+        preset = REPO / "templates" / "kinds" / f"{kind}.md"   # 已經累積規則的類型（數學故事、錄音室、換角重製）
+        text = preset.read_text(encoding="utf-8") if preset.exists() else KIND_TEMPLATE.format(kind=kind)
+        (kind_dir / "AGENTS.md").write_text(text, encoding="utf-8")
         (kind_dir / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
         created += [f"output/{kind}/AGENTS.md（類型規則，請寫上這類片的規則）", f"output/{kind}/CLAUDE.md"]
 

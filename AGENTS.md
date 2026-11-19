@@ -75,7 +75,7 @@ pipeline/                      template_local（新片範本）、template_battl
 setup/                         模型下載清單、套件清單、check_env（只讀環境核對）、smoke_test、硬體偵測、16GB 模擬測試
 cloud/                         H3 送 Google Colab 跑
 sfx/                           Freesound CC0 音效
-templates/                     片尾範本、法陣素材、AGENTS_TEMPLATE.md（做片入口範本）、發布資訊範本.md（YouTube／FB／IG／Threads；五個媒體專案各一份、內容逐位元組相同，正本在 media-youtube-publish 的 `skills/youtube-long/references/`，改正本再整份覆蓋，不在本專案就地改）
+templates/                     片尾範本、法陣素材、AGENTS_TEMPLATE.md（做片入口範本）、kinds/（各影片類型的規則，new_film.py 建類型時複製）、發布資訊範本.md（YouTube／FB／IG／Threads；五個媒體專案各一份、內容逐位元組相同，正本在 media-youtube-publish 的 `skills/youtube-long/references/`，改正本再整份覆蓋，不在本專案就地改）
 .agents/skills/                專案層級技能：short-film（做片全流程：開新片、訪談、編劇、預演、製作、自審）、rap-battle（饒舌對決）；不裝全域，見〈技能路由〉
 configs/profile.cmd            桌機（16GB VRAM＋64GB RAM）環境變數
 configs/profile_rtxspark.cmd   RTX Spark 筆電（Windows on Arm＋64GB 統一記憶體）環境變數
@@ -135,6 +135,8 @@ setup/spark_check.py、setup/env/arm64/   RTX Spark 相容性檢查與 ARM64 套
 - 成片定案：自審完問使用者「可以成片嗎？」，說可以才把 `work/cut/film_1080p.mp4` 移到片子資料夾（`output/<類型>/<片名>/`）最上層、改名 `<片名>.mp4`（手機版 `<片名>_手機版.mp4`）並生成 `發布資訊.md`；之前都維持 `film_1080p.mp4`（細節見 `.agents/skills/short-film/references/review.md`）。
 - 片尾是選用、預設不加：`film.json` 的 `ending.enabled` 為 true（或設 `ENDING=1`）才做片尾、接進成片。
 - `output/AGENTS.md` 是從 `templates/AGENTS_TEMPLATE.md` 改寫的獨立檔：改了範本裡的通用規則，要手動同步過去。
+- **做片得到的經驗一律寫回 repo**（`output/` 不進 git，本 repo 公開，只寫在 `output/` 別人拿不到）：通用的做法規則寫 `docs/03_規則與踩坑.md`、做法細節寫對應的 `docs/`（道具參考圖在 `docs/07` §6），只屬於某類影片的寫 `templates/kinds/<類型>.md` 再同步到 `output/<類型>/AGENTS.md`，範本專屬的用法寫該範本的 `README.md`；`output/AGENTS.md` 只留頻道自己的規則。寫回時不放個人資訊。
+- 持續出現的道具跟角色一樣放 `output/道具/<道具>/`（多角度總覽＋細部特寫＋鎖定描述），做法照 `docs/07` §6。
 - 技能只放專案的 `.agents/skills/`，不用 skill-sync 裝到任何 agent 的全域目錄，也不另建 `.claude/skills/` 副本或符號連結（雲端硬碟不同步符號連結）；改完直接生效，不用「同步技能」。技能要用的腳本照舊放 `tools/`，SKILL.md 從當前目錄往上找 repo 根。
 
 ## 技能路由（四個 Agent 共用）

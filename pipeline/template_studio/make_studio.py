@@ -462,6 +462,26 @@ def rig_ref():
     return dst
 
 
+PROP_CLOSE = {"ECU", "CU", "MCU"}
+
+
+def prop_refs(s, n0):
+    """道具參考圖（studio.json 的 props，每個 {"name", "views", "detail", "keep"}；圖放 work/props/，從 output/道具/<道具>/ 複製）。
+    近景附 detail（細部），中景、全身附 views（多角度）；那鏡寫 "props": [] 就不附。n0＝前面已經有幾張參考圖。
+    回傳 (參考圖清單, 提示詞句子清單)：持續出現的道具只靠文字描述，細部會一鏡一個樣（output/AGENTS.md〈道具參考圖〉）。"""
+    refs, keep = [], []
+    want = s.get("props")
+    for pr in CFG.get("props", []):
+        if want is not None and pr["name"] not in want:
+            continue
+        f = OUT / "props" / pr["detail" if s.get("dist") in PROP_CLOSE and pr.get("detail") else "views"]
+        if not f.exists():
+            continue
+        refs.append(f)
+        keep.append(pr["keep"].replace("{ref}", f"<image{n0 + len(refs)}>"))
+    return refs, keep
+
+
 def shot_sheets(s):
     names = s.get("sheets") or SHEETS_BY_DIST[s["dist"]]
     if any(n not in SHEETS for n in names) or not 1 <= len(names) <= 3:
@@ -484,6 +504,8 @@ def frame_prompt(s):
     if rig and s.get("rig", True):   # 刻意鏡像的鏡（麥克風在另一邊）設 "rig": false
         refs.append(rig)
         keep.append(CFG["studio"]["rig_keep"].replace("{ref}", f"<image{len(refs)}>"))
+    if s.get("singer", True):
+        pr, pk = prop_refs(s, len(refs)); refs += pr; keep += pk
     text = s["frame"] + " "
     if s.get("singer", True):
         text += S.get("studio_wear", "") + " "
@@ -561,10 +583,11 @@ def fix():
         old = OUT / "first" / "_old" / f"{s['id']}_{time.strftime('%H%M%S')}.png"
         shutil.copy2(src, old)
         refs = [old] + ([rig] if rig and s.get("rig", True) else [])
+        note = " <image2> is a close-up of the correct microphone rig, for reference only." if len(refs) > 1 else ""
+        pr, pk = prop_refs(s, len(refs)); refs += pr
         p = ("Edit <image1>. Keep EVERYTHING in <image1> exactly the same - the same person, face, expression, pose, hands, clothes, "
              "headphones, microphone, stand, pop filter, background, lighting, camera angle and framing - and change ONLY this: " + want +
-             (" <image2> is a close-up of the correct microphone rig, for reference only." if len(refs) > 1 else "") +
-             " HORIZONTAL 16:9 frame, same size as <image1>. " + CFG["no_text"])
+             note + (" " + " ".join(pk) if pk else "") + " HORIZONTAL 16:9 frame, same size as <image1>. " + CFG["no_text"])
         (OUT / "first" / f"{s['id']}.fix.txt").write_text(p, encoding="utf-8")
         cmd = [PYH3, T / "gen_image.py", "--model", "qwen-edit", "--width", "1344", "--height", "768", "--prompt", p,
                "--seed", 6101 + zlib.crc32(s["id"].encode()) % 900, "--prefix", f"studio/fix_{s['id']}", "--out", OUT / "first"]
@@ -593,10 +616,15 @@ def last():
              "face, body proportions, clothes, microphone, stand, pop filter, cables, background, lighting, camera position, angle and "
              "framing exactly the same as <image1> - and change ONLY this: " + want + " HORIZONTAL 16:9 frame, same size as <image1>. " +
              CFG["no_text"])
+        pr, pk = prop_refs(s, 1)
+        p += (" " + " ".join(pk)) if pk else ""
         (OUT / "first" / f"{s['id']}_last.txt").write_text(p, encoding="utf-8")
-        gen_img([PYH3, T / "gen_image.py", "--model", "qwen-edit", "--width", "1344", "--height", "768", "--prompt", p,
-                 "--seed", 6301 + zlib.crc32(s["id"].encode()) % 900, "--prefix", f"studio/last_{s['id']}", "--out", OUT / "first",
-                 "--ref", src])
+        cmd = [PYH3, T / "gen_image.py", "--model", "qwen-edit", "--width", "1344", "--height", "768", "--prompt", p,
+               "--seed", 6301 + zlib.crc32(s["id"].encode()) % 900 + int(s.get("last_seed_bump", 0)), "--prefix", f"studio/last_{s['id']}",
+               "--out", OUT / "first", "--ref", src]
+        for r in pr:
+            cmd += ["--ref", r]
+        gen_img(cmd)
         newest(OUT / "first").replace(dst)
         print("last", s["id"], flush=True)
 
@@ -838,12 +866,23 @@ Style: En,{FONT},{int(sub.get('size', 58) * 0.62)},{en_col},{en_col},&H00202020,
 Style: Series,{FONT},40,{acc},{acc},&H00202020,&H00000000,1,0,0,0,100,100,6,0,1,2,0,7,70,70,60,1
 Style: Title,{FONT},96,&H00FFFFFF,&H00FFFFFF,&H00202020,&H00000000,1,0,0,0,100,100,8,0,1,4,1,1,90,90,170,1
 Style: Who,{FONT},48,{acc},{acc},&H00202020,&H00000000,1,0,0,0,100,100,4,0,1,3,0,1,90,90,110,1
+Style: SideL,{FONT},60,&H00FFFFFF,&H00FFFFFF,&H00202020,&H00000000,1,0,0,0,100,100,4,0,1,3,1,4,{tc.get('side_margin', 110)},90,0,1
+Style: SideR,{FONT},60,&H00FFFFFF,&H00FFFFFF,&H00202020,&H00000000,1,0,0,0,100,100,4,0,1,3,1,6,90,{tc.get('side_margin', 110)},0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     ev = []
-    if tc.get("text"):
+    if tc.get("layout") == "sides":
+        # 兩側版型：人物資訊在左、歌名在右，人走在中間不擋字。每行 [文字, 字級, 顏色(acc／white／gray)]
+        a, b = float(tc.get("start", 0.8)), float(tc.get("end", tc.get("sec", 8.0))); fade = "{\\fad(700,700)}"
+        cols = {"acc": acc, "white": "&H00FFFFFF", "gray": "&H00C8C8C8"}
+        for side, style in (("left", "SideL"), ("right", "SideR")):
+            rows = tc.get(side) or []
+            if rows:
+                txt = "\\N".join(f"{{\\fs{r[1]}\\c{cols.get(r[2], r[2])}}}{r[0]}" for r in rows)
+                ev.append(f"Dialogue: 0,{ts_ass(a)},{ts_ass(b)},{style},,0,0,0,,{fade}{txt}")
+    elif tc.get("text"):
         a, b = 0.3, float(tc.get("sec", 4.0)); fade = "{\\fad(400,500)}"
         ev.append(f"Dialogue: 0,{ts_ass(a)},{ts_ass(b)},Series,,0,0,0,,{fade}{tc.get('series', '')}")
         ev.append(f"Dialogue: 0,{ts_ass(a)},{ts_ass(b)},Title,,0,0,0,,{fade}{tc['text']}")
