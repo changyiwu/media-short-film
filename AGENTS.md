@@ -60,7 +60,7 @@
 - [ ] 階段八：錄音室唱歌片（`pipeline/template_studio/`，古代人物在現代錄音室唱華語流行歌）
   - [x] 單人錄音室範本 `make_studio.py`＋`studio.json`（改寫自饒舌範本），`new_film.py` 新增「錄音室」類型
   - [x] 〈別碰我的圓〉（阿基米德）成片 167 秒＋發布資訊＋封面；新增直排片名卡、片尾曲目卡、牙齒自審 `tools/teeth_sheet.py`
-  - [ ] 〈別碰我的圓〉Shorts（開場縮短、直式字卡；唱歌片能不能裁切待定）
+  - [x] 〈別碰我的圓〉第 2 版定案（第一鏡空景＋走進來）＋Shorts（裁 9:16、67 秒、`work/shorts/make_shorts.py`）
 
 - [x] 規則總整理：通用規則 `docs/rules/`、類型 `kinds/`（`new_film.py` 讀 `kinds.json`）、H3 步數共用 `tools/h3_steps.py`；踩坑經過搬到 Obsidian
 
