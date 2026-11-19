@@ -862,24 +862,25 @@ def title_vertical(tc):
     look = "\\bord0\\shad2\\4a&H90&"
     ev = []
 
-    def d(a, body):
-        ev.append(f"Dialogue: 1,{ts_ass(a)},{ts_ass(end)},Series,,0,0,0,,{body}")
+    def d(a, body, b=None):
+        ev.append(f"Dialogue: 1,{ts_ass(a)},{ts_ass(b or end)},Series,,0,0,0,,{body}")
 
-    def rise(a, an, px, py, txt, fs, col, font=serif, sp=0, bold=False):
+    def rise(a, an, px, py, txt, fs, col, font=serif, sp=0, bold=False, b=None):
         d(a, "{" + f"\\an{an}\\move({px},{py + 16},{px},{py},0,700)\\fad(700,800)\\fn{font}\\fs{fs}\\c{col}\\fsp{sp}"
-          + ("\\b1" if bold else "\\b0") + look + "}" + txt)
+          + ("\\b1" if bold else "\\b0") + look + "}" + txt, b)
 
-    def bar(a, px, py, w, h, horizontal=True):
+    def bar(a, px, py, w, h, horizontal=True, b=None):
         c0 = f"\\clip({px},{py - 2},{px + 1},{py + h + 2})" if horizontal else f"\\clip({px - 2},{py},{px + w + 2},{py + 1})"
         c1 = f"\\clip({px},{py - 2},{px + w},{py + h + 2})" if horizontal else f"\\clip({px - 2},{py},{px + w + 2},{py + h})"
         d(a, "{" + f"\\an7\\pos({px},{py})\\p1\\c{gold}\\bord0\\shad0\\fad(0,800){c0}\\t(0,1000,{c1})" + "}"
-          + f"m 0 0 l {w} 0 {w} {h} 0 {h}" + "{\\p0}")
+          + f"m 0 0 l {w} 0 {w} {h} 0 {h}" + "{\\p0}", b)
 
     a = float(tc.get("left_start", tc.get("start", 0.8)))
-    rise(a, 1, x, 500, tc.get("name", ""), 92, white, sp=14, bold=True)
-    bar(a + 0.35, x + 4, 528, 300, 2)
-    rise(a + 0.6, 7, x + 2, 548, tc.get("name_en", "").upper(), 36, gold, font=latin, sp=16)
-    rise(a + 0.85, 7, x + 2, 602, tc.get("info", ""), 34, gray, sp=4)
+    le = float(tc["left_end"]) if tc.get("left_end") else None    # 左側可以比右側早收（人走進來前淡出）
+    rise(a, 1, x, 500, tc.get("name", ""), 92, white, sp=14, bold=True, b=le)
+    bar(a + 0.35, x + 4, 528, 300, 2, b=le)
+    rise(a + 0.6, 7, x + 2, 548, tc.get("name_en", "").upper(), 36, gold, font=latin, sp=16, b=le)
+    rise(a + 0.85, 7, x + 2, 602, tc.get("info", ""), 34, gray, sp=4, b=le)
     r = float(tc.get("start", 0.8))
     title = tc.get("text", "")
     rise(r, 9, xr, 236, "\\N".join(title), 96, white, bold=True)

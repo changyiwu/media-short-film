@@ -54,7 +54,7 @@
 | `singer` | `name`、`code`（定妝檔名前綴）、`char_dir`（相對片子資料夾的角色資料夾）、`pronoun`、`look`（照抄角色 README）、`studio_wear`（耳機等錄音室穿戴，每張首幀加在 frame 後面）、`desc`（H3 短描述）、`perform`（唱歌鏡的表演句，接在 action 後面） |
 | `studio` | `master`（錄音室空景提示詞）、`keep`（首幀鎖定句，`{ref}`＝母版圖號）、`light`、`setting`／`style`／`keep_h3`（H3 用） |
 | `film_look`、`no_text` | 首幀電影感句、不要字的句子 |
-| `title_card` | 片名卡：`series`（左上系列名）、`text`（歌名）、`sub`（主唱）、`sec`（前奏比它短就在前面墊靜音；也是字卡預設消失的秒數）、`color`（ASS 的 &HBBGGRR）。兩側版型（人走在中間不擋字）：`layout: "sides"`、`left`／`right`（每行 `[文字, 字級, "acc"/"white"/"gray"/&H色碼]`）、`start`、`end`（字卡留到第幾秒，不影響音訊時間軸；開場走進來的鏡建議留到該鏡結束）、`side_margin`。直排版型：`layout: "vertical"`，右側歌名直排＋金色直線＋系列名直排、左側人物資訊逐行浮出（`name`、`name_en`、`info`、`left_start`、`right_margin`、`gold`、`font`、`latin_font`）。`outro: {start, left_start, end}`（成片秒數）唱完後再放一次同一張卡 |
+| `title_card` | 片名卡：`series`（左上系列名）、`text`（歌名）、`sub`（主唱）、`sec`（前奏比它短就在前面墊靜音；也是字卡預設消失的秒數）、`color`（ASS 的 &HBBGGRR）。兩側版型（人走在中間不擋字）：`layout: "sides"`、`left`／`right`（每行 `[文字, 字級, "acc"/"white"/"gray"/&H色碼]`）、`start`、`end`（字卡留到第幾秒，不影響音訊時間軸；開場走進來的鏡建議留到該鏡結束）、`side_margin`。直排版型：`layout: "vertical"`，右側歌名直排＋金色直線＋系列名直排、左側人物資訊逐行浮出（`name`、`name_en`、`info`、`left_start`、`left_end`（左側比右側早收，人走進來前淡出）、`right_margin`、`gold`、`font`、`latin_font`）。`outro: {start, left_start, end}`（成片秒數）唱完後再放一次同一張卡 |
 | `props` | 道具參考圖：`[{name, views, detail, keep}]`，圖放 `work/props/`；近景（ECU／CU／MCU）附 `detail`、其他附 `views`，`keep` 是加進首幀提示詞的那句話。做法見 `docs/07` §6 |
 | `subs` | 歌詞字幕：`size`、`margin`、`color`、`english`（true＝每句的 `en` 當第二行） |
 | `song_style` | `music3`（Music 3 caption：Genre／Vocal／Arrangement）、`yue`（YuE2 英文逗號標籤，語言放第一個、最後寫 BPM） |
