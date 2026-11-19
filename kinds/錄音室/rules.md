@@ -10,7 +10,7 @@
 
 - 系列名稱與視覺自己設計，不沿用 THE FIRST TAKE／THE LAST TAKE 的名稱、片名卡樣式與灰藍背景布。
 - 歌詞要有一句結尾的「自我揭穿」殺句（主角一路自述，最後一句反過來刺到自己）。
-- 傳說（Eureka、鏡子燒船這類）在說明欄寫明是傳說或有不同說法，歌詞可以用「有人說」帶過；發布資訊附「史實與傳說」對照。
+- 傳說（Eureka、鏡子燒船這類）在說明欄寫明是傳說或有不同說法，歌詞可以用「有人說」帶過；發布資訊附「史實與傳說」對照，YouTube 說明欄貼完整版，Facebook／Instagram／Threads 各放一句精簡版（每個平台的文案都要能單獨貼出去，不留「<貼第 0 節…>」這種佔位）。
 - 生歌前先問有沒有 Suno；沒有就用本機（MiniMax Music 3 或 YuE2），換引擎前先問使用者；候選歌一律做試聽影片給使用者挑（`make_studio.py pick`）。
 - 耳機、麥克風組一定要有道具參考圖（`output/道具/`），`studio.json` 的 `props` 列出，`frames`／`fix`／`last` 會自動附上。
 - 開場走進來的全身鏡寫 `"motion": "walk"`（14 步）；片名卡用 `title_card.layout: "vertical"`（或 `"sides"`），`end` 一路留到這鏡結束，唱完用 `outro` 再放一次。
