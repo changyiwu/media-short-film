@@ -15,7 +15,7 @@ description: 歷史人物饒舌對決影片（源自上游頻道的四場對決�
 3. `references/songs.md`：生歌（**先問使用者有沒有 Suno**）、檢查、兩首怎麼接。
 4. `references/video-spec.md`：影片規格、鏡表寫法、H3 規則、特效。
 5. `references/review-checklist.md`：交片前逐秒自審。
-6. 範本說明 `pipeline/template_battle/README.md`；H3、首幀的通用規則 `docs/03_規則與踩坑.md`、`docs/07_角色與首幀.md`。
+6. 範本說明 `pipeline/template_battle/README.md`；通用做片規則 `docs/rules/`（H3、首幀、配音……）、做法細節 `docs/07_角色與首幀.md`。
 
 ## 階段與關卡
 

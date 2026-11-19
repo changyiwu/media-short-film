@@ -1,0 +1,33 @@
+{
+ "_說明": "影片類型清單。tools/new_film.py 讀這份決定用哪個範本、複製哪些檔；類型規則在 kinds/<類型>/rules.md。加新類型＝加一個資料夾（rules.md）＋這裡一行，格式見 kinds/README.md。",
+ "數學故事": {
+  "desc": "講數學家或數學史的短片，觀眾是學生（課堂播放或自學）",
+  "template": "template_local", "config": "film.json", "copy": ["film.json", "make_film.py", "review.py"],
+  "script": "劇本", "skill": "short-film"
+ },
+ "原創短劇": {
+  "desc": "自己寫劇本的原創短片（喜劇、短劇）",
+  "template": "template_local", "config": "film.json", "copy": ["film.json", "make_film.py", "review.py"],
+  "script": "劇本", "skill": "short-film"
+ },
+ "換角重製": {
+  "desc": "照參考影片換主角，動作、背景、聲音沿用原片",
+  "template": "template_local", "config": "film.json", "copy": ["film.json", "make_film.py", "review.py"],
+  "script": "劇本", "skill": "short-film", "next": "換角重製改寫 recast.json、用 tools/recast.py，做法見 docs/08_換角重製.md。"
+ },
+ "饒舌對決": {
+  "desc": "兩位真實人物各唱一首歌互嗆、DJ 主持的橫式 3–4 分鐘片",
+  "template": "template_battle", "config": "battle.json", "copy": ["battle.json", "*.py"],
+  "script": null, "skill": "rap-battle", "next": "battle.json 目前還是範例〈微積分之戰〉，要換成自己的；流程見 .agents/skills/rap-battle/SKILL.md。"
+ },
+ "錄音室": {
+  "desc": "古代人物在現代錄音室單人唱華語流行歌",
+  "template": "template_studio", "config": "studio.json", "copy": ["studio.json", "make_studio.py"],
+  "script": "劇本", "skill": null, "next": "studio.json 目前還是範例〈別碰我的圓〉（阿基米德），要換成自己的；流程見 pipeline/template_studio/README.md。"
+ },
+ "測試": {
+  "desc": "驗證做法用的實驗片，不發布",
+  "template": "template_local", "config": "film.json", "copy": ["film.json", "make_film.py", "review.py"],
+  "script": "劇本", "skill": null, "sandbox": true
+ }
+}

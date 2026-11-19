@@ -6,7 +6,7 @@
 
 範例 `studio.json`＝〈別碰我的圓〉（阿基米德，16 句主副歌＋橋段＋尾段、30 鏡）。
 
-類型規則（不沿用 THE FIRST TAKE 名稱、結尾自我揭穿殺句、傳說在說明欄標明，以及〈別碰我的圓〉的 H3 踩坑）在 `templates/kinds/錄音室.md`；`new_film.py` 第一次建「錄音室」類型時複製成 `output/錄音室/AGENTS.md`。持續出現的道具（耳機、麥克風組）要先做道具參考圖，做法見 `docs/07_角色與首幀.md` §6。
+類型規則（不沿用 THE FIRST TAKE 名稱、結尾自我揭穿殺句、傳說在說明欄標明）在 `kinds/錄音室/rules.md`，H3、道具的通用規則在 `docs/rules/`。持續出現的道具（耳機、麥克風組）要先做道具參考圖，做法見 `docs/07_角色與首幀.md` §6。
 
 ## 用法
 
@@ -76,7 +76,7 @@
 | `frame` | 首幀描述（英文，畫開口前的姿勢） |
 | `action` | H3 動作（`Starting from <Picture 1>, …`，慢而清楚） |
 | `camera` | 選填，預設三腳架極慢推近 |
-| `still`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump`、`last_first` | 首幀靜態慢推、慢動作（也會把唱歌嘴型壓小）、`false`＝14 步（唱歌鏡全景以外預設就是 14 步：4 步牙齒糊成白帶；`true`＝DMAD 4 步，純側臉或無聲鏡可用）、額外限制句、換 H3 seed、換首幀 seed、尾幀＝首幀（要同時把 `camera` 寫成鎖死） |
+| `still`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump`、`last_first` | 首幀靜態慢推、慢動作（也會把唱歌嘴型壓小）、步數例外：不寫就照 `tools/h3_steps.py`（唱歌鏡全景以外、`motion: "walk"` 的走路入鏡 14 步，其餘 DMAD 4 步），`true`＝4 步、`false`＝14 步。`calm`、`last_first` 只用在無聲鏡（唱歌鏡用了會壓嘴型、瞪眼定格，`docs/rules/H3.md`）、額外限制句、換 H3 seed、換首幀 seed、尾幀＝首幀（要同時把 `camera` 寫成鎖死） |
 | `fix` | 首幀局部修圖：只寫要改什麼（英文），`fix` 階段拿現有首幀＋麥克風組／道具參考圖修；`work/first/_fixed.json` 記修過的句子，同一句不重修 |
 | `last`、`last_seed_bump` | 自訂尾幀：寫鏡頭結束時哪裡不一樣（英文），`last` 階段從首幀生 `work/first/<鏡>_last.png`；要重生就刪那張圖 |
 
@@ -88,4 +88,4 @@
 
 2026-11-18 寫成，只做過不用顯卡的乾跑（設定檔讀取、歌詞檔、鏡表時間換算、字幕檔）。
 
-2026-11-19 〈別碰我的圓〉（Music 3 生歌、31 鏡、167 秒）跑完 `frames` 到 `srt` 全程。實測加上 `fix`、`last`、`props`、兩側片名卡；踩到的坑寫在 `templates/kinds/錄音室.md` 與 `docs/03`（§3b 道具、§4 H3）。每鏡 H3 約 3～6 分鐘、全身走路鏡約 11 分鐘（RTX 5060 Ti 16GB，DMAD 4 步）。
+2026-11-19 〈別碰我的圓〉（Music 3 生歌、31 鏡、167 秒）跑完 `frames` 到 `srt` 全程。實測加上 `fix`、`last`、`props`、兩側片名卡；踩到的坑寫在 `kinds/錄音室/rules.md` 與 `docs/rules/`（道具、H3）。RTX 5060 Ti 16GB：DMAD 4 步每鏡約 3～6 分鐘；14 步 4～5 秒近景約 8 分鐘、12 秒全身走路鏡約 33 分鐘。

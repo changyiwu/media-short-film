@@ -905,7 +905,9 @@ def specs():
         era = "arena" if s["scene"] == "arena" else CFG["places"][s["scene"]].get("era", "period")
         style = CFG["arena"]["style"] if era == "arena" else CFG["style_modern"] if era == "modern" else CFG["style_period"]
         setting = CFG["arena"]["setting"] if s["scene"] == "arena" else CFG["places"][s["scene"]]["setting"]
-        spec = {"duration": round(nf / FPS, 3), "size": [1344, 768], "seed": seed_for(s), "draft": s.get("draft", True),
+        sys.path.insert(0, str(REPO / "tools")); from h3_steps import draft_for   # noqa: E401  步數規則 docs/rules/H3.md
+        spec = {"duration": round(nf / FPS, 3), "size": [1344, 768], "seed": seed_for(s),
+                "draft": draft_for(s, kind == "sing" and s.get("singer", True) is not False),
                 "style": style, "setting": setting, "first_frame": "first.png", "subjects": subs,
                 "audio": {"fixed": {"file": "guide.wav"}}, "shots": [sh], "constraints": cons,
                 "soundscape": "Only the voice from <Audio 1>." if kind == "sing" else "Quiet room tone only, no speech, no music.",

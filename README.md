@@ -50,7 +50,7 @@ README.md
 docs/
   01_總覽與架構.md          三層架構、為什麼這樣分
   02_端到端流程.md          逐步驟：工具、產出、耗時、人工關卡
-  03_規則與踩坑.md          所有規則（附理由）＋踩坑對策
+  rules/                    通用做片規則（依主題分檔，每條一句做法＋一行理由）
   04_自審清單.md            review.py 五遍＋常退件清單
   05_agent協作與知識庫.md   讓 AI agent 長期接手的做法
   06_安裝.md                環境、模型、資料夾慣例
@@ -89,12 +89,12 @@ configs/profile.cmd         這個硬體版本的環境變數
 
 | # | 步驟 | 工具 | 看哪份文件 | 產出 | 要人工看嗎 |
 |---|---|---|---|---|---|
-| 1 | 劇本＋鏡表（每鏡 ≤12 秒） | `.agents/skills/short-film` | `SKILL.md`、`docs/03` | `劇本.md` | ✅ 確認劇本 |
+| 1 | 劇本＋鏡表（每鏡 ≤12 秒） | `.agents/skills/short-film` | `SKILL.md`、`docs/rules/` | `劇本.md` | ✅ 確認劇本 |
 | 2 | 角色定妝：轉面圖＋表情表＋臉部近照（備選千問：單張、灰底、半身） | `gen_image.py`（預設 Image 2.5；備選 Qwen-Image 2.1） | `docs/07` §0（備選 §1） | `chars/<角色>_turn.png`、`_expr.png`、`_face.png`（備選 `chars/<角色>.png`） | ✅ 定案 |
 | 3 | 場景母版（空景，之後裁成各鏡景別） | `gen_image.py` | `docs/07` §4 | `masters/*.png` | |
 | 4 | 首幀（附定妝＋母版裁切，**每鏡照抄角色完整外觀描述**） | `gen_image.py --model qwen-edit --ref`（預設 OpenAI 生圖（Image 2.5 或 Codex）依每鏡 `sheets` 附 1–3 張定妝，`--model` 這時不作用；`IMAGE_BACKEND=local` 時才用 Qwen-Image-Edit 附單張半身，不加會用到不適合附參考圖的 Qwen-Image 2.1） | `docs/07` §2–3 | `first/<鏡>.png` | ✅ 逐張看：臉、服裝、多手多腳、背景有沒有字 |
-| 5 | 角色參考音（定裝時跟定妝圖一起做一次，存進 `output/角色/` 各片沿用，防聲音漂移）；旁白與 `fixed` 台詞的配音 | `voxcpm_batch.py`（設計參考音）→ `make_voxcpm.cmd`；念錯的詞加進 `tts-lexicon.md` | `docs/03` §5 | `voice/ref_<角色>.wav`、`bv/<句>.wav`（已去頭尾靜音） | `needs_review` 的句子聽一次 |
-| 6 | H3 每鏡（DMAD 4 步、只給首幀；台詞預設由 H3 拿角色參考音自己念（`voice_mode: "h3_ref"`），`fixed` 的句子當固定音軌；看得到臉又沒台詞的鏡給靜音） | `h3_shot.py`（spec 加 `"draft": true`） | `docs/03` §4、`tools/examples/` | `h3/<鏡>/clip.mp4` | ✅ 抽格看：換臉、多人、鏡頭漂移 |
+| 5 | 角色參考音（定裝時跟定妝圖一起做一次，存進 `output/角色/` 各片沿用，防聲音漂移）；旁白與 `fixed` 台詞的配音 | `voxcpm_batch.py`（設計參考音）→ `make_voxcpm.cmd`；念錯的詞加進 `tts-lexicon.md` | `docs/rules/配音.md` | `voice/ref_<角色>.wav`、`bv/<句>.wav`（已去頭尾靜音） | `needs_review` 的句子聽一次 |
+| 6 | H3 每鏡（有台詞的鏡 14 步、其餘 DMAD 4 步，只給首幀；台詞預設由 H3 拿角色參考音自己念（`voice_mode: "h3_ref"`），`fixed` 的句子當固定音軌；看得到臉又沒台詞的鏡給靜音） | `h3_shot.py`（步數由 `tools/h3_steps.py` 決定） | `docs/rules/H3.md`、`tools/examples/` | `h3/<鏡>/clip.mp4` | ✅ 抽格看：換臉、多人、鏡頭漂移 |
 | 7 | 配樂（純器樂、多抽幾個 seed，挑人聲殘留最少的） | `gen_music3.py` → `audio-separator` | `docs/02` §8 | `music/*.flac` | |
 | 8 | 放大、剪接（台詞提前 0.2 秒）、配樂壓低（台詞期間 15–30%）、響度、字幕 | `upscale_vsr.py`、ffmpeg | `docs/02` §9、§10（**`alimiter` 要 `level=false`**） | `cut/<片名>_1080p.mp4` | |
 | 9 | （選用，預設不加）片尾（工具名單＋AI 生成標示；要加就把 `film.json` 的 `ending.enabled` 改成 true 或設 `ENDING=1`；沒片尾時在貼文標示） | `templates/ending/render_ending.py` | `templates/ending/README.md`、`docs/02` §12 | `ending.mp4` | |

@@ -69,7 +69,7 @@
 | `action` | H3 的動作描述（沒台詞的鏡頭寫明 He does not speak）。照官方結構寫 50–120 個英文字：「Starting from <Picture 1>, …」首幀定錨→動作開始→持續發展→結果（見 `docs/02` §5〈動作寫法〉） |
 | `extra_constraints` | 這一鏡額外的限制 |
 | `setting`、`soundscape` | 這一鏡的 H3 場景與環境音描述（選填，不寫就用 `h3.setting`、`h3.soundscape`）：換到別的地點的鏡頭才需要 |
-| `h3_steps` | 這一鏡 H3 的步數（選填）：不寫或 `4`＝DMAD 4 步（預設）；其他數字＝不掛 LoRA 跑那麼多步，時間約 4 步的 3 倍（14 步）。臉朝鏡頭的說話鏡（特寫、近景、中景；全景、遠景、背對或側臉不用）、跳躍等全身快動作寫 `14`，不用更多（`docs/03` §4）。已拍好的鏡要改步數：刪 `work/h3/<鏡>/clip.mp4`，`set ONLY=<鏡>` 再跑 `h3` |
+| `h3_steps`、`motion`、`dist` | H3 步數（選填）。不寫就自動判斷（`tools/h3_steps.py`，規則見 `docs/rules/H3.md`〈步數〉）：有台詞的鏡 14 步（`dist` 寫 `WIDE`／`遠景` 的除外）、`motion` 寫 `walk`／`jump`／`dance`／`fight` 的 14 步，其餘 DMAD 4 步。`h3_steps` 寫 `4`＝DMAD、其他數字＝不掛 LoRA 跑那麼多步（14 步約 4 步的 2.8 倍時間）。已拍好的鏡要改步數：刪 `work/h3/<鏡>/clip.mp4`，`set ONLY=<鏡>` 再跑 `h3` |
 | `amb`、`amb_seed` | `true`＝這鏡需要動作音效（翻書包、腳步）：另拍一支 H3 原生音效版，聽寫確認沒有人聲才取它的音軌；有人聲就換 `amb_seed` 或改用 `sfx/` 的音效 |
 | `music_gain` | 這一鏡的配樂倍數（選填，預設 1）：乘在閃避人聲後的配樂音量上，前後平滑 0.5 秒。結尾只有字卡、沒有旁白時配樂太小聲就設大（例：10）；改完跑 `cut review` 即可 |
 | `cut_in` | 剪掉鏡頭開頭幾秒（H3 常晚開口） |

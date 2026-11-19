@@ -40,7 +40,7 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 
 **什麼時候要做預演（第 4 步）**：多人同框、座位或左右位置容易跑掉、要運鏡、同一場景很多機位。單人、固定鏡頭的短片可以跳過。
 
-**做第 5 步之後的任何事之前**，先讀 `output/AGENTS.md`（頻道規則）、`output/<類型>/AGENTS.md`（類型規則）、`<repo>/docs/03_規則與踩坑.md`。
+**做第 5 步之後的任何事之前**，先讀 `output/AGENTS.md`（頻道規則）、`<repo>/kinds/<類型>/rules.md`（類型規則）、`<repo>/docs/rules/`（通用做片規則，先看 README）。
 
 ## 判斷任務 → 只讀需要的檔
 
@@ -70,7 +70,7 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
    ```
    - 同名的片已存在會直接停下來，不覆蓋：換片名，或問使用者要不要接著做那支。
    - `output/AGENTS.md` 不存在時腳本會從 `templates/AGENTS_TEMPLATE.md` 建一份；提醒使用者把頻道名稱、主角等佔位改掉。
-   - 類型資料夾是新的時，腳本會建好 `output/<類型>/AGENTS.md`＋`CLAUDE.md`；提醒使用者寫上這類片的規則（類型打錯字也會被建成新類型，看腳本列出的既有類型核對）。
+   - 類型要先登記在 `kinds/kinds.json`（`python tools/new_film.py --list` 列出）；沒登記的類型腳本會停下，新類型照 `kinds/README.md` 加。類型規則在 `kinds/<類型>/rules.md`。
 3. 回報建立了哪些檔，提醒 `film.json` 裡還是範例片〈被狗吃掉的作業〉的角色、場景、鏡表。然後進第 2 步需求訪談。
 - 不要手動複製 `pipeline/template_local/`（會帶到 `work/`、`__pycache__`）；自己的片一律放 `output/`（不進公開 repo）。
 
@@ -100,4 +100,4 @@ description: 用 media-short-film repo（本機 MiniMax H3）做 16:9、1–3 �
 - **創作任務**：必要假設 → 指定的創作成果 →（完整一支才附）鏡表。
 - **審閱任務**：依影響程度排序的診斷、對應段落的證據、可執行的修改方向；只有能說明修正或使用者要求時才給改寫。
 - **製作任務**：每個階段做完回報產出與下一步；到人工關卡就停，等使用者說再往下。
-- 收工前在該片 `製作紀錄.md` 補一段；退件理由整理成一條規則寫進 `output/AGENTS.md`（只屬於某類影片的寫進 `output/<類型>/AGENTS.md`；agent 記憶每台電腦各一份、不會同步，不能只寫那裡）。
+- 收工前在該片 `製作紀錄.md` 補一段；退件理由整理成一條規則寫回 repo：通用的寫 `docs/rules/`、只屬於某類影片的寫 `kinds/<類型>/rules.md`、只屬於這個頻道的（名稱、禁則、習慣）才寫 `output/AGENTS.md`（agent 記憶每台電腦各一份、不會同步，不能只寫那裡）。

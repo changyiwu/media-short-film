@@ -14,7 +14,7 @@
   python ../../../tools/recast.py finish             剪到時間軸→接起來→淡入→RTX VSR→疊字卡→換新音軌→（ending.enabled 才）接片尾
 
 時間軸一律用 24 fps 的格數（原片 30 fps 也換算成 24 fps，成片才會跟原片逐格對齊）。
-短鏡照 docs/03 至少生 h3.min_dur 秒：骨架用最後一格延長、音軌補靜音，finish 再剪回原長度。
+短鏡照 docs/rules/H3.md 至少生 h3.min_dur 秒：骨架用最後一格延長、音軌補靜音，finish 再剪回原長度。
 鏡的 "vocals": "auto" 會從音軌切段偵測有聲音的時段，填進 h3_shot 的 vocals（讓嘴跟著不是台詞的發聲動）。
 """
 import argparse

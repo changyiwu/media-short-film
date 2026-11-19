@@ -567,9 +567,10 @@ def shot_secs(s, picks):
 
 def h3_spec(s, secs, dialogue):
     h = CFG["h3"]
-    # 每鏡 h3_steps（選填）：不寫或 4＝DMAD 4 步（預設）；其他數字＝不掛 LoRA、res_multistep 跑那麼多步。
-    # 臉朝鏡頭的說話鏡（特寫、近景、中景）、跳躍等快動作寫 14（docs/03 §4：4 步牙齒是一條糊白帶、快動作暴色塊）
-    n = int(s.get("h3_steps") or 4)
+    # 步數預設照 tools/h3_steps.py（docs/rules/H3.md〈步數〉）：有台詞的鏡（全景以外）、"motion" 快動作／走路 → 14 步，
+    # 其餘 DMAD 4 步。該鏡寫 h3_steps（4＝DMAD；其他數字＝不掛 LoRA、res_multistep 跑那麼多步）或 draft 就照寫的。
+    from h3_steps import draft_for
+    n = int(s["h3_steps"]) if s.get("h3_steps") else (4 if draft_for(s, bool(s.get("line"))) else 14)
     return dict(duration=round(secs - 0.02, 3), size=[1344, 768], seed=seed("h3_" + s["id"], h.get("default_seed", 20261007)), steps=14 if n == 4 else n, draft=n == 4,
                 style=h["style"], setting=s.get("setting", h["setting"]), first_frame=str(OUT / "first" / f"{s['id']}.png"),
                 subjects=[dict(key=k, desc=CHARS[k]["look"], voice=CHARS[k]["h3_voice"]) for k in s["refs"]],
@@ -579,7 +580,7 @@ def h3_spec(s, secs, dialogue):
 
 @stage("h3")
 def h3():
-    """每鏡 H3（預設 DMAD 4 步，該鏡 h3_steps 可改；只給首幀）。看得到臉的鏡頭一律給固定音軌：有台詞放配音，沒台詞放靜音（否則角色會自己嘟囔）。
+    """每鏡 H3（步數照 tools/h3_steps.py：有台詞的鏡 14 步、其餘 DMAD 4 步，該鏡 h3_steps 可改；只給首幀）。看得到臉的鏡頭一律給固定音軌：有台詞放配音，沒台詞放靜音（否則角色會自己嘟囔）。
     h3_ref 的台詞改給角色參考音（audio.voice_ref），H3 自己念；跑完 harvest_lines() 抓出台詞、比對原文。
     旁白（vo）不放進引導音軌：畫面裡的人不能跟著旁白動嘴。後製插入鏡跳過（inserts 階段做）。"""
     picks = load_picks()

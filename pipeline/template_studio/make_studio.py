@@ -651,7 +651,7 @@ def need_fresh_audio():
 @stage("specs")
 def specs():
     """shots → work/h3/<鏡>/{spec.json, first.png, guide.wav, gen.json}。唱歌鏡：對嘴音軌＝人聲分軌那一段（audio.fixed）；
-    無聲鏡：靜音、閉嘴。每鏡生成範圍＝[start−0.25, end+0.25]，17n+5 格、至少 73 格；唱歌鏡（全景以外）預設 14 步、其餘 DMAD 4 步（draft）。"""
+    無聲鏡：靜音、閉嘴。每鏡生成範圍＝[start−0.25, end+0.25]，17n+5 格、至少 73 格；步數照 tools/h3_steps.py（唱歌鏡全景以外、motion 走路 14 步，其餘 DMAD 4 步）。"""
     need_fresh_audio()
     import librosa
     import numpy as np
@@ -705,9 +705,9 @@ def specs():
             sh["camera"] = "The camera is locked on a tripod: no zoom, no push-in, no dolly; the framing stays exactly as in <Picture 1>."
             cons.append("The camera never moves closer: the framing stays exactly as in <Picture 1> from the first to the last frame.")
         cons += s.get("cons", [])
-        # 看得到嘴的唱歌鏡（全景以外）預設 14 步：DMAD 4 步牙齒是一條糊白帶（docs/03 §4）；純側臉可在該鏡寫 "draft": true
+        sys.path.insert(0, str(REPO / "tools")); from h3_steps import draft_for   # noqa: E401  步數規則 docs/rules/H3.md
         spec = {"duration": round(nf / FPS, 3), "size": [1344, 768], "seed": seed_for(s),
-                "draft": s.get("draft", not (kind == "sing" and s.get("dist") != "WIDE")),
+                "draft": draft_for(s, kind == "sing" and singer),
                 "style": CFG["studio"]["style"], "setting": CFG["studio"]["setting"], "first_frame": "first.png", "subjects": subs,
                 "audio": {"fixed": {"file": "guide.wav"}}, "shots": [sh], "constraints": cons,
                 "soundscape": "Only the singing voice from <Audio 1>." if kind == "sing" else "Quiet studio room tone only, no speech, no music.",

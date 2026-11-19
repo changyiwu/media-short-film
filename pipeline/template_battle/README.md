@@ -106,7 +106,7 @@
 | `action` | H3 動作（`Starting from <Picture 1>, …`，慢而清楚的手勢） |
 | `gfx`、`card` | 這鏡要疊的字卡代號、直排名牌（`A`／`B`／`K`） |
 | `still`、`custom`、`painting` | 首幀靜態慢推、自己做的影片檔、名畫（慢推較小、字卡放左邊不蓋畫） |
-| `last_first`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump` | 尾幀＝首幀（防切鏡）、慢動作、`false`＝14 步、額外限制句、換 H3 seed、換首幀 seed |
+| `last_first`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump` | 尾幀＝首幀（防切鏡）、慢動作（這兩個只用在無聲鏡）、步數例外（不寫就照 `tools/h3_steps.py`：唱的鏡全景以外 14 步、其餘 4 步；`false`＝14 步）、額外限制句、換 H3 seed、換首幀 seed |
 
 ## 輸出（`work/`）
 

@@ -1,6 +1,6 @@
 # 填 film.json（把鏡表變成製作設定）
 
-欄位完整說明在 `<repo>/pipeline/template_local/README.md`〈film.json 欄位〉；技術規則的完整版與理由在 `<repo>/docs/03_規則與踩坑.md` §2–4。本檔只列**填寫時最常出錯、一定要照做**的事，不重抄那兩份。
+欄位完整說明在 `<repo>/pipeline/template_local/README.md`〈film.json 欄位〉；技術規則在 `<repo>/docs/rules/`（構圖與角色、道具、H3）。本檔只列**填寫時最常出錯、一定要照做**的事，不重抄那兩份。
 
 ## 開始前
 
@@ -26,7 +26,7 @@
 | 畫面文字（片名、標示） | `overlay` | 一律後製疊字 |
 | 運鏡 | `camera`（選填） | 不寫就用 `h3.camera`（預設靜止三腳架）；見〈運鏡〉 |
 | 額外限制 | `extra_constraints`（選填） | 這一鏡才需要的限制句 |
-| H3 步數 | `h3_steps`（選填） | 不寫＝DMAD 4 步；臉朝鏡頭的說話鏡（特寫、近景、中景）、跳躍等全身快動作寫 `14`；全景、遠景、背對或側臉的說話鏡不用（4 步牙齒糊成一條、快動作暴色塊，見 docs/03 §4） |
+| H3 步數 | `h3_steps`、`motion`、`dist`（選填） | 不寫就自動：有台詞的鏡 14 步（`dist` 寫 `WIDE`／`遠景` 的除外）、`motion` 寫 `walk`／`jump`／`dance`／`fight` 的 14 步，其餘 DMAD 4 步（`tools/h3_steps.py`，規則見 `docs/rules/H3.md`）；要例外才寫 `h3_steps` |
 
 ## 旁白、後製插入鏡、疊字
 
