@@ -651,7 +651,7 @@ def need_fresh_audio():
 @stage("specs")
 def specs():
     """shots → work/h3/<鏡>/{spec.json, first.png, guide.wav, gen.json}。唱歌鏡：對嘴音軌＝人聲分軌那一段（audio.fixed）；
-    無聲鏡：靜音、閉嘴。每鏡生成範圍＝[start−0.25, end+0.25]，17n+5 格、至少 73 格；預設 DMAD 4 步（draft）。"""
+    無聲鏡：靜音、閉嘴。每鏡生成範圍＝[start−0.25, end+0.25]，17n+5 格、至少 73 格；唱歌鏡（全景以外）預設 14 步、其餘 DMAD 4 步（draft）。"""
     need_fresh_audio()
     import librosa
     import numpy as np
@@ -705,7 +705,9 @@ def specs():
             sh["camera"] = "The camera is locked on a tripod: no zoom, no push-in, no dolly; the framing stays exactly as in <Picture 1>."
             cons.append("The camera never moves closer: the framing stays exactly as in <Picture 1> from the first to the last frame.")
         cons += s.get("cons", [])
-        spec = {"duration": round(nf / FPS, 3), "size": [1344, 768], "seed": seed_for(s), "draft": s.get("draft", True),
+        # 看得到嘴的唱歌鏡（全景以外）預設 14 步：DMAD 4 步牙齒是一條糊白帶（docs/03 §4）；純側臉可在該鏡寫 "draft": true
+        spec = {"duration": round(nf / FPS, 3), "size": [1344, 768], "seed": seed_for(s),
+                "draft": s.get("draft", not (kind == "sing" and s.get("dist") != "WIDE")),
                 "style": CFG["studio"]["style"], "setting": CFG["studio"]["setting"], "first_frame": "first.png", "subjects": subs,
                 "audio": {"fixed": {"file": "guide.wav"}}, "shots": [sh], "constraints": cons,
                 "soundscape": "Only the singing voice from <Audio 1>." if kind == "sing" else "Quiet studio room tone only, no speech, no music.",
@@ -849,6 +851,42 @@ def ts_ass(t):
     return f"{int(h)}:{int(m):02d}:{s:05.2f}"
 
 
+
+def title_vertical(tc):
+    """片名卡 vertical 版型：左側人物資訊（明體名字、金色細線畫出來、英文襯線大寫、生卒地點）逐行往上浮出；
+    右側歌名直排、旁邊一條金色直線往下畫、系列名小字直排。人走進來時 left_start 晚一點，等人走過去再出字。"""
+    end = float(tc.get("end", tc.get("sec", 8.0)))
+    serif, latin = tc.get("font", "Noto Serif TC"), tc.get("latin_font", "Cambria")
+    gold, white, gray = tc.get("gold", "&H0070C0E8&"), "&H00F4F4F4&", "&H00B8B8B8&"
+    x, xr = int(tc.get("side_margin", 120)), 1920 - int(tc.get("right_margin", 130))
+    look = "\\bord0\\shad2\\4a&H90&"
+    ev = []
+
+    def d(a, body):
+        ev.append(f"Dialogue: 1,{ts_ass(a)},{ts_ass(end)},Series,,0,0,0,,{body}")
+
+    def rise(a, an, px, py, txt, fs, col, font=serif, sp=0, bold=False):
+        d(a, "{" + f"\\an{an}\\move({px},{py + 16},{px},{py},0,700)\\fad(700,800)\\fn{font}\\fs{fs}\\c{col}\\fsp{sp}"
+          + ("\\b1" if bold else "\\b0") + look + "}" + txt)
+
+    def bar(a, px, py, w, h, horizontal=True):
+        c0 = f"\\clip({px},{py - 2},{px + 1},{py + h + 2})" if horizontal else f"\\clip({px - 2},{py},{px + w + 2},{py + 1})"
+        c1 = f"\\clip({px},{py - 2},{px + w},{py + h + 2})" if horizontal else f"\\clip({px - 2},{py},{px + w + 2},{py + h})"
+        d(a, "{" + f"\\an7\\pos({px},{py})\\p1\\c{gold}\\bord0\\shad0\\fad(0,800){c0}\\t(0,1000,{c1})" + "}"
+          + f"m 0 0 l {w} 0 {w} {h} 0 {h}" + "{\\p0}")
+
+    a = float(tc.get("left_start", tc.get("start", 0.8)))
+    rise(a, 1, x, 500, tc.get("name", ""), 92, white, sp=14, bold=True)
+    bar(a + 0.35, x + 4, 528, 300, 2)
+    rise(a + 0.6, 7, x + 2, 548, tc.get("name_en", "").upper(), 36, gold, font=latin, sp=16)
+    rise(a + 0.85, 7, x + 2, 602, tc.get("info", ""), 34, gray, sp=4)
+    r = float(tc.get("start", 0.8))
+    title = tc.get("text", "")
+    rise(r, 9, xr, 236, "\\N".join(title), 96, white, bold=True)
+    bar(r + 0.4, xr - 120, 240, 2, 120 * len(title), horizontal=False)
+    rise(r + 0.7, 9, xr - 140, 236, "\\N".join(tc.get("series", "")), 38, gold)
+    return ev
+
 def write_ass(path, tl):
     """字幕：片名卡（左上系列名＋中下歌名與主唱，前奏時出現）＋歌詞（下方置中，選填英文第二行）。顏色、字級在 studio.json 的 subs。"""
     sub = CFG.get("subs", {}); tc = CFG.get("title_card", {})
@@ -882,6 +920,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if rows:
                 txt = "\\N".join(f"{{\\fs{r[1]}\\c{cols.get(r[2], r[2])}}}{r[0]}" for r in rows)
                 ev.append(f"Dialogue: 0,{ts_ass(a)},{ts_ass(b)},{style},,0,0,0,,{fade}{txt}")
+    elif tc.get("layout") == "vertical":
+        ev += title_vertical(tc)
+        if tc.get("outro"):                                   # 唱完再放一次：{"start", "left_start", "end"}（成片秒數）
+            ev += title_vertical({**tc, **tc["outro"]})
     elif tc.get("text"):
         a, b = 0.3, float(tc.get("sec", 4.0)); fade = "{\\fad(400,500)}"
         ev.append(f"Dialogue: 0,{ts_ass(a)},{ts_ass(b)},Series,,0,0,0,,{fade}{tc.get('series', '')}")
