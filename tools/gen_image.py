@@ -4,8 +4,9 @@ Backend (--backend or env IMAGE_BACKEND):
   auto (default)   2026-11-04: Codex CLI if usable here (codex.exe found, logged in with ChatGPT, image_generation on;
                    ChatGPT subscription, its model version is not disclosed), otherwise img25 if an API key is found,
                    otherwise STOP. The choice is made per run BEFORE generating: a Codex/API call that fails
-                   STOPS - no retry on the other one (a film can still mix both if Codex becomes usable/unusable between
-                   images; make_film.py credits whatever was really used)
+                   STOPS - no retry on the other one - EXCEPT when Codex says its usage limit is used up: then this image
+                   goes to Image 2.5 (if a key is found) and later runs skip Codex until the limit resets (2026-11-20;
+                   %TEMP%/codex_image_quota_until.txt). A film can mix both; make_film.py credits whatever was really used.
                    Qwen is never picked automatically: it looks different and needs different character refs.
   codex            Codex CLI built-in image tool on the ChatGPT subscription (tools/codex_image.py, no API key).
                    Refs attached, result cropped to the requested aspect ratio; seed ignored.
@@ -242,6 +243,37 @@ def codex_available():
     return codex_image.available()
 
 
+QUOTA_WORDS = ("usage limit", "rate limit", "quota", "purchase more credits", "too many requests")
+QUOTA_FILE = Path(os.environ.get("TEMP", "/tmp")) / "codex_image_quota_until.txt"
+
+
+def codex_quota_hit(err):
+    """Codex 額度用完（ChatGPT 訂閱的用量上限）：錯誤訊息有 usage limit 之類的字。記下恢復時間（訊息裡的 'try again at 8:22 PM'，
+    抓不到就 1 小時），這段時間內 auto 直接走 Image 2.5 API，不再每張先試 Codex。"""
+    import re
+    if not any(w in (err or "").lower() for w in QUOTA_WORDS):
+        return False
+    until = time.time() + 3600
+    m = re.search(r"try again at (\d{1,2}):(\d{2})\s*([AP]M)", err or "", re.I)
+    if m:
+        h, mi = int(m.group(1)) % 12 + (12 if m.group(3).upper() == "PM" else 0), int(m.group(2))
+        t = time.localtime()
+        cand = time.mktime((t.tm_year, t.tm_mon, t.tm_mday, h, mi, 0, 0, 0, -1))
+        until = cand if cand > time.time() else cand + 86400
+    try:
+        QUOTA_FILE.write_text(str(int(until)), encoding="utf-8")
+    except OSError:
+        pass
+    return True
+
+
+def codex_quota_active():
+    try:
+        return time.time() < float(QUOTA_FILE.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return False
+
+
 def gen_codex(a, prompt, cx=None):
     """Generate through the Codex CLI (ChatGPT subscription). Returns True on success, False on failure (main() stops)."""
     import re
@@ -256,6 +288,7 @@ def gen_codex(a, prompt, cx=None):
     try:
         f = codex_image.generate(prompt, a.ref, dst, size=size, cx=cx)
     except Exception as e:
+        a.codex_err = str(e)
         print(f"[codex] error: {str(e)[:800]}", flush=True)
         return False
     print("[backend] codex", flush=True)
@@ -316,6 +349,10 @@ def main():
 
     local_only = bool(a.lora) or a.uncensored or name.startswith("krea") or name.endswith("-unc")
     cx = None
+    if a.backend == "auto" and not local_only and codex_quota_active() and has_openai_key():
+        print(f"[auto] Codex quota used up (until {time.strftime('%H:%M', time.localtime(float(QUOTA_FILE.read_text())))}) "
+              "-> Image 2.5 API", flush=True)
+        a.backend = "img25"
     if a.backend == "auto" and not local_only:
         cx, why = codex_available()
         if cx:
@@ -333,8 +370,12 @@ def main():
     if a.backend == "codex" and not local_only:
         if gen_codex(a, prompt, cx):
             return
-        raise SystemExit("[codex] failed - stopped (no automatic switch to the API or local Qwen). Check `codex login status` "
-                         "/ subscription quota, or rerun the whole film with IMAGE_BACKEND=img25 or local")
+        if codex_quota_hit(getattr(a, "codex_err", "")) and has_openai_key():   # 額度用完才改走 API；其他錯誤照舊停下
+            print("[codex] quota used up -> Image 2.5 API (使用者 2026-11-20 規則)", flush=True)
+            a.backend = "img25"
+        else:
+            raise SystemExit("[codex] failed - stopped (no automatic switch to the API or local Qwen). Check `codex login status` "
+                             "/ subscription quota, or rerun the whole film with IMAGE_BACKEND=img25 or local")
     if a.backend == "img25" and not local_only:
         if gen_img25(a, prompt):
             return
