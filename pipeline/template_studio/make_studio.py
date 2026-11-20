@@ -437,20 +437,32 @@ def chars():
 
 @stage("studio")
 def studio():
-    """錄音室母版（空景、橫式）：之後每鏡首幀都附它當場景參考，背景布、麥克風、燈光才會鏡鏡一樣。"""
+    """錄音室母版（空景、橫式）：之後每鏡首幀都附它當場景參考，背景布、麥克風、燈光才會鏡鏡一樣。
+    props 裡寫 "in_master": true 的道具（麥克風組）附多角度總覽當參考，母版裡的道具就照 output/道具/ 的參考圖畫，不另外發明。"""
     dst = OUT / "scenes" / "studio.png"
     if dst.exists():
         return
     dst.parent.mkdir(parents=True, exist_ok=True)
-    gen_img([PYH3, T / "gen_image.py", "--prompt", CFG["studio"]["master"], "--width", "1536", "--height", "1024", "--seed", CFG["studio"].get("seed", 21),
-             "--prefix", "studio/master", "--out", OUT / "scenes"])
+    refs, keep = [], []
+    for pr in CFG.get("props", []):
+        f = prop_file(pr, "views")
+        if pr.get("in_master") and f:
+            refs.append(f); keep.append(pr["keep"].replace("{ref}", f"<image{len(refs)}>"))
+    prompt = (" ".join(keep) + " New photo: " if keep else "") + CFG["studio"]["master"]
+    cmd = [PYH3, T / "gen_image.py", "--prompt", prompt, "--width", "1536", "--height", "1024", "--seed", CFG["studio"].get("seed", 21),
+           "--prefix", "studio/master", "--out", OUT / "scenes"]
+    if refs:
+        cmd[2:2] = ["--model", "qwen-edit"]
+        for r in refs:
+            cmd += ["--ref", r]
+    gen_img(cmd)
     newest(OUT / "scenes").rename(dst)
     print("→ 看 work/scenes/studio.png：背景布顏色、麥克風、沒有人、沒有字和商標", flush=True)
 
 
 def rig_ref():
-    """從母版裁出麥克風架（studio.rig_crop＝[x0, y0, x1, y1]）放大兩倍 → work/scenes/rig.png。每張首幀多附它，
-    防噴罩蛇管、麥克風線的走法才會鏡鏡一樣（只附母版時麥克風架太小，近景會各畫各的）。換母版要刪 rig.png 重裁。"""
+    """舊片相容：從母版裁出麥克風架（studio.rig_crop＝[x0, y0, x1, y1]）放大兩倍 → work/scenes/rig.png，每張首幀多附它。
+    新片不寫 rig_crop：麥克風組直接用 output/道具/ 的參考圖（props），不從母版另外裁一張。"""
     dst = OUT / "scenes" / "rig.png"
     box = CFG["studio"].get("rig_crop")
     if not box or dst.exists() or not (OUT / "scenes" / "studio.png").exists():
@@ -465,17 +477,28 @@ def rig_ref():
 PROP_CLOSE = {"ECU", "CU", "MCU"}
 
 
+def prop_file(pr, kind):
+    """道具參考圖路徑：寫了 "dir" 就直接讀 output/道具/<dir>/（不複製、不在片內另生）；沒寫 dir 的舊片讀 work/props/。"""
+    name = pr.get(kind)
+    if not name:
+        return None
+    f = (REPO / "output" / "道具" / pr["dir"] / name) if pr.get("dir") else (OUT / "props" / name)
+    if not f.exists():
+        raise SystemExit(f"找不到道具參考圖 {f}：道具參考圖放 output/道具/<道具>/（docs/07 §6），不要每支片另外生")
+    return f
+
+
 def prop_refs(s, n0):
-    """道具參考圖（studio.json 的 props，每個 {"name", "views", "detail", "keep"}；圖放 work/props/，從 output/道具/<道具>/ 複製）。
+    """道具參考圖（studio.json 的 props，每個 {"name", "dir", "views", "detail", "keep"}；dir＝output/道具/ 底下的資料夾，直接讀）。
     近景附 detail（細部），中景、全身附 views（多角度）；那鏡寫 "props": [] 就不附。n0＝前面已經有幾張參考圖。
-    回傳 (參考圖清單, 提示詞句子清單)：持續出現的道具只靠文字描述，細部會一鏡一個樣（output/AGENTS.md〈道具參考圖〉）。"""
+    回傳 (參考圖清單, 提示詞句子清單)：持續出現的道具只靠文字描述，細部會一鏡一個樣（docs/rules/道具.md）。"""
     refs, keep = [], []
     want = s.get("props")
     for pr in CFG.get("props", []):
         if want is not None and pr["name"] not in want:
             continue
-        f = OUT / "props" / pr["detail" if s.get("dist") in PROP_CLOSE and pr.get("detail") else "views"]
-        if not f.exists():
+        f = prop_file(pr, "detail" if s.get("dist") in PROP_CLOSE and pr.get("detail") else "views")
+        if not f:
             continue
         refs.append(f)
         keep.append(pr["keep"].replace("{ref}", f"<image{n0 + len(refs)}>"))
