@@ -77,6 +77,7 @@
 | `action` | H3 動作（`Starting from <Picture 1>, …`，慢而清楚） |
 | `camera` | 選填，預設三腳架極慢推近 |
 | `still`、`calm`、`draft`、`cons`、`seed_bump`、`frame_seed_bump`、`last_first` | 首幀靜態慢推、慢動作（也會把唱歌嘴型壓小）、步數例外：不寫就照 `tools/h3_steps.py`（唱歌鏡全景以外、`motion: "walk"` 的走路入鏡 14 步，其餘 DMAD 4 步），`true`＝4 步、`false`＝14 步。`calm`、`last_first` 只用在無聲鏡（唱歌鏡用了會壓嘴型、瞪眼定格，`docs/rules/H3.md`）、額外限制句、換 H3 seed、換首幀 seed、尾幀＝首幀（要同時把 `camera` 寫成鎖死） |
+| `perform` | 選填，覆寫 `singer.perform`（唱歌鏡自動接在 action 後面的表演句）。情緒跟全片不同的鏡一定要寫：全片表演句寫「開心、笑」時，只在 action 寫皺眉會被蓋掉（〈不是我的名字〉B01 兩次都演成笑著唱） |
 | `fix` | 首幀局部修圖：只寫要改什麼（英文），`fix` 階段拿現有首幀＋麥克風組／道具參考圖修；`work/first/_fixed.json` 記修過的句子，同一句不重修 |
 | `last`、`last_seed_bump` | 自訂尾幀：寫鏡頭結束時哪裡不一樣（英文），`last` 階段從首幀生 `work/first/<鏡>_last.png`；要重生就刪那張圖 |
 

@@ -726,7 +726,7 @@ def specs():
             more = (f" {P} moves slowly and calmly: breathing, blinking, small natural head movements; the hands move slowly and stay sharp; "
                     "no fast gestures, no motion blur.")
         else:
-            more = " " + S["perform"]
+            more = " " + s.get("perform", S["perform"])   # 單鏡覆寫表演句（情緒跟全片不同的鏡：困惑、無奈）
         sh = {"camera": s.get("camera", "The camera holds a static shot on a tripod with a very slow, subtle push-in."), "action": s["action"] + more}
         cons = [CLEAN]
         if kind == "sing":
@@ -1005,7 +1005,8 @@ def cut():
             break
         gain += -16.0 - got
     final_wav = post / "final_audio.wav"
-    sh_(["ffmpeg", "-y", "-v", "error", "-i", raw, "-af", f"volume={gain:.2f}dB,alimiter=limit=0.70:level=false:attack=2:release=80",
+    # adeclick：生成的歌偶爾有極短的爆音，限幅後看不出來，AAC 256k 編碼卻會放大成 +6 dBTP（〈不是我的名字〉55 秒）
+    sh_(["ffmpeg", "-y", "-v", "error", "-i", raw, "-af", f"adeclick,volume={gain:.2f}dB,alimiter=limit=0.70:level=false:attack=2:release=80",
          "-ar", str(SR), "-c:a", "pcm_s16le", final_wav])
     write_ass(post / "subs.ass", tl)
     out = cutd / f"{CUT_NAME}_1080p.mp4"
