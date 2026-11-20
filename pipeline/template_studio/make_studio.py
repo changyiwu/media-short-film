@@ -448,6 +448,7 @@ def studio():
         f = prop_file(pr, "views")
         if pr.get("in_master") and f:
             refs.append(f); keep.append(pr["keep"].replace("{ref}", f"<image{len(refs)}>"))
+            r, k = close_extra(pr, len(refs)); refs += r; keep += k
     prompt = (" ".join(keep) + " New photo: " if keep else "") + CFG["studio"]["master"]
     cmd = [PYH3, T / "gen_image.py", "--prompt", prompt, "--width", "1536", "--height", "1024", "--seed", CFG["studio"].get("seed", 21),
            "--prefix", "studio/master", "--out", OUT / "scenes"]
@@ -502,6 +503,18 @@ def prop_refs(s, n0):
             continue
         refs.append(f)
         keep.append(pr["keep"].replace("{ref}", f"<image{n0 + len(refs)}>"))
+        if s.get("dist") in PROP_CLOSE:
+            r, k = close_extra(pr, n0 + len(refs)); refs += r; keep += k
+    return refs, keep
+
+
+def close_extra(pr, n0):
+    """單一部位的近照（props 的 close_extra：[{file, keep}]，例：防噴罩蛇管）：近景首幀與錄音室母版另外附。
+    細部表格一格太小，近景、母版的蛇管還是會各畫各的。"""
+    refs, keep = [], []
+    for x in pr.get("close_extra", []):
+        refs.append(prop_file({**pr, "f": x["file"]}, "f"))
+        keep.append(x["keep"].replace("{ref}", f"<image{n0 + len(refs)}>"))
     return refs, keep
 
 
