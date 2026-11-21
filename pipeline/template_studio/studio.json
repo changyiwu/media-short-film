@@ -190,7 +190,7 @@
   {"id": "F04", "at": ["L", 27], "kind": "sing", "dist": "ECU",
    "frame": "Extreme close-up of Archimedes' face, seen from about 30 degrees to one side, his face and mouth turned toward the microphone, his mouth right at the pop filter, only his eyes glancing sideways into the camera, calm and sad, mouth closed just before singing.",
    "action": "Starting from <Picture 1>, Archimedes sings the last line looking straight into the camera, then closes his mouth and keeps looking at the camera.", "calm": true},
-  {"id": "E01", "at": ["mark", "last_end", 0.6], "kind": "silent", "dist": "WIDE",
+  {"id": "E01", "draft": false, "at": ["mark", "last_end", 0.6], "kind": "silent", "dist": "WIDE",
    "frame": "Wide shot of the whole recording booth: Archimedes stands at the microphone in the center, his mouth at the pop filter, full body from head to sandals, both hands raised to his headphones, about to take them off, calm expression, mouth closed.",
    "action": "Starting from <Picture 1>, Archimedes slowly takes the headphones off with both hands, holds them at his chest, and looks quietly at the microphone.", "calm": true,
    "cons": ["The mouth stays closed."]}
