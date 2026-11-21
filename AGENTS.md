@@ -61,6 +61,8 @@
   - [x] 單人錄音室範本 `make_studio.py`＋`studio.json`（改寫自饒舌範本），`new_film.py` 新增「錄音室」類型
   - [x] 〈別碰我的圓〉（阿基米德）成片 167 秒＋發布資訊＋封面；新增直排片名卡、片尾曲目卡、牙齒自審 `tools/teeth_sheet.py`
   - [x] 〈別碰我的圓〉第 2 版定案（第一鏡空景＋走進來）＋Shorts（裁 9:16、67 秒、`work/shorts/make_shorts.py`）
+  - [x] 〈不是我的名字〉（費波那契，迪斯可）第 3 版定案 134 秒＋Shorts 61 秒＋封面＋發布資訊；範本改道具直接讀 `output/道具/`、蛇管近照、單鏡 `perform`、成片去爆音；生圖 Codex 額度用完自動改用 API
+  - [ ] 〈不是我的名字〉、〈別碰我的圓〉選標題上傳
 
 - [x] 規則總整理：通用規則 `docs/rules/`、類型 `kinds/`（`new_film.py` 讀 `kinds.json`）、H3 步數共用 `tools/h3_steps.py`；踩坑經過搬到 Obsidian
 
