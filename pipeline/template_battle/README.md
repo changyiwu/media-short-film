@@ -62,6 +62,7 @@
 | `AI_ROOT`、`AI_TOOLS` | 安裝根目錄（預設 `C:\AI`）、工具目錄（預設 repo 的 `tools/`） |
 | `COMFY_DIR` | ComfyUI 資料夾（`gen_image.py` 從它的 `output/` 拿圖） |
 | `H3_BACKEND` | `local`｜`colab`｜`both`（同 template_local；不設就看顯卡自動選） |
+| `H3_REMOTES` | 區網工作機的 ComfyUI 位址，一起跑 H3（`cloud/README.md` §3c） |
 | `UPSCALE` | `rtxvsr`（Windows 預設）｜`lanczos`（Linux／Colab） |
 | `ONLY` | 只做這幾鏡（`frames`、`h3`），例如 `set ONLY=N04 L06` |
 | `ALLOW_REVIEW=1` | DJ 口白候選聽寫都不準、但人聽過沒問題時繼續 |

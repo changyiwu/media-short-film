@@ -785,9 +785,9 @@ def h3():
         if not cl.exists() or cl.stat().st_mtime < sp.stat().st_mtime:
             todo.append(d)
     print(f"[h3] {len(todo)} 鏡（{H3_BACKEND}）", flush=True)
-    if H3_BACKEND == "both":
+    if H3_BACKEND == "both" or (H3_BACKEND == "local" and os.environ.get("H3_REMOTES", "").strip() and todo):  # H3_REMOTES：區網其他電腦一起跑
         sys.path.insert(0, str(REPO / "cloud")); from hybrid_h3 import run_hybrid   # noqa: E402
-        miss = run_hybrid(todo, PYH3, T)
+        miss = run_hybrid(todo, PYH3, T, cloud=H3_BACKEND == "both")
         if miss:
             print("沒做出來：", " ".join(d.name for d in miss), flush=True)
     elif H3_BACKEND == "colab":

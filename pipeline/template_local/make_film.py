@@ -70,6 +70,7 @@ def local_h3_ok():
 
 # H3 在哪跑：local＝本機 ComfyUI；colab＝整批送到 Google Colab G4（cloud/colab_h3.py）；
 # both＝本機＋Colab 一起跑（共用佇列，cloud/hybrid_h3.py，⚠ 尚未實測）。不設就自動判斷（local／colab）。
+# local（或 both）加設 H3_REMOTES＝區網其他電腦的 ComfyUI 位址，它們也從同一個佇列拿鏡頭（cloud/README.md §3c）。
 H3_BACKEND = os.environ.get("H3_BACKEND") or ("local" if local_h3_ok() else "colab")
 
 
@@ -77,9 +78,9 @@ def render_h3(dirs):
     """dirs 裡每個資料夾都有 spec.json；成品寫回同一個資料夾（clip.mp4、meta.json…）。"""
     if not dirs:
         return
-    if H3_BACKEND == "both":
+    if H3_BACKEND == "both" or (H3_BACKEND == "local" and os.environ.get("H3_REMOTES", "").strip()):
         sys.path.insert(0, str(REPO / "cloud")); from hybrid_h3 import run_hybrid   # noqa: E402
-        miss = run_hybrid(dirs, PYH3, T)
+        miss = run_hybrid(dirs, PYH3, T, cloud=H3_BACKEND == "both")
         if miss:
             sys.exit(f"[h3] 這些鏡頭沒做出來：{' '.join(d.name for d in miss)}")
     elif H3_BACKEND == "colab":

@@ -6,14 +6,18 @@
 #   自己安裝：C:\AI\H3\ComfyUI-0.36.0＋C:\AI\H3\venv（預設）
 $ErrorActionPreference = 'Stop'
 try {
-  Invoke-RestMethod -Uri 'http://127.0.0.1:8188/system_stats' -TimeoutSec 4 | Out-Null
+  $st = Invoke-RestMethod -Uri 'http://127.0.0.1:8188/system_stats' -TimeoutSec 4
   Write-Output 'ComfyUI already running.'
+  if ($env:COMFY_LISTEN -and (($st.system.argv -join ' ') -notmatch [regex]::Escape("--listen $env:COMFY_LISTEN"))) {
+    Write-Output "Warning: COMFY_LISTEN=$env:COMFY_LISTEN but the running ComfyUI was not started with it (other PCs cannot reach it). Close it (or the Desktop window) and rerun this script." }
   if ($env:COMFY_EXTRA_ARGS) { Write-Output "Note: if it was started from the Comfy Desktop window, COMFY_EXTRA_ARGS ($env:COMFY_EXTRA_ARGS) is NOT applied. Close Desktop and rerun this script to start it with the profile's arguments." }
   exit 0
 } catch { }
 $py  = if ($env:PY_H3)     { $env:PY_H3 }     else { 'C:\AI\H3\venv\Scripts\python.exe' }
 $dir = if ($env:COMFY_DIR) { $env:COMFY_DIR } else { 'C:\AI\H3\ComfyUI-0.36.0' }
-$args_ = @('-X','utf8','main.py','--listen','127.0.0.1','--port','8188','--disable-auto-launch','--preview-method','none','--cache-none','--fast','fp16_accumulation')
+$listen = if ($env:COMFY_LISTEN) { $env:COMFY_LISTEN } else { '127.0.0.1' }   # 當區網工作機（cloud\hybrid_h3.py 的 H3_REMOTES）時設 0.0.0.0
+if ($listen -ne '127.0.0.1') { Write-Output "Listening on ${listen}:8188 (LAN worker mode)." }
+$args_ = @('-X','utf8','main.py','--listen',$listen,'--port','8188','--disable-auto-launch','--preview-method','none','--cache-none','--fast','fp16_accumulation')
 if (Test-Path (Join-Path $dir '.comfy_environment')) {
   # Comfy Desktop：讀 %APPDATA%\Comfy Desktop 的設定，取模型路徑設定檔與 input／output；刻意不帶 Desktop 的 launchArgs（--enable-manager）
   $cfg  = Join-Path $env:APPDATA 'Comfy Desktop'

@@ -66,12 +66,19 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HOST = os.environ.get("COMFY_HOST", "http://127.0.0.1:8188")
+# 遠端 ComfyUI（區網另一台，cloud/hybrid_h3.py 的 H3_REMOTES）：素材用 /upload/image 上傳、成品用 /view 下載，
+# 逐格 PNG 改存 ComfyUI 的 temp（重開 ComfyUI 就清掉，不會堆在對方硬碟）。COMFY_HOST 不是本機位址就自動開；H3_REMOTE=1 可強制（拿本機測試）。
+REMOTE = os.environ.get("H3_REMOTE") == "1" or urllib.parse.urlparse(HOST).hostname not in ("127.0.0.1", "localhost", "::1")
 COMFY = Path(os.environ.get("COMFY_DIR", r"C:\AI\H3\ComfyUI-0.36.0"))
 import comfy_paths  # noqa: E402  input／output 資料夾（Comfy Desktop 不在 COMFY_DIR 底下）
 FPS = 24
@@ -345,7 +352,34 @@ def req(path, data=None, timeout=60):
         raise SystemExit(f"ComfyUI {path} HTTP {e.code}: {e.read().decode(errors='replace')[:3000]}")
 
 
+def upload(src, name, subfolder="h3_shot"):
+    """遠端模式：把檔案上傳到 ComfyUI 的 input/<subfolder>（/upload/image 不檢查格式，wav、mp4 也收）。"""
+    b = uuid.uuid4().hex
+    parts = [f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
+             for k, v in (("subfolder", subfolder), ("type", "input"), ("overwrite", "true"))]
+    parts.append(f'--{b}\r\nContent-Disposition: form-data; name="image"; filename="{name}"\r\n'
+                 f'Content-Type: application/octet-stream\r\n\r\n'.encode() + Path(src).read_bytes() + b"\r\n")
+    r = urllib.request.Request(HOST + "/upload/image", data=b"".join(parts) + f"--{b}--\r\n".encode(),
+                               headers={"Content-Type": f"multipart/form-data; boundary={b}"})
+    try:
+        with urllib.request.urlopen(r, timeout=300) as f:
+            j = json.loads(f.read().decode())
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"ComfyUI /upload/image HTTP {e.code}: {e.read().decode(errors='replace')[:1000]}")
+    return f"{j['subfolder']}/{j['name']}" if j.get("subfolder") else j["name"]
+
+
+def download(item, dst):
+    """遠端模式：用 /view 取回 ComfyUI 的輸出（item＝history 裡的 {filename, subfolder, type}）。"""
+    q = urllib.parse.urlencode({"filename": item["filename"], "subfolder": item.get("subfolder", ""), "type": item.get("type", "output")})
+    with urllib.request.urlopen(f"{HOST}/view?{q}", timeout=300) as f, open(dst, "wb") as o:
+        shutil.copyfileobj(f, o, 1 << 20)
+    return dst
+
+
 def stage(src, name):
+    if REMOTE:
+        return upload(src, name)
     d = comfy_paths.input_dir(HOST) / "h3_shot"
     d.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, d / name)
@@ -376,6 +410,8 @@ def build_graph(spec, prompt, base, tag):
         "15": {"class_type": "SaveVideo", "inputs": {"video": ["14", 0], "filename_prefix": f"h3_shot/{tag}", "format": "mp4", "codec": "h264"}},
         "16": {"class_type": "SaveImage", "inputs": {"images": ["12", 0], "filename_prefix": f"h3_shot_png/{tag}/f"}},
     }
+    if REMOTE:  # 逐格 PNG 存到對方的 temp（無損 PNG、重開 ComfyUI 自動清），下載回來壓完就丟
+        g["16"] = {"class_type": "PreviewImage", "inputs": {"images": ["12", 0]}}
     model = ["1", 0]
     lr = spec.get("lora")  # {"name": "xxx.safetensors", "strength": 1.0} or a list of them (stacked in order); 2026-10-01
     if lr:
@@ -491,12 +527,21 @@ def generate(spec, prompt, base, out):
             break
     e = h[pid]
     ok = e.get("status", {}).get("status_str") == "success"
+    tmp = None
     if ok:
         v = (e["outputs"]["15"].get("images") or e["outputs"]["15"].get("videos"))[0]
         raw = out / "clip_savevideo.mp4"
-        shutil.copy2(comfy_paths.output_dir(HOST) / v.get("subfolder", "") / v["filename"], raw)
-        frames = [comfy_paths.output_dir(HOST) / "h3_shot_png" / tag / im["filename"] for im in e["outputs"]["16"]["images"]]
-        lst = out / "frames.txt"
+        if REMOTE:  # 逐格 PNG 先下載到本機暫存（不放片子資料夾：那裡在雲端硬碟，幾百 MB 會觸發同步）
+            download({**v, "type": v.get("type", "output")}, raw)
+            tmp = Path(tempfile.mkdtemp(prefix=f"h3_{tag}_"))
+            ims = e["outputs"]["16"]["images"]
+            with ThreadPoolExecutor(8) as ex:
+                frames = list(ex.map(lambda im: download(im, tmp / im["filename"]), ims))
+            print(f"[remote] {HOST}：下載 {len(frames)} 格 {time.time() - t0:.0f}s", flush=True)
+        else:
+            shutil.copy2(comfy_paths.output_dir(HOST) / v.get("subfolder", "") / v["filename"], raw)
+            frames = [comfy_paths.output_dir(HOST) / "h3_shot_png" / tag / im["filename"] for im in e["outputs"]["16"]["images"]]
+        lst = (tmp or out) / "frames.txt"
         lst.write_text("".join(f"file '{f.as_posix()}'\nduration {1 / FPS:.6f}\n" for f in frames), encoding="utf-8")
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-i", str(raw), "-r", str(FPS),
                         "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-crf", "12", "-preset", "slow", "-pix_fmt", "yuv420p",
@@ -504,11 +549,15 @@ def generate(spec, prompt, base, out):
         # 逐格 PNG 只拿來壓 clip.mp4（crf 12），很吃硬碟（768p 每秒約 36 MB，每個 seed 都留）→ clip.mp4 壓好就刪（上游 7b4f3f7）。
         # H3_KEEP_PNG=1 保留（例如要做無損逐格實驗）。
         if os.environ.get("H3_KEEP_PNG") != "1" and (out / "clip.mp4").stat().st_size > 0:
-            shutil.rmtree(comfy_paths.output_dir(HOST) / "h3_shot_png" / tag, ignore_errors=True)
+            shutil.rmtree(tmp or comfy_paths.output_dir(HOST) / "h3_shot_png" / tag, ignore_errors=True)
             lst.unlink(missing_ok=True)
+        elif tmp:
+            print(f"[remote] 逐格 PNG 留在 {tmp}", flush=True)
     else:
         print(json.dumps(e.get("status", {}), ensure_ascii=False)[:3000])
     meta = {"ok": ok, "length": length, "seed": spec.get("seed", 42), "wall_s": round(time.time() - t0, 1), "tag": tag}
+    if REMOTE:
+        meta["host"] = HOST
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"[{'ok' if ok else 'FAIL'}] {out / 'clip.mp4'} {meta['wall_s']}s", flush=True)
     return ok
@@ -564,7 +613,9 @@ def main():
     try:
         req("/system_stats")
     except Exception as e:
-        sys.exit(f"ComfyUI not reachable at {HOST} ({e}); run {Path(__file__).with_name('start_comfy.cmd')} first")
+        sys.exit(f"ComfyUI not reachable at {HOST} ({e}); " + (
+            "on that PC run tools\\start_comfy.cmd with COMFY_LISTEN=0.0.0.0 and allow port 8188 in its firewall (cloud/README.md §3c)" if REMOTE
+            else f"run {Path(__file__).with_name('start_comfy.cmd')} first"))
     sys.exit(0 if generate(spec, prompt, spec_path.parent, out) else 1)
 
 

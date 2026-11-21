@@ -76,6 +76,33 @@ python pipeline/template_local/make_film.py h3 amb # 或直接：python cloud/hy
 - **限制**：接力鏡頭（spec 有 `first_clip`）等兩邊做完才由本機照順序跑；本機顯卡跑 H3 時不能同時配音（配音要先做完）；雲端部分一樣有上面的 H3 授權地區問題。本機要先開 ComfyUI。
 - 環境變數：`HYBRID_CHUNK`（雲端每批最多幾支，預設 8）、`HYBRID_MIN`（預設 8）、`HYBRID_KEEP=1`、`HYBRID_TOOLS`、`COLAB_NAME`、`COLAB_POLL`。
 
+## 3c. 區網兩台以上一起跑（家裡有另一台能跑 H3 的電腦）
+
+主機（做片的那台）照常跑 `make_film.py h3`（`make_battle.py`、`make_studio.py` 也一樣），另一台只當工作機，負責算 H3。
+
+**工作機（每次開機做一次）**：關掉 Comfy Desktop 視窗（它只聽本機），在 repo 根目錄開 cmd：
+```
+call configs\profile.cmd
+set COMFY_LISTEN=0.0.0.0
+tools\start_comfy.cmd
+```
+第一次用要在 Windows 防火牆放行 TCP 8188 的連入（只開「私人」網路）。這是系統安全設定，要自己做。工作機的 IP 用 `ipconfig` 查（IPv4 位址）。
+
+**主機**：
+```
+set H3_REMOTES=192.168.1.20                        # 多台用空白分隔；可省略 http:// 與 :8188
+python cloud\hybrid_h3.py --check                  # 先確認連得到、模型都在
+python pipeline\template_local\make_film.py h3      # 範本看到 H3_REMOTES 就改走共用佇列（不開 Colab）
+```
+- **做法**：所有鏡頭放進同一個佇列，本機和每台工作機各一個工人，一支做完再拿下一支。h3_shot.py 對遠端位址自動改成：首幀、引導音軌、參考音用 ComfyUI 的 `/upload/image` 上傳；跑完用 `/view` 把 mp4 和逐格 PNG 下載到主機的暫存資料夾，在主機壓 `clip.mp4`。成品跟本機跑的逐格相同（2026-11-21 同 seed 比對：`clip.mp4` 的逐格雜湊一樣）。
+- **工作機不用同步片子資料夾**：素材從主機上傳，成品寫回主機的 `work/h3/<鏡>/`，`meta.json` 會記 `host`。後面的台詞聽寫比對、接觸表都在主機做。
+- **開跑前會檢查**：連不上、缺 H3 主模型／文字編碼器／DMAD LoRA，或顯存不到 15GB，就不派給那台。兩台的 `configs\profile.cmd` 要選同一種文字編碼器（`H3_CLIP`，int8 或 NVFP4），不然同一支片前後鏡頭的質感會不一樣。
+- **出錯**：同一台連續失敗 2 次就不再派給它（多半是對方 ComfyUI 關了），失敗的鏡頭放回佇列，最後由本機補做。接力鏡頭（`first_clip`）一律等其他鏡頭做完、由本機照順序跑。
+- **工作機的暫存**：逐格 PNG 存在工作機 ComfyUI 的 temp，重開 ComfyUI 會自動清掉。一支 10 秒鏡約 0.5GB，連續做很多支就偶爾重開一次。上傳的素材留在工作機的 `input/h3_shot/`，檔案很小。
+- **網路**：每支鏡頭的下載量約等於逐格 PNG 的大小（768p 每秒約 36MB），有線十億位元網路約幾秒。Wi-Fi 也能用，只是比較慢。
+- 加 Colab：`H3_BACKEND=both` 加 `H3_REMOTES`，就是本機＋區網＋Colab 三方一起跑（Colab 依照本機＋區網的總速度估算該拿幾支）。
+- 2026-11-21 在 PC-YI-SL 用 `H3_REMOTE=1` 拿本機 ComfyUI 冒充工作機，驗過上傳、下載、共用佇列（本機、工作機各 1 支、失敗 0）與 `--check`。**兩台實機還沒跑過**。
+
 ## 4. 實測：該租哪張卡
 
 同一個鏡頭（90 格、1344×768、DMAD 4 步）、同一個 seed，與 RTX 5090 本機成品比較：
@@ -158,7 +185,7 @@ python pipeline/template_local/make_film.py h3 amb # 或直接：python cloud/hy
 | 檔案 | 在哪執行 | 做什麼 |
 |---|---|---|
 | `colab_h3.py` | 你的電腦 | 開機、裝環境、批次跑 H3、保持連線、關機、全雲端 smoke／film（只用 Python 標準函式庫） |
-| `hybrid_h3.py` | 你的電腦 | 本機＋Colab 一起跑 H3（共用佇列；`H3_BACKEND=both`；尚未實測） |
+| `hybrid_h3.py` | 你的電腦 | 本機＋區網其他電腦（`H3_REMOTES`，§3c）＋Colab（`H3_BACKEND=both`）一起跑 H3 的共用佇列；`--check` 檢查工作機 |
 | `colab_cli_windows_patch.py` | 你的電腦（Windows） | 讓 Colab CLI 在 Windows 上能啟動 |
 | `vm/setup_h3.py` | Colab | ComfyUI 0.37＋H3＋DMAD，開 1–3 個 ComfyUI（預設 2 個、錯開） |
 | `vm/run_batch.py` | Colab | 把一批鏡頭分給各個 ComfyUI 跑，寫進度、打包成品 |
